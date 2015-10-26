@@ -5,7 +5,7 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.CompletableFuture;
 import static db.postgresql.async.TaskState.*;
 
-class Task <T> implements Runnable {
+public class Task <T> {
     
     private final CompletableFuture<T> future;
     public CompletableFuture<T> getFuture() { return future; }
@@ -14,9 +14,17 @@ class Task <T> implements Runnable {
         this.future = new CompletableFuture<>();
     }
 
+    public boolean holdsFullRecord(final ByteBuffer buffer) {
+        //assumes that position is pointed at start of record
+        if(buffer.remaining() < 8) {
+            return false;
+        }
+
+        final int size = buffer.getInt(4);
+        return (buffer.remaining() - 8) >= size;
+    }
+
     public TaskState perform(final ByteBuffer buffer) {
         return finished();
     }
-    
-    public void run() { }
 }
