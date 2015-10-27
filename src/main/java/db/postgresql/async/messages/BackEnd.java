@@ -10,29 +10,25 @@ public enum BackEnd {
     BindComplete(Response::new),
     CloseComplete(Response::new),
     CommandComplete(CommandComplete::new),
-    CopyData,
+    CopyData(CopyData::new),
     CopyDone(Response::new),
-    CopyInResponse,
-    CopyOutResponse,
-    CopyBothResponse,
-    DataRow,
+    CopyInResponse(CopyResponse::new),
+    CopyOutResponse(CopyResponse::new),
+    CopyBothResponse(CopyResponse::new),
+    DataRow((buffer) -> { throw new UnsupportedOperationException(); }),
     EmptyQueryResponse(Response::new),
     ErrorResponse(Notice::new),
-    FunctionCallResponse,
+    FunctionCallResponse(FunctionCallResponse::new),
     NoData(Response::new),
     NoticeResponse(Notice::new),
-    NotificationResponse,
-    ParameterDescription,
-    ParameterStatus,
+    NotificationResponse(Notification::new),
+    ParameterDescription(ParameterDescription::new),
+    ParameterStatus(ParameterStatus::new),
     ParseComplete(Response::new),
     PortalSuspended(Response::new),
-    ReadyForQuery,
-    RowDescription;
+    ReadyForQuery(ReadyForQuery::new),
+    RowDescription(RowDescription::new);
 
-    private BackEnd() {
-        this(null);
-    }
-    
     private BackEnd(final Function<ByteBuffer,? extends Response> builder) {
         this.builder = builder;
     }

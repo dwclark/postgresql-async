@@ -5,21 +5,12 @@ import java.nio.charset.Charset;
 
 public class Response {
 
-    public BackEnd getBackEnd() {
-        return backEnd;
-    }
-
-    private final BackEnd backEnd;
-
-    public int getSize() {
-        return size;
-    }
-    
-    private final int size;
+    public final BackEnd backEnd;
+    public final int size;
 
     public Response(final ByteBuffer buffer) {
         this.backEnd = BackEnd.find(buffer.get());
-        this.size = buffer.getInt();
+        this.size = buffer.getInt() - 4;
     }
 
     public static String ascii(final ByteBuffer buffer) {
