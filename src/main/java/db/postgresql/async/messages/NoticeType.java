@@ -5,48 +5,46 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public enum NoticeType {
-    Severity('S'),
-    Code('C'),
-    Message('M'),
-    Detail('D'),
-    Hint('H'),
-    Position('P'),
-    InternalPosition('p'),
-    InternalQuery('q'),
-    Where('W'),
-    SchemaName('s'),
-    TableName('t'),
-    ColumnName('c'),
-    DataTypeName('d'),
-    ConstraintName('n'),
-    File('F'),
-    Line('L'),
-    Routine('R'),
-    Unknown(' ');
+    Severity,
+    Code,
+    Message,
+    Detail,
+    Hint,
+    Position,
+    InternalPosition,
+    InternalQuery,
+    Where,
+    SchemaName,
+    TableName,
+    ColumnName,
+    DataTypeName,
+    ConstraintName,
+    File,
+    Line,
+    Routine,
+    Unknown;
 
-    private NoticeType(char c) {
-        this.code = (byte) c;
-    }
-
-    public final byte code;
-
-    private static final Map<Byte,NoticeType> map;
-
-    static {
-        Map<Byte,NoticeType> tmp = new LinkedHashMap<>();
-        for(NoticeType nt : values()) {
-            tmp.put(nt.code, nt);
-        }
-
-        map = Collections.unmodifiableMap(tmp);
-    }
-    
-    public static NoticeType from(byte b) {
-        if(map.containsKey(b)) {
-            return map.get(b);
-        }
-        else {
-            return NoticeType.Unknown;
+    public static NoticeType find(byte b) {
+        switch(b) {
+        case ((byte) 'S'): return Severity;
+        case ((byte) 'C'): return Code;
+        case ((byte) 'M'): return Message;
+        case ((byte) 'D'): return Detail;
+        case ((byte) 'H'): return Hint;
+        case ((byte) 'P'): return Position;
+        case ((byte) 'p'): return InternalPosition;
+        case ((byte) 'q'): return InternalQuery;
+        case ((byte) 'W'): return Where;
+        case ((byte) 's'): return SchemaName;
+        case ((byte) 't'): return TableName;
+        case ((byte) 'c'): return ColumnName;
+        case ((byte) 'd'): return DataTypeName;
+        case ((byte) 'n'): return ConstraintName;
+        case ((byte) 'F'): return File;
+        case ((byte) 'L'): return Line;
+        case ((byte) 'R'): return Routine;
+        case ((byte) ' '):
+        default: return Unknown;
         }
     }
 }

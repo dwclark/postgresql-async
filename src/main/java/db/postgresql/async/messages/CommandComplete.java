@@ -6,9 +6,14 @@ public class CommandComplete extends Response {
 
     enum Action { INSERT, DELETE, UPDATE, SELECT, MOVE, FETCH, COPY; }
 
-    public final Action action;
-    public final int rows;
-    public final int oid;
+    private final Action action;
+    public Action getAction() { return action; }
+    
+    private final int rows;
+    public int getRows() { return rows; }
+    
+    private final int oid;
+    public int getOid() { return oid; }
     
     public CommandComplete(final ByteBuffer buffer) {
         super(buffer);

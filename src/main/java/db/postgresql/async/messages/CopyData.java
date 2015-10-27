@@ -7,13 +7,11 @@ import java.io.IOException;
 public class CopyData extends Response {
 
     private int copied = 0;
+    public int getCopied() { return copied; }
+    public int getRemaining() { return getSize() - copied; }
     
     public CopyData(final ByteBuffer buffer) {
         super(buffer);
-    }
-
-    public int getRemaining() {
-        return size - copied;
     }
 
     public void toChannel(final ByteBuffer buffer, final WritableByteChannel channel) {

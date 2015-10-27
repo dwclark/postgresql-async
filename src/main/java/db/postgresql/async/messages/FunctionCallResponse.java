@@ -6,7 +6,8 @@ public class FunctionCallResponse extends Response {
 
     private static final byte[] EMPTY = new byte[0];
     
-    public final byte[] data;
+    private final byte[] data;
+    public byte[] getData() { return data; }
 
     public FunctionCallResponse(final ByteBuffer buffer) {
         super(buffer);

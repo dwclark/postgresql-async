@@ -2,23 +2,13 @@ package db.postgresql.async.messages;
 
 public enum Format {
 
-    TEXT(0), BINARY(1);
+    TEXT, BINARY;
 
-    private Format(int id) {
-        this.id = id;
-    }
-
-    public final int id;
-
-    public static Format from(final int i) {
-        if(i == TEXT.id) {
-            return TEXT;
-        }
-        else if(i == BINARY.id) {
-            return BINARY;
-        }
-        else {
-            throw new IllegalArgumentException("Not a valid format id: " + i);
+    public static Format find(final int i) {
+        switch(i) {
+        case 0: return TEXT;
+        case 1: return BINARY;
+        default: throw new IllegalArgumentException("Not a valid format id: " + i);
         }
     }
 

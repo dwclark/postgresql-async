@@ -4,13 +4,26 @@ import java.nio.ByteBuffer;
 import static db.postgresql.async.messages.Response.ascii;
 
 public class FieldDescriptor {
-    final String name;
-    final int tableOid;
-    final short columnOid;
-    final int typeOid;
-    final short typeSize;
-    final int typeModifier;
-    final Format format;
+    private final String name;
+    public String getName() { return name; }
+    
+    private final int tableOid;
+    public int getTableOid() { return tableOid; }
+    
+    private final short columnOid;
+    public int getColumnOid() { return columnOid; }
+    
+    private final int typeOid;
+    public int getTypeOid() { return typeOid; }
+    
+    private final short typeSize;
+    public short getTypeSize() { return typeSize; }
+    
+    private final int typeModifier;
+    public int getTypeModifier() { return typeModifier; }
+    
+    private final Format format;
+    public Format getFormat() { return format; }
 
     private FieldDescriptor(final String name, final int tableOid, final short columnOid,
                             final int typeOid, final short typeSize, final int typeModifier, final Format format) {
@@ -26,7 +39,7 @@ public class FieldDescriptor {
     public FieldDescriptor(final ByteBuffer buffer) {
         this(ascii(buffer), buffer.getInt(), buffer.getShort(),
              buffer.getInt(), buffer.getShort(), buffer.getInt(),
-             Format.from(buffer.getShort() & 0xFFFF));
+             Format.find(buffer.getShort() & 0xFFFF));
     }
 
     @Override

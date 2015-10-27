@@ -4,17 +4,20 @@ import java.nio.ByteBuffer;
 
 public class CopyResponse extends Response {
 
-    public final Format format;
-    public final Format[] columnFormats;
+    private final Format format;
+    public Format getFormat() { return format; }
+    
+    private final Format[] columnFormats;
+    public Format[] getColumnFormats() { return columnFormats; }
     
     public CopyResponse(final ByteBuffer buffer) {
         super(buffer);
-        format = Format.from(buffer.get() & 0xFF);
+        format = Format.find(buffer.get() & 0xFF);
         final int length = buffer.getShort() & 0xFFFF;
         if(length > 0) {
             columnFormats = new Format[length];
             for(int i = 0; i < length; ++i) {
-                columnFormats[i] = Format.from(buffer.getShort() & 0xFFFF);
+                columnFormats[i] = Format.find(buffer.getShort() & 0xFFFF);
             }
         }
         else {

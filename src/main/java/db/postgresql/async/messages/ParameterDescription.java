@@ -4,7 +4,8 @@ import java.nio.ByteBuffer;
 
 public class ParameterDescription extends Response {
 
-    public final int[] oids;
+    private final int[] oids;
+    public int[] getOids() { return oids; }
 
     public ParameterDescription(final ByteBuffer buffer) {
         super(buffer);

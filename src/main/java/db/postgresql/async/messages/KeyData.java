@@ -4,8 +4,11 @@ import java.nio.ByteBuffer;
 
 public class KeyData extends Response {
 
-    public final int pid;
-    public final int secretKey;
+    private final int pid;
+    public int getPid() { return pid; }
+    
+    private final int secretKey;
+    public int getSecretKey() { return secretKey; }
     
     public KeyData(final ByteBuffer buffer) {
         super(buffer);

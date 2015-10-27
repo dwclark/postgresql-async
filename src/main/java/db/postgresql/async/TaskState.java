@@ -1,6 +1,6 @@
 package db.postgresql.async;
 
-public class TaskState {
+class TaskState {
 
     enum Next { FINISHED, MORE, AT_LEAST };
 

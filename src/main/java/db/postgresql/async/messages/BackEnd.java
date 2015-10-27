@@ -33,33 +33,32 @@ public enum BackEnd {
         this.builder = builder;
     }
 
-    public static BackEnd find(final byte b) {
-        final char lookFor = (char) b;
+    public static BackEnd find(final byte lookFor) {
         switch(lookFor) {
-        case 'R': return Authentication;
-        case 'K': return BackendKeyData;
-        case '2': return BindComplete;
-        case '3': return CloseComplete;
-        case 'C': return CommandComplete;
-        case 'd': return CopyData;
-        case 'c': return CopyDone;
-        case 'G': return CopyInResponse;
-        case 'H': return CopyOutResponse;
-        case 'W': return CopyBothResponse;
-        case 'D': return DataRow;
-        case 'I': return EmptyQueryResponse;
-        case 'E': return ErrorResponse;
-        case 'V': return FunctionCallResponse;
-        case 'n': return NoData;
-        case 'N': return NoticeResponse;
-        case 'A': return NotificationResponse;
-        case 't': return ParameterDescription;
-        case 'S': return ParameterStatus;
-        case '1': return ParseComplete;
-        case 's': return PortalSuspended;
-        case 'Z': return ReadyForQuery;
-        case 'T': return RowDescription;
-        default: throw new IllegalStateException(lookFor + " is not  valid back end message");
+        case ((byte) 'R'): return Authentication;
+        case ((byte) 'K'): return BackendKeyData;
+        case ((byte) '2'): return BindComplete;
+        case ((byte) '3'): return CloseComplete;
+        case ((byte) 'C'): return CommandComplete;
+        case ((byte) 'd'): return CopyData;
+        case ((byte) 'c'): return CopyDone;
+        case ((byte) 'G'): return CopyInResponse;
+        case ((byte) 'H'): return CopyOutResponse;
+        case ((byte) 'W'): return CopyBothResponse;
+        case ((byte) 'D'): return DataRow;
+        case ((byte) 'I'): return EmptyQueryResponse;
+        case ((byte) 'E'): return ErrorResponse;
+        case ((byte) 'V'): return FunctionCallResponse;
+        case ((byte) 'n'): return NoData;
+        case ((byte) 'N'): return NoticeResponse;
+        case ((byte) 'A'): return NotificationResponse;
+        case ((byte) 't'): return ParameterDescription;
+        case ((byte) 'S'): return ParameterStatus;
+        case ((byte) '1'): return ParseComplete;
+        case ((byte) 's'): return PortalSuspended;
+        case ((byte) 'Z'): return ReadyForQuery;
+        case ((byte) 'T'): return RowDescription;
+        default: throw new IllegalStateException(((char) lookFor) + " is not  valid back end message");
         }
     }
 

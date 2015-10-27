@@ -4,7 +4,8 @@ import java.nio.ByteBuffer;
 
 public class ReadyForQuery extends Response {
 
-    public final TransactionStatus status;
+    private final TransactionStatus status;
+    public TransactionStatus getStatus() { return status; }
     
     public ReadyForQuery(final ByteBuffer buffer) {
         super(buffer);

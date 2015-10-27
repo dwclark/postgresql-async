@@ -5,8 +5,11 @@ import java.nio.charset.Charset;
 
 public class Response {
 
-    public final BackEnd backEnd;
-    public final int size;
+    private final BackEnd backEnd;
+    public BackEnd getBackEnd() { return backEnd; }
+    
+    private final int size;
+    public int getSize() { return size; }
 
     public Response(final ByteBuffer buffer) {
         this.backEnd = BackEnd.find(buffer.get());

@@ -29,8 +29,11 @@ public class Authentication extends Response {
         }
     }
 
-    public final Type type;
-    public final byte[] salt;
+    private final Type type;
+    public Type getType() { return type; }
+    
+    private final byte[] salt;
+    public byte[] getSalt() { return salt; }
 
     public Authentication(final ByteBuffer buffer) {
         super(buffer);
@@ -41,7 +44,7 @@ public class Authentication extends Response {
             this.salt = tmp;
         }
         else {
-            this.salt = null;
+            this.salt = new byte[0];
         }
     }
 }

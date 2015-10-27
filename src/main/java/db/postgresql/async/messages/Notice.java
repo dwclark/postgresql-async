@@ -7,7 +7,8 @@ import java.util.Collections;
 
 public class Notice extends Response {
 
-    public final Map<NoticeType,String> messages;
+    private final Map<NoticeType,String> messages;
+    public Map<NoticeType,String> getMessages() { return messages; }
 
     public Notice(final ByteBuffer buffer) {
         super(buffer);
@@ -15,7 +16,7 @@ public class Notice extends Response {
         final Map<NoticeType,String> map = new LinkedHashMap<>();
         byte byteType;
         while((byteType = buffer.get()) != NULL) {
-            map.put(NoticeType.from(byteType), ascii(buffer));
+            map.put(NoticeType.find(byteType), ascii(buffer));
         }
 
         this.messages = Collections.unmodifiableMap(map);

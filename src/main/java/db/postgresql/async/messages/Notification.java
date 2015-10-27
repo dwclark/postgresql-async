@@ -4,9 +4,14 @@ import java.nio.ByteBuffer;
 
 public class Notification extends Response {
 
-    public final int pid;
-    public final String channel;
-    public final String payload;
+    private final int pid;
+    public int getPid() { return pid; }
+    
+    private final String channel;
+    public String getChannel() { return channel; }
+    
+    private final String payload;
+    public String getPayload() { return payload; }
 
     public Notification(final ByteBuffer buffer) {
         super(buffer);
