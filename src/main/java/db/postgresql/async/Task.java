@@ -9,7 +9,7 @@ public class Task <T> {
     
     private final CompletableFuture<T> future;
     public CompletableFuture<T> getFuture() { return future; }
-    
+
     public Task() {
         this.future = new CompletableFuture<>();
     }
@@ -25,6 +25,7 @@ public class Task <T> {
     }
 
     public TaskState perform(final ByteBuffer buffer) {
+        //TODO: add code to complete task if needed
         return finished();
     }
 }

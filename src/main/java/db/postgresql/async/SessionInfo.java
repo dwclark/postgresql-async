@@ -2,6 +2,9 @@ package db.postgresql.async;
 
 import java.nio.charset.Charset;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
+import java.net.SocketAddress;
+import java.net.InetSocketAddress;
 
 public class SessionInfo {
     private final String user;
@@ -37,34 +40,39 @@ public class SessionInfo {
     private final Locale money;
     public Locale getMoney() { return money; }
 
-    private final int channels;
-    public int getChannels() { return channels; }
+    private final int minChannels;
+    public int getMinChannels() { return minChannels; }
 
-    private SessionInfo(final String user,
-                        final String password,
-                        final String database,
-                        final String host,
-                        final int port,
-                        final String application,
-                        final Charset encoding,
-                        final String postgresEncoding,
-                        final boolean ssl,
-                        final Locale numeric,
-                        final Locale money,
-                        final int channels) {
+    private final int maxChannels;
+    public int getMaxChannels() { return maxChannels; }
+
+    private final long backOff;
+    public long getBackOff() { return backOff; }
+
+    private final TimeUnit backOffUnits;
+    public TimeUnit getBackOffUnits() { return backOffUnits; }
+
+    public SocketAddress getSocketAddress() {
+        return new InetSocketAddress(host, post);
+    }
+
+    private SessionInfo(final Builder builder) {
                         
-        this.user = user;
-        this.password = password;
-        this.database = database;
-        this.host = host;
-        this.port = port;
-        this.application = application;
-        this.encoding = encoding;
-        this.postgresEncoding = postgresEncoding;
-        this.ssl = ssl;
-        this.numeric = numeric;
-        this.money = money;
-        this.channels = channels;
+        this.user = builder.user;
+        this.password = builder.password;
+        this.database = builder.database;
+        this.host = builder.host;
+        this.port = builder.port;
+        this.application = builder.application;
+        this.encoding = builder.encoding;
+        this.postgresEncoding = builder.postgresEncoding;
+        this.ssl = builder.ssl;
+        this.numeric = builder.numeric;
+        this.money = builder.money;
+        this.minChannels = builder.minChannels;
+        this.maxChannels = builder.maxChannels;
+        this.backOff = builder.backOff;
+        this.backOffUnits = builder.backOffUnits;
     }
 
     public static class Builder {
@@ -79,7 +87,10 @@ public class SessionInfo {
         private boolean ssl = false;
         private Locale numeric = Locale.getDefault();
         private Locale money = Locale.getDefault();
-        private int channels = 1;
+        private int minChannels = 1;
+        private int maxChannels = 1;
+        private long backOff = 60L;
+        private TimeUnit backOffUnits = TimeUnit.SECONDS;
 
         public Builder() { }
 
@@ -107,7 +118,29 @@ public class SessionInfo {
 
         public Builder money(final Locale val) { money = val; return this; }
 
-        public Builder channels(final int val) { channels = val; return this; }
+        public Builder channels(final int min, final int max) {
+            if(min <= 0) {
+                throw new IllegalArgumentException("min must be greater than 0");
+            }
+
+            if(max <= 0) {
+                throw new IllegalArgumentException("max must be greater than 0");
+            }
+
+            if(min >= max) {
+                throw new IllegalArgumentException("min must be <= max");
+            }
+            
+            minChannels = min;
+            maxChannels = max;
+            return this;
+        }
+
+        public Builder backOff(final long backOff, final TimeUnit units) {
+            this.backOff = backOff;
+            this.backOffUnits = units;
+            return this;
+        }
 
         public SessionInfo build() {
             if(user == null) {
@@ -122,12 +155,7 @@ public class SessionInfo {
                 throw new IllegalStateException("You must specify a host");
             }
 
-            return new SessionInfo(user, password,
-                                   database, host,
-                                   port, application,
-                                   encoding, postgresEncoding,
-                                   ssl, numeric,
-                                   money, channels);
+            return new SessionInfo(this);
         }
     }
 }

@@ -1,26 +1,67 @@
 package db.postgresql.async;
 
+import java.nio.ByteBuffer;
+
 class TaskState {
 
-    enum Next { FINISHED, MORE, AT_LEAST };
+    private static final int FINISHED = 0b0001;
+    private static final int MORE = 0b0010;
+    private static final int AT_LEAST = 0b0100;
+    private static final int WRITE = 0b1000;
+    
+    private final int need;
+    private final Object payload;
 
-    public final Next next;
-    public final int bytes;
-
-    private TaskState(final Next next, final int bytes) {
-        this.next = next;
-        this.bytes = bytes;
+    private TaskState(final int need, final Object payload) {
+        this.need = need;
+        this.payload = payload;
     }
     
     public static TaskState finished() {
-        return new TaskState(Next.FINISHED, 0);
+        return new TaskState(FINISHED, null);
     }
 
     public static TaskState more() {
-        return new TaskState(Next.MORE, 0);
+        return new TaskState(MORE, null);
+    }
+    
+    public static TaskState atLeast(final Integer bytes) {
+        return new TaskState(MORE | AT_LEAST, bytes);
     }
 
-    public static TaskState atLeast(int bytes) {
-        return new TaskState(Next.AT_LEAST, bytes);
+    public static TaskState write(final ByteBuffer buffer) {
+        return new TaskState(WRITE, buffer);
+    }
+
+    public boolean isFinished() {
+        return (FINISHED & need) != 0;
+    }
+
+    public boolean isMore() {
+        return (MORE & need) != 0;
+    }
+
+    public boolean isAtLeast() {
+        return (AT_LEAST & need) != 0;
+    }
+
+    public boolean isWrite() {
+        return (WRITE & need) != 0;
+    }
+
+    public int getBytes() {
+        if(!isAtLeast()) {
+            throw new IllegalStateException("No bytes specified");
+        }
+
+        return (Integer) payload;
+    }
+
+    public ByteBuffer getByteBuffer() {
+        if(!isWrite()) {
+            throw new IllegalStateException("No byte buffer specified");
+        }
+
+        return (ByteBuffer) payload;
     }
 }

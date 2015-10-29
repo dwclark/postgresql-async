@@ -13,8 +13,8 @@ public class PgTypeRegistry {
     private final short id;
     public short getId() { return id; }
     
-    private final ConcurrentMap<Integer,PgType> oidMap = new ConcurrentHashMap<>();
-    private final ConcurrentMap<NameKey,PgType> nameMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Integer,PgType> oidMap = new ConcurrentHashMap<>(200, 0.75f, 1);
+    private final ConcurrentMap<NameKey,PgType> nameMap = new ConcurrentHashMap<>(200, 0.75f, 1);
 
     public PgTypeRegistry() {
         this.id = (short) counter.getAndIncrement();

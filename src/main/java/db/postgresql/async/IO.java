@@ -1,5 +1,7 @@
 package db.postgresql.async;
 
+import java.util.Map;
+import java.util.AbstractMap;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -17,57 +19,33 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
 class IO {
-    private static final long WRITE_TIMEOUT = 10L;
-    private static final TimeUnit WRITE_TIMEOUT_UNIT = TimeUnit.SECONDS;
-    private static final ByteBuffer[] EMPTY_BUFFERS = new ByteBuffer[0];
-    private final ExecutorService ioPool;
     private final AsynchronousSocketChannel channel;
-    private final SocketAddress address;
-    private final Queue<ByteBuffer> writes = new ConcurrentLinkedQueue<>();
-    private final Queue<Task> tasks = new ConcurrentLinkedQueue<>();
-    private final Task defaultTask;
-    private final Semaphore writeLock = new Semaphore(1, true);
-    private final Writer writer = new Writer();
+    private final ResourcePool resourcePool;
     private final Reader reader = new Reader();
+    private final Writer writer = new Writer();
     private ByteBuffer readBuffer = ByteBuffer.allocate(32 * 1024);
     
-    public IO(final SocketAddress address, final AsynchronousChannelGroup group,
-              final ExecutorService ioPool, final Task defaultTask) {
+    public IO(final SocketAddress address, final AsynchronousChannelGroup group, final ResourcePool resourcePool) {
         try {
-            this.address = address;
             this.channel = AsynchronousSocketChannel.open(group);
-            this.ioPool = ioPool;
             this.defaultTask = defaultTask;
             channel.connect(address).get();
-            channel.read(readBuffer, reader, null);
+            this.resourcePool = resourcePool;
         }
         catch(IOException | InterruptedException | ExecutionException ex) {
             throw new RuntimeException(ex);
         }
     }
-
+    
     public boolean isOpen() {
         return channel.isOpen();
     }
-
+    
     private void close() {
         try {
             channel.close();
         }
         catch(IOException ex) { }
-    }
-
-    private void failAllTasks(Throwable t) {
-        Task task = tasks.poll();
-        while(task != null) {
-            task.getFuture().completeExceptionally(t);
-            task = tasks.poll();
-        }
-    }
-
-    private Task getCurrentTask() {
-        Task first = tasks.peek();
-        return (first != null) ? first : defaultTask;            
     }
 
     public void increase(final int by) {
@@ -80,90 +58,65 @@ class IO {
         readBuffer = tmp;
     }
 
-    private class Writer implements CompletionHandler<Long, Void>, Runnable {
+    private class Writer implements CompletionHandler<Integer, Map.Entry<ByteBuffer,Task>>, Runnable {
 
-        private ByteBuffer[] next() {
-            ByteBuffer next = writes.peek();
-            while(next != null && next.remaining() == 0) {
-                writes.poll();
-                next = writes.peek();
+        public void completed(Integer bytes, Map.Entry<ByteBuffer,Task> pair) {
+            if(pair.getKey().remaining()) {
+                channel.write(pair.getKey(), pair, writer);
             }
-            
-            return writes.toArray(EMPTY_BUFFERS);
+
+            channel.read(readBuffer, pair.getValue(), reader);
         }
 
-        private void doWrite() {
-            ByteBuffer[] next = next();
-            if(next.length > 0) {
-                channel.write(next, 0, next.length, WRITE_TIMEOUT, WRITE_TIMEOUT_UNIT,
-                              null, this);
-            }
-            else {
-                writeLock.release();
-            }
-        }
-
-        public void start() {
-            boolean locked = writeLock.tryAcquire();
-            if(locked) {
-                doWrite();
-            }
-            else {
-                ioPool.execute(this);
-            }
-        }
-
-        public void run() {
-            writeLock.acquireUninterruptibly();
-            doWrite();
-        }
-        
-        public void completed(Long bytes, Void v) {
-            doWrite();
-        }
-
-        public void failed(Throwable ex, Void v) {
-            writeLock.release();
+        public void failed(Throwable ex, Map.Entry<ByteBuffer,Task>) {
+            task.getFuture().completeExceptionally(ex);
             close();
-            failAllTasks(ex);
+            resourcePool.bad(IO.this);
         }
     }
 
-    private class Reader implements CompletionHandler<Integer,Void> {
+    private class Reader implements CompletionHandler<Integer,Task> {
 
-        public void completed(Integer bytes, Void v) {
+        public void completed(Integer bytes, Task task) {
             readBuffer.flip();
-            TaskState state = getCurrentTask().perform(readBuffer);
+            TaskState state = task.perform(readBuffer);
             readBuffer.compact();
-            if(state.next == TaskState.Next.FINISHED) {
-                tasks.poll();
+
+            if(state.isFinished()) {
+                return;
             }
-            else if(state.next == TaskState.Next.AT_LEAST) {
+            
+            if(state.isAtLeast()) {
                 final int possible = readBuffer.capacity() - readBuffer.position();
-                final int needed = state.bytes - possible;
+                final int needed = state.getBytes() - possible;
                 if(needed > 0) {
                     increase(needed);
                 }
             }
 
-            channel.read(readBuffer, this, null);
+            if(state.isMore()) {
+                channel.read(readBuffer, task, reader);
+            }
+
+            if(state.isWrite()) {
+                channel.write(state.getByteBuffer(), task, reader);
+            }
         }
         
-        public void failed(Throwable ex, Void v) {
+        public void failed(Throwable ex, Task task) {
+            task.getFuture().completeExceptionally(ex);
             close();
-            failAllTasks(ex);
+            resourcePool.bad(IO.this);
         }
     }
 
-    public <T> CompletableFuture<T> execute(final ByteBuffer buffer, final Task<T> task) {
+    public void execute(final ByteBuffer buffer, final Task task) {
         if(!channel.isOpen()) {
             task.getFuture().completeExceptionally(new ClosedChannelException());
-            return task.getFuture();
+            resourcePool.bad(this);
         }
-        
-        tasks.offer(task);
-        writes.offer(buffer);
-        writer.start();
-        return task.getFuture();
+        else {
+            channel.write(buffer, task, writer);
+        }
     }
 }

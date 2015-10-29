@@ -112,11 +112,10 @@ public class PgType {
             .append("complex: " + isComplex() + ", ")
             .append("builtin: " + isBuiltin() + ", ")
             .append("registry: " + registry + ", ")
-            .append("attributes: " + getAttributes() + ")").toString();
+            .append("attributes: " + attributes + ")").toString();
     }
 
     public SortedSet<PgAttribute> getAttributes() {
         return attributes;
     }
 }
-
