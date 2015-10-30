@@ -53,7 +53,7 @@ public class SessionInfo {
     public TimeUnit getBackOffUnits() { return backOffUnits; }
 
     public SocketAddress getSocketAddress() {
-        return new InetSocketAddress(host, post);
+        return new InetSocketAddress(host, port);
     }
 
     private SessionInfo(final Builder builder) {

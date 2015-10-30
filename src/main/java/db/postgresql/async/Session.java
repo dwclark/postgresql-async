@@ -1,29 +1,27 @@
 package db.postgresql.async;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
-import java.util.ArrayList;
+import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Queue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Session {
 
-    private static class PrefixFactory implements ThreadFactory {
+    private class PrefixFactory implements ThreadFactory {
 
         private final AtomicInteger counter = new AtomicInteger(0);
         private final String prefix;
@@ -33,7 +31,7 @@ public class Session {
         }
         
         public String getNext() {
-            new StringBuilder(50)
+            return new StringBuilder(50)
                 .append(prefix).append("-")
                 .append(sessionInfo.getDatabase()).append("-")
                 .append(sessionInfo.getUser()).append("-")
@@ -49,23 +47,28 @@ public class Session {
         private final ScheduledExecutorService recoveryService = Executors.newSingleThreadScheduledExecutor();
         private final Queue<IO> queue = new ConcurrentLinkedQueue<>();
         private final Semaphore semaphore = new Semaphore(0);
-        private final ReentrantLock totalLock = new ReentrantLock();
+        private final Lock lock = new ReentrantLock();
         private volatile int total = 0;
 
         private void add() {
-            total.lock();
+            lock.lock();
             try {
                 if(total == sessionInfo.getMaxChannels()) {
                     return;
                 }
 
-                final IO io = new IO(sessionInfo.getSocketAddress(), channelGroup, ioService);
+                final AsynchronousSocketChannel channel = AsynchronousSocketChannel.open(channelGroup);
+                channel.connect(sessionInfo.getSocketAddress()).get();
+                final IO io = new IO(channel, this);
                 ++total;
-                queue.put(io);
+                queue.offer(io);
                 semaphore.release();
             }
+            catch(IOException | InterruptedException | ExecutionException ex) {
+                recoveryService.schedule(() -> add(), sessionInfo.getBackOff(), sessionInfo.getBackOffUnits());
+            }
             finally {
-                totalLock.unlock();
+                lock.unlock();
             }
         }
         
@@ -76,7 +79,7 @@ public class Session {
         }
         
         public IO fast() {
-            if(semaphore.tryAquire()) {
+            if(semaphore.tryAcquire()) {
                 return queue.poll();
             }
 
@@ -88,16 +91,16 @@ public class Session {
         }
 
         public IO guaranteed() {
-            semaphore.aqcuireUninterruptibly();
+            semaphore.acquireUninterruptibly();
             return queue.poll();
         }
 
         public void good(final IO io) {
-            queue.put(io);
+            queue.offer(io);
         }
 
         public void bad(final IO io) {
-            totalLock.lock();
+            lock.lock();
             try {
                 --total;
                 if(total < sessionInfo.getMinChannels()) {
@@ -105,15 +108,12 @@ public class Session {
                 }
             }
             finally {
-                totalLock.unlock();
+                lock.unlock();
             }
         }
     }
 
     private final SessionInfo sessionInfo;
-    public SessionInfo getSessionInfo() { return sessionInfo; }
-
-    private final Task<Void> defaultTask;
     private final ExecutorService ioService;
     private final ExecutorService busyService;
     private final AsynchronousChannelGroup channelGroup;
@@ -122,23 +122,25 @@ public class Session {
     public Session(final SessionInfo sessionInfo) {
         try {
             this.sessionInfo = sessionInfo;
-            this.ioPool = new IOPool();
-            this.ioService = Executors.newCachedThreadPool(new PoolFactory("Session-IO-Pool"));
-            this.busyService = Executors.newSingleThreadedExecutor(new PoolFactory("Session-Busy-Pool"));
+            this.ioService = new ThreadPoolExecutor(sessionInfo.getMinChannels(), sessionInfo.getMaxChannels(),
+                                                    60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
+                                                    new PrefixFactory("Session-IO-Pool"));
+            this.busyService = Executors.newSingleThreadExecutor(new PrefixFactory("Session-Busy-Pool"));
             this.channelGroup = AsynchronousChannelGroup.withThreadPool(ioService);
+            this.ioPool = new IOPool();
         }
         catch(IOException ex) {
             throw new RuntimeException(ex);
         }
     }
 
-    public <T> CompletableFuture<T> execute(final ByteBuffer buffer, Task<T> task) {
+    public <T> CompletableFuture<T> execute(final Task<T> task) {
         final IO io = ioPool.fast();
         if(io != null) {
-            io.execute(buffer, task);
+            io.execute(task);
         }
         else {
-            busyService.execute(() -> ioPool.guaranteed().execute(buffer, task));
+            busyService.execute(() -> ioPool.guaranteed().execute(task));
         }
         
         return task.getFuture();
