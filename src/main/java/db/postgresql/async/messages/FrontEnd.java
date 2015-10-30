@@ -20,7 +20,8 @@ public enum FrontEnd {
     SSLRequest((buf, size) -> { buf.putInt(8); buf.putInt(80_877_103); }),
     StartupMessage((buf, size) -> { buf.putInt(size); buf.putInt(196_608); }),
     Sync((buf, size) -> { buf.put((byte) 'S'); buf.putInt(4); }),
-    Terminate((buf, size) -> { buf.put((byte) 'X'); buf.putInt(4); });
+    Terminate((buf, size) -> { buf.put((byte) 'X'); buf.putInt(4); }),
+    None((buf, size) -> { });
 
     private FrontEnd(final Header header) {
         this.header = header;
