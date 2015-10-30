@@ -63,4 +63,17 @@ public enum BackEnd {
     }
 
     public final Function<ByteBuffer,? extends Response> builder;
+
+    public int needs(final ByteBuffer buffer) {
+        if(buffer.remaining() < 5) {
+            return 1;
+        }
+        
+        buffer.mark();
+        buffer.get();
+        final int messageSize = buffer.getInt() - 4;
+        final int needed = Math.max(buffer.remaining() - messageSize, 0);
+        buffer.reset();
+        return needed;
+    }
 }

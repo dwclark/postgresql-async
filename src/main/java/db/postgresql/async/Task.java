@@ -12,16 +12,6 @@ public abstract class Task <T> {
         this.future = new CompletableFuture<>();
     }
 
-    public boolean holdsFullRecord(final ByteBuffer buffer) {
-        //assumes that position is pointed at start of record
-        if(buffer.remaining() < 5) {
-            return false;
-        }
-
-        final int size = buffer.getInt(1);
-        return (buffer.remaining() - 5) >= size;
-    }
-
     public abstract TaskState onStart(ByteBuffer writeBuffer, ByteBuffer readBuffer);
     public abstract TaskState onRead(ByteBuffer writeBuffer, ByteBuffer readBuffer);
     public abstract TaskState onWrite(ByteBuffer writeBuffer, ByteBuffer readBuffer);
