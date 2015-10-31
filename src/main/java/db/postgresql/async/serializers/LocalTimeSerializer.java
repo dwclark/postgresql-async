@@ -25,12 +25,4 @@ public class LocalTimeSerializer extends Serializer<LocalTime> {
     public String toString(final LocalTime val) {
         return val == null ? null : val.format(DATE);
     }
-
-    public LocalTime read(final ByteBuffer buffer, final int size) {
-        return isNull(size) ? null : fromString(bufferToString(buffer, size));
-    }
-
-    public void write(final ByteBuffer buffer, final LocalTime val) {
-        stringToBuffer(buffer, val.format(DATE));
-    }
 }

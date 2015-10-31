@@ -26,14 +26,4 @@ public class StringSerializer extends Serializer<String> {
     public String toString(final String str) {
         return str;
     }
-    
-    public String read(final ByteBuffer buffer, final int size) {
-        return isNull(size) ? null : bufferToString(buffer, size);
-    }
-    
-    public void write(final ByteBuffer buffer, final String val) {
-        if(val != null) {
-            stringToBuffer(buffer, val);
-        }
-    }
 }

@@ -38,12 +38,4 @@ public class NumericSerializer extends Serializer<BigDecimal> {
         getFormatter().format(bd, sb, new FieldPosition(0));
         return sb.toString();
     }
-    
-    public BigDecimal read(final ByteBuffer buffer, final int size) {
-        return isNull(size) ? null : fromString(bufferToString(buffer, size));
-    }
-
-    public void write(final ByteBuffer buffer, final BigDecimal bd) {
-        stringToBuffer(buffer, toString(bd));
-    }
 }

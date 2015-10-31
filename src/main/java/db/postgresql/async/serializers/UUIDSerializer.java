@@ -22,12 +22,4 @@ public class UUIDSerializer extends Serializer<UUID> {
     public String toString(final UUID val) {
         return val == null ? null : val.toString();
     }
-
-    public UUID read(final ByteBuffer buffer, final int size) {
-        return isNull(size) ? null : fromString(bufferToString(buffer, size));
-    }
-
-    public void write(final ByteBuffer buffer, final UUID val) {
-        stringToBuffer(buffer, val.toString());
-    }
 }

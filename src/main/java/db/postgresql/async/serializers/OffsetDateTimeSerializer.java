@@ -27,12 +27,4 @@ public class OffsetDateTimeSerializer extends Serializer<OffsetDateTime> {
     public String toString(final OffsetDateTime val) {
         return (val == null) ? null : val.format(DATE);
     }
-    
-    public OffsetDateTime read(final ByteBuffer buffer, final int size) {
-        return isNull(size) ? null : fromString(bufferToString(buffer, size));
-    }
-    
-    public void write(final ByteBuffer buffer, final OffsetDateTime date) {
-        stringToBuffer(buffer, date.format(DATE));
-    }
 }

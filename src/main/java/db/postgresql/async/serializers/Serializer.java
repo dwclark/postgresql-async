@@ -2,6 +2,7 @@ package db.postgresql.async.serializers;
 
 import java.nio.ByteBuffer;
 import java.lang.reflect.Array;
+import static db.postgresql.async.serializers.SerializationContext.*;
 
 public abstract class Serializer<T> {
 
@@ -20,8 +21,13 @@ public abstract class Serializer<T> {
     public abstract String toString(T o);
 
     //serialization for data row
-    public abstract T read(ByteBuffer buffer, int size);
-    public abstract void write(ByteBuffer buffer, T val);
+    public T read(final ByteBuffer buffer, final int size) {
+        return isNull(size) ? null : fromString(bufferToString(buffer, size));
+    }
+
+    public void write(final ByteBuffer buffer, final T o) {
+        stringToBuffer(buffer, toString(o));
+    }
 
     public void putArray(final Object ary, final int index, final String val) {
         Array.set(ary, index, fromString(val));
