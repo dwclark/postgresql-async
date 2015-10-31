@@ -10,7 +10,7 @@ import java.nio.BufferOverflowException;
 
 public class SerializationContext {
 
-    private static class StringOps {
+    public static class StringOps {
         
         private CharBuffer charBuffer = CharBuffer.allocate(1024);
         private Charset encoding = Charset.forName("UTF-8");
@@ -49,6 +49,8 @@ public class SerializationContext {
             @Override protected StringOps initialValue() {
                 return new StringOps();
             } };
+
+    public static StringOps stringOps() { return stringOps.get(); }
 
     public static void encoding(final Charset charset) {
         stringOps.get().setEncoding(charset);

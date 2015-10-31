@@ -13,7 +13,7 @@ public abstract class Serializer<T> {
     
     //basic information for java type identification
     public abstract Class<T> getType();
-    public abstract Class getArrayType();
+    public Class getArrayType() { return getType(); }
 
     //serialization for udt types
     public abstract T fromString(String str);
