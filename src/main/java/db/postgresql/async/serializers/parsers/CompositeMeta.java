@@ -1,4 +1,4 @@
-package db.postgresql.async.serializers;
+package db.postgresql.async.serializers.parsers;
 
 import java.util.function.BiFunction;
 
