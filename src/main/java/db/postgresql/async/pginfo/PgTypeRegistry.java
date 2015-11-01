@@ -35,6 +35,17 @@ public class PgTypeRegistry implements Registry {
         return this;
     }
 
+    public PgTypeRegistry put(final Class type, Serializer s) {
+        classSerializers.put(type, s);
+        return this;
+    }
+
+    public PgTypeRegistry put(final NameKey key, final Serializer s) {
+        final PgType pg = pgType(key);
+        oidSerializers.put(pg.getOid(), s);
+        return this;
+    }
+
     public PgType pgType(final Integer oid) {
         return oidMap.get(oid);
     }
