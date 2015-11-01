@@ -1,14 +1,12 @@
 package db.postgresql.async.serializers;
 
-import java.nio.ByteBuffer;
-import db.postgresql.async.pginfo.PgType;
+import db.postgresql.async.pginfo.PgId;
 import java.lang.reflect.Array;
+import java.nio.ByteBuffer;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
+@PgId("int4")
 public class IntegerSerializer extends Serializer<Integer> {
-
-    public static final PgType PGTYPE =
-        new PgType.Builder().name("int4").oid(23).arrayId(1007).build();
 
     private IntegerSerializer() { }
     
@@ -19,7 +17,7 @@ public class IntegerSerializer extends Serializer<Integer> {
     public Class getArrayType() { return int.class; }
 
     @Override
-    public void putArray(final Object ary, final int index, final String val) {
+    public void place(final Object ary, final int index, final String val) {
         Array.setInt(ary, index, Integer.parseInt(val));
     }
 

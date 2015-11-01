@@ -2,14 +2,13 @@ package db.postgresql.async.serializers;
 
 import java.nio.ByteBuffer;
 import java.lang.reflect.Array;
+import db.postgresql.async.serializers.parsers.ArrayParser;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
 public abstract class Serializer<T> {
 
-    public static final int NULL_LENGTH = -1;
-
-    public static boolean isNull(final int size) {
-        return size == NULL_LENGTH;
+    public final boolean isNull(final int size) {
+        return size == -1;
     }
     
     //basic information for java type identification
@@ -29,12 +28,11 @@ public abstract class Serializer<T> {
         stringToBuffer(buffer, toString(o));
     }
 
-    public void putArray(final Object ary, final int index, final String val) {
+    public void place(final Object ary, final int index, final String val) {
         Array.set(ary, index, fromString(val));
     }
     
-    public Object readArray(final ByteBuffer buffer, final int size, final char delimiter) {
-        throw new UnsupportedOperationException();
-        //return new ArrayParser(str(stream, size), this, delimiter).toArray();
+    public Object array(final ByteBuffer buffer, final int size, final char delimiter) {
+        return new ArrayParser(bufferToString(buffer, size), this, delimiter).toArray();
     }
 }

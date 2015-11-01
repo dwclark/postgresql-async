@@ -1,18 +1,13 @@
 package db.postgresql.async.serializers;
 
-import java.util.BitSet;
-import java.nio.CharBuffer;
+import db.postgresql.async.pginfo.PgId;
 import java.nio.ByteBuffer;
-import db.postgresql.async.pginfo.PgType;
+import java.nio.CharBuffer;
+import java.util.BitSet;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
+@PgId({"bit","varbit"})
 public class BitSetSerializer extends Serializer<BitSet> {
-
-    public static final PgType PGTYPE_BIT =
-        new PgType.Builder().name("bit").oid(1560).arrayId(1561).build();
-
-    public static final PgType PGTYPE_VARBIT =
-        new PgType.Builder().name("varbit").oid(1562).arrayId(1563).build();
 
     public static final BitSetSerializer instance = new BitSetSerializer();
     

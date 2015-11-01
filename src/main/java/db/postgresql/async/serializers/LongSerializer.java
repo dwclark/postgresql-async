@@ -1,14 +1,12 @@
 package db.postgresql.async.serializers;
+
+import db.postgresql.async.pginfo.PgId;
 import java.nio.ByteBuffer;
-import db.postgresql.async.pginfo.PgType;
 import java.lang.reflect.Array;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
-
+@PgId("int8")
 public class LongSerializer extends Serializer<Long> {
-
-    public static final PgType PGTYPE =
-        new PgType.Builder().name("int8").oid(20).arrayId(1016).build();
 
     public static final LongSerializer instance = new LongSerializer();
 
@@ -16,7 +14,7 @@ public class LongSerializer extends Serializer<Long> {
     public Class getArrayType() { return long.class; }
 
     @Override
-    public void putArray(final Object ary, final int index, final String val) {
+    public void place(final Object ary, final int index, final String val) {
         Array.setLong(ary, index, Long.parseLong(val));
     }
 

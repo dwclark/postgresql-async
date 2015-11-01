@@ -1,6 +1,5 @@
 package db.postgresql.async.serializers.parsers;
 
-import java.util.function.BiFunction;
 import java.util.Collection;
 import java.util.Iterator;
 import java.lang.reflect.Array;
@@ -140,7 +139,7 @@ public class ArrayParser {
             else {
                 calculateIndexes(mods, indexes, index);
                 final Object ary = findArray(theArray, indexes);
-                serializer.putArray(ary, indexes[indexes.length - 1], engine.getField());
+                serializer.place(ary, indexes[indexes.length - 1], engine.getField());
                 ++index;
             }
         }

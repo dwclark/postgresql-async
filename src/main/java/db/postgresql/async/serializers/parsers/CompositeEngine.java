@@ -2,7 +2,6 @@ package db.postgresql.async.serializers.parsers;
 
 import java.util.Deque;
 import java.util.ArrayDeque;
-import java.util.function.BiFunction;
 import static db.postgresql.async.serializers.parsers.CompositeMeta.*;
 
 //Rule: UDT consumes udt char and any quotes
@@ -12,7 +11,7 @@ import static db.postgresql.async.serializers.parsers.CompositeMeta.*;
 public class CompositeEngine <T extends CompositeMeta> {
 
     final Deque<T> levels = new ArrayDeque<>();
-    private final BiFunction<Character,Integer,T> factory;
+    private final CompositeFactory<T> factory;
     
     final CharSequence buffer;
     private int index = 0;
@@ -36,7 +35,7 @@ public class CompositeEngine <T extends CompositeMeta> {
         return withinQuotes;
     }
     
-    public CompositeEngine(final CharSequence buffer, final BiFunction<Character,Integer,T> factory) {
+    public CompositeEngine(final CharSequence buffer, final CompositeFactory<T> factory) {
         this.buffer = buffer;
         this.factory = factory;
     }
@@ -161,7 +160,7 @@ public class CompositeEngine <T extends CompositeMeta> {
             ++index;
         }
                 
-        final T next = factory.apply(buffer.charAt(index++), levels.size());
+        final T next = factory.make(buffer.charAt(index++), levels.size());
         levels.push(next);
     }
 

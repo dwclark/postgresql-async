@@ -1,17 +1,15 @@
 package db.postgresql.async.serializers;
 
-import java.nio.ByteBuffer;
-import db.postgresql.async.pginfo.PgType;
+import db.postgresql.async.pginfo.PgId;
 import java.lang.reflect.Array;
+import java.nio.ByteBuffer;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
+@PgId("bool")
 public class BooleanSerializer extends Serializer<Boolean> {
 
     public static final byte T = (byte) 't';
     public static final byte F = (byte) 'f';
-
-    public static final PgType PGTYPE =
-        new PgType.Builder().name("bool").oid(16).arrayId(1000).build();
 
     public static final BooleanSerializer instance = new BooleanSerializer();
 
@@ -20,7 +18,7 @@ public class BooleanSerializer extends Serializer<Boolean> {
     public Class<Boolean> getType() { return Boolean.class; }
     
     @Override
-    public void putArray(final Object ary, final int index, final String val) {
+    public void place(final Object ary, final int index, final String val) {
         Array.setBoolean(ary, index, val.charAt(0) == T ? true : false);
     }
 

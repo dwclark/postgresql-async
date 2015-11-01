@@ -1,6 +1,6 @@
 package db.postgresql.async.serializers;
 
-import db.postgresql.async.pginfo.PgType;
+import db.postgresql.async.pginfo.PgId;
 import db.postgresql.async.types.Money;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -11,10 +11,8 @@ import java.text.ParsePosition;
 import java.util.Locale;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
+@PgId("money")
 public class MoneySerializer extends Serializer<Money> {
-
-    public static final PgType PGTYPE =
-        new PgType.Builder().name("money").oid(790).arrayId(791).build();
 
     private final Locale locale;
 

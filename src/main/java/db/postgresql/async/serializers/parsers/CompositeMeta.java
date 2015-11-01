@@ -1,7 +1,5 @@
 package db.postgresql.async.serializers.parsers;
 
-import java.util.function.BiFunction;
-
 public abstract class CompositeMeta {
 
     public static final char STANDARD_DELIMITER = ',';
@@ -209,9 +207,9 @@ public abstract class CompositeMeta {
         }
     }
 
-    public static BiFunction<Character,Integer,UdtMeta> udt = (begin, level) -> new UdtMeta(level);
-    public static BiFunction<Character,Integer,GeometryMeta> geometry = (begin, level) -> new GeometryMeta(begin, level);
-    public static BiFunction<Character,Integer,Array> array(final Character delimiter) {
+    public static CompositeFactory<UdtMeta> udt = (begin, level) -> new UdtMeta(level);
+    public static CompositeFactory<GeometryMeta> geometry = (begin, level) -> new GeometryMeta(begin, level);
+    public static CompositeFactory<Array> array(final char delimiter) {
         return (begin, level) -> new Array(level, delimiter);
     }
 }

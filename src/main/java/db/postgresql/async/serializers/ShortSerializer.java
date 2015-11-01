@@ -1,14 +1,12 @@
 package db.postgresql.async.serializers;
 
-import java.nio.ByteBuffer;
-import db.postgresql.async.pginfo.PgType;
+import db.postgresql.async.pginfo.PgId;
 import java.lang.reflect.Array;
+import java.nio.ByteBuffer;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
+@PgId("int2")
 public class ShortSerializer extends Serializer<Short> {
-
-    public static final PgType PGTYPE =
-        new PgType.Builder().name("int2").oid(21).arrayId(1005).build();
 
     public static final ShortSerializer instance = new ShortSerializer();
 
@@ -16,7 +14,7 @@ public class ShortSerializer extends Serializer<Short> {
     public Class getArrayType() { return short.class; }
     
     @Override
-    public void putArray(final Object ary, final int index, final String val) {
+    public void place(final Object ary, final int index, final String val) {
         Array.setShort(ary, index, Short.parseShort(val));
     }
     

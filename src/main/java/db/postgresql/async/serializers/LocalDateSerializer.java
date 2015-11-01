@@ -1,18 +1,16 @@
 package db.postgresql.async.serializers;
 
-import db.postgresql.async.pginfo.PgType;
+import db.postgresql.async.pginfo.PgId;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
+@PgId("date")
 public class LocalDateSerializer extends Serializer<LocalDate> {
 
     private static final String STR = "uuuu-MM-dd";
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern(STR);
-
-    public static final PgType PGTYPE =
-        new PgType.Builder().name("date").oid(1082).arrayId(1182).build();
 
     public Class<LocalDate> getType() { return LocalDate.class; }
 

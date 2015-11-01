@@ -1,14 +1,12 @@
 package db.postgresql.async.serializers;
 
-import java.nio.ByteBuffer;
-import db.postgresql.async.pginfo.PgType;
+import db.postgresql.async.pginfo.PgId;
 import java.lang.reflect.Array;
+import java.nio.ByteBuffer;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
+@PgId("float4")
 public class FloatSerializer extends Serializer<Float> {
-    
-    public static final PgType PGTYPE =
-        new PgType.Builder().name("float4").oid(700).arrayId(1021).build();
 
     public static final FloatSerializer instance = new FloatSerializer();
 
@@ -16,7 +14,7 @@ public class FloatSerializer extends Serializer<Float> {
     public Class getArrayType() { return float.class; }
 
     @Override
-    public void putArray(final Object ary, final int index, final String val) {
+    public void place(final Object ary, final int index, final String val) {
         Array.setFloat(ary, index, Float.parseFloat(val));
     }
     

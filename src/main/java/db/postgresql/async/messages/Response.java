@@ -11,9 +11,13 @@ public class Response {
     private final int size;
     public int getSize() { return size; }
 
+    protected Response(final BackEnd backEnd, final int size) {
+        this.backEnd = backEnd;
+        this.size = size;
+    }
+
     public Response(final ByteBuffer buffer) {
-        this.backEnd = BackEnd.find(buffer.get());
-        this.size = buffer.getInt() - 4;
+        this(BackEnd.find(buffer.get()), buffer.getInt() - 4);
     }
 
     public static String ascii(final ByteBuffer buffer) {

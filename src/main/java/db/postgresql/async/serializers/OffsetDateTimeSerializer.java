@@ -1,19 +1,17 @@
 package db.postgresql.async.serializers;
 
-import db.postgresql.async.pginfo.PgType;
+import db.postgresql.async.pginfo.PgId;
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
+@PgId("timestamptz")
 public class OffsetDateTimeSerializer extends Serializer<OffsetDateTime> {
 
     private static final String STR = "uuuu-MM-dd HH:mm:ss.nx";
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern(STR);
-
-    public static final PgType PGTYPE =
-        new PgType.Builder().name("timestamptz").oid(1184).arrayId(1185).build();
 
     public static final OffsetDateTimeSerializer instance = new OffsetDateTimeSerializer();
     

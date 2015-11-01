@@ -1,15 +1,12 @@
 package db.postgresql.async.serializers;
 
-import db.postgresql.async.pginfo.PgType;
-import java.lang.reflect.Array;
+import db.postgresql.async.pginfo.PgId;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
+@PgId("uuid")
 public class UUIDSerializer extends Serializer<UUID> {
-
-    public static final PgType PGTYPE =
-        new PgType.Builder().name("uuid").oid(2950).arrayId(2951).build();
 
     public static final UUIDSerializer instance = new UUIDSerializer();
     

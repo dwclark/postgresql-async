@@ -1,14 +1,12 @@
 package db.postgresql.async.serializers;
 
-import java.nio.ByteBuffer;
-import db.postgresql.async.pginfo.PgType;
+import db.postgresql.async.pginfo.PgId;
 import java.lang.reflect.Array;
+import java.nio.ByteBuffer;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
+@PgId("float8")
 public class DoubleSerializer extends Serializer<Double> {
-
-    public static final PgType PGTYPE =
-        new PgType.Builder().name("float8").oid(701).arrayId(1022).build();
 
     public static final DoubleSerializer instance = new DoubleSerializer();
 
@@ -16,7 +14,7 @@ public class DoubleSerializer extends Serializer<Double> {
     public Class getArrayType() { return double.class; }
 
     @Override
-    public void putArray(final Object ary, final int index, final String val) {
+    public void place(final Object ary, final int index, final String val) {
         Array.setDouble(ary, index, Double.parseDouble(val));
     }
 
