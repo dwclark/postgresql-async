@@ -5,6 +5,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.Map;
 import java.util.EnumMap;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import db.postgresql.async.messages.*;
 import java.util.concurrent.TimeUnit;
 
@@ -27,11 +29,35 @@ public abstract class Task <T> {
 
     public abstract TaskState onStart(FrontEndMessage fe, ByteBuffer readBuffer);
     public abstract TaskState onRead(FrontEndMessage fe, ByteBuffer readBuffer);
-    public abstract TaskState onWrite(FrontEndMessage fe, ByteBuffer readBuffer);
+    
+    public TaskState onWrite(FrontEndMessage fe, ByteBuffer readBuffer) {
+        return TaskState.read();
+    }
 
     public TaskState ensureRecord(final ByteBuffer buffer) {
         final int needs = BackEnd.needs(buffer);
         return (needs > 0) ? TaskState.needs(needs) : TaskState.read();
+    }
+
+    public TaskState pump(final ByteBuffer readBuffer,
+                          final Predicate<Response> processor,
+                          final Supplier<TaskState> post) {
+        TaskState readState = null;
+        boolean keepGoing = true;
+        while(keepGoing &&
+              readBuffer.hasRemaining() &&
+              (readState = ensureRecord(readBuffer)).needs == 0) {
+            final Response resp = BackEnd.find(readBuffer.get()).builder.apply(readBuffer);
+
+            if(resp.getBackEnd().outOfBand) {
+                onOob(resp);
+            }
+            else {
+                keepGoing = processor.test(resp);
+            }
+        }
+
+        return (readState.needs > 0) ? readState : post.get(); 
     }
     
     public void onFail(Throwable t) {

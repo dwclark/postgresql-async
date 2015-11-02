@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 import static java.util.stream.Collectors.joining;
 
 //TODO: enforce write checks in front end message
-public abstract class NotificationTask extends Task<Void> {
+public class NotificationTask extends Task<Void> {
 
     protected final Set<String> subscribed = new CopyOnWriteArraySet<>();
     protected final Set<String> unsubscribe = new CopyOnWriteArraySet<>();
@@ -47,41 +47,37 @@ public abstract class NotificationTask extends Task<Void> {
             return TaskState.read();
         }
     }
-    
-    public TaskState onRead(final FrontEndMessage fe, ByteBuffer readBuffer) {
-        TaskState readState = null;
-        while(readBuffer.hasRemaining() && (readState = ensureRecord(readBuffer)).needs == 0) {
-            final BackEnd be = BackEnd.find(readBuffer.get());
-            final Response resp = be.builder.apply(readBuffer);
-            if(be.outOfBand) {
-                onOob(resp);
-            }
-            else if(be == BackEnd.CommandComplete || be == BackEnd.ReadyForQuery) {
-                //do nothing
-            }
-            else if(be == BackEnd.NotificationResponse) {
-                onNotification.accept((Notification) resp);
-            }
-        }
 
-        if(readState.needs > 0) {
-            return readState;
+    private boolean readProcessor(final Response resp) {
+        final BackEnd be = resp.getBackEnd();
+        if(be == BackEnd.CommandComplete) {
+            return true;
         }
-
-        final String toDo = subscribeUnsubscribe();
-        if(toDo.length() > 0) {
-            fe.query(toDo);
-            return TaskState.write();
+        else if(be == BackEnd.NotificationResponse) {
+            onNotification.accept((Notification) resp);
+            return true;
+        }
+        else if(be == BackEnd.ReadyForQuery) {
+            return false;
         }
         else {
-            return TaskState.read();
-        }
+            throw new UnsupportedOperationException("Can't handle back end of type " + be);
+        } 
+    }
+        
+    public TaskState onRead(final FrontEndMessage fe, ByteBuffer readBuffer) {
+        return pump(readBuffer, this::readProcessor,
+                    () -> {
+                        final String toDo = subscribeUnsubscribe();
+                        if(toDo.length() > 0) {
+                            fe.query(toDo);
+                            return TaskState.write();
+                        }
+                        else {
+                            return TaskState.read();
+                        } });
     }
     
-    public TaskState onWrite(final FrontEndMessage fe, ByteBuffer readBuffer) {
-        return TaskState.read();
-    }
-
     @Override
     public TaskState onTimeout() {
         return TaskState.read();
@@ -95,7 +91,7 @@ public abstract class NotificationTask extends Task<Void> {
         unsubscribe.addAll(channels);
     }
 
-    private final String subscribeUnsubscribe() {
+    public final String subscribeUnsubscribe() {
         String toDo = "";
         if(subscribe.size() > 0) {
             toDo += subscribe.stream().collect(joining(";", "listen ", ""));
