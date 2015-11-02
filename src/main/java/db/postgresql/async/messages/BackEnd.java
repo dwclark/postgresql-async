@@ -20,17 +20,22 @@ public enum BackEnd {
     ErrorResponse(Notice::new),
     FunctionCallResponse(FunctionCallResponse::new),
     NoData(Response::new),
-    NoticeResponse(Notice::new),
-    NotificationResponse(Notification::new),
+    NoticeResponse(Notice::new, true),
+    NotificationResponse(Notification::new, true),
     ParameterDescription(ParameterDescription::new),
-    ParameterStatus(ParameterStatus::new),
+    ParameterStatus(ParameterStatus::new, true),
     ParseComplete(Response::new),
     PortalSuspended(Response::new),
     ReadyForQuery(ReadyForQuery::new),
     RowDescription(RowDescription::new);
 
     private BackEnd(final Function<ByteBuffer,? extends Response> builder) {
+        this(builder, false);
+    }
+
+    private BackEnd(final Function<ByteBuffer,? extends Response> builder, final boolean outOfBand) {
         this.builder = builder;
+        this.outOfBand = outOfBand;
     }
 
     public static BackEnd find(final byte lookFor) {
@@ -63,10 +68,11 @@ public enum BackEnd {
     }
 
     public final Function<ByteBuffer,? extends Response> builder;
-
-    public int needs(final ByteBuffer buffer) {
+    public final boolean outOfBand;
+    
+    public static int needs(final ByteBuffer buffer) {
         if(buffer.remaining() < 5) {
-            return 1;
+            return 5 - buffer.remaining();
         }
         
         buffer.mark();

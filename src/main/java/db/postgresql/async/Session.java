@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 public class Session {
 
@@ -44,7 +45,6 @@ public class Session {
     }
 
     private class IOPool implements ResourcePool<IO> {
-        private final ScheduledExecutorService recoveryService = Executors.newSingleThreadScheduledExecutor();
         private final Queue<IO> queue = new ConcurrentLinkedQueue<>();
         private final Semaphore semaphore = new Semaphore(0);
         private final Lock lock = new ReentrantLock();
@@ -57,11 +57,9 @@ public class Session {
                     return;
                 }
 
-                final AsynchronousSocketChannel channel = AsynchronousSocketChannel.open(channelGroup);
-                channel.connect(sessionInfo.getSocketAddress()).get();
-                final IO io = new IO(channel, this);
+
+                queue.offer(startupIO(this));
                 ++total;
-                queue.offer(io);
                 semaphore.release();
             }
             catch(IOException | InterruptedException | ExecutionException ex) {
@@ -113,15 +111,55 @@ public class Session {
         }
     }
 
+    private class Dedicated implements ResourcePool<IO> {
+        public IO fast() {
+            throw new UnsupportedOperationException("You can't acquire IO channels from the dedicated pool");
+        }
+        
+        public IO guaranteed() {
+            return fast();
+        }
+        
+        public void good(final IO o) {
+            //NO-OP
+        }
+
+        private void recover() {
+            try {
+                final IO io = startupIO(this);
+                final Task<Void> notificationTask = notificationSupplier.get();
+                io.execute(notificationTask);
+            }
+            catch(IOException | InterruptedException | ExecutionException ex) {
+                recoveryService.schedule(() -> recover(), sessionInfo.getBackOff(), sessionInfo.getBackOffUnits());
+            }
+        }
+
+        public void bad(final IO io) {
+            recover();
+        }
+    }
+
     private final SessionInfo sessionInfo;
     private final ExecutorService ioService;
+    private final ScheduledExecutorService recoveryService;
     private final ExecutorService busyService;
     private final AsynchronousChannelGroup channelGroup;
     private final IOPool ioPool;
+    private final Supplier<Task<Void>> startupSupplier;
+    private final Supplier<Task<Void>> notificationSupplier;
     
-    public Session(final SessionInfo sessionInfo) {
+    public Session(final SessionInfo sessionInfo, final Supplier<Task<Void>> startupSupplier) {
+        this(sessionInfo, startupSupplier, null);
+    }
+
+    public Session(final SessionInfo sessionInfo, final Supplier<Task<Void>> startupSupplier,
+                   final Supplier<Task<Void>> notificationSupplier) {
         try {
+            this.startupSupplier = startupSupplier;
+            this.notificationSupplier = notificationSupplier;
             this.sessionInfo = sessionInfo;
+            this.recoveryService = Executors.newSingleThreadScheduledExecutor();
             this.ioService = new ThreadPoolExecutor(sessionInfo.getMinChannels(), sessionInfo.getMaxChannels(),
                                                     60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
                                                     new PrefixFactory("Session-IO-Pool"));
@@ -132,6 +170,16 @@ public class Session {
         catch(IOException ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    private IO startupIO(final ResourcePool<IO> pool) throws IOException, InterruptedException, ExecutionException {
+        final AsynchronousSocketChannel channel = AsynchronousSocketChannel.open(channelGroup);
+        channel.connect(sessionInfo.getSocketAddress()).get();
+        final IO io = new IO(sessionInfo, channel, pool);
+        final Task<Void> startupTask = startupSupplier.get();
+        io.execute(startupTask);
+        startupTask.getFuture().get();
+        return io;
     }
 
     public <T> CompletableFuture<T> execute(final Task<T> task) {

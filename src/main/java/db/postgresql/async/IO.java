@@ -6,18 +6,62 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.CompletableFuture;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.EnumMap;
+import db.postgresql.async.messages.FrontEndMessage;
+import db.postgresql.async.messages.ParameterStatus;
+import db.postgresql.async.messages.Notice;
+import db.postgresql.async.messages.Notification;
+import db.postgresql.async.messages.BackEnd;
+import db.postgresql.async.messages.Response;
+import db.postgresql.async.messages.BackEnd;
+import java.util.function.Consumer;
+import java.nio.channels.InterruptedByTimeoutException;
 
 class IO {
+    private final SessionInfo sessionInfo;
+    private final FrontEndMessage feMessage;
     private final AsynchronousSocketChannel channel;
     private final ResourcePool<IO> resourcePool;
     private final Reader reader = new Reader();
     private final Writer writer = new Writer();
     private final ByteBuffer writeBuffer = ByteBuffer.allocateDirect(32 * 1024);
     private ByteBuffer readBuffer = ByteBuffer.allocateDirect(32 * 1024);
+    private final Map<String,String> parameterStatuses = new LinkedHashMap<>();
+    private Notice lastNotice;
+    private final Map<BackEnd,Consumer<Response>> oobHandlers = new EnumMap<>(BackEnd.class);
+
+    //OOB handlers
+    public void handleParameterStatus(final Response r) {
+        final ParameterStatus pstatus = (ParameterStatus) r;
+        parameterStatuses.put(pstatus.getName(), pstatus.getValue());
+    }
+
+    public void handleNotice(final Response notice) {
+        lastNotice = (Notice) notice;
+    }
     
-    public IO(final AsynchronousSocketChannel channel, final ResourcePool<IO> resourcePool) {
+    private static final Consumer<Response> failNotification = (notification) -> {
+        throw new UnsupportedOperationException("IO channel does not support notifications. You need to allocate " +
+                                                "a dedicated channel for notifications in the session");
+    };
+
+    public IO(final SessionInfo sessionInfo, final AsynchronousSocketChannel channel,
+              final ResourcePool<IO> resourcePool) {
+        this(sessionInfo, channel, resourcePool, failNotification);
+    }
+    
+    public IO(final SessionInfo sessionInfo, final AsynchronousSocketChannel channel,
+              final ResourcePool<IO> resourcePool, final Consumer<Response> handleNotifications) {
+        this.sessionInfo = sessionInfo;
+        this.feMessage = new FrontEndMessage(sessionInfo.getEncoding());
+        feMessage.buffer = writeBuffer;
         this.channel = channel;
         this.resourcePool = resourcePool;
+        oobHandlers.put(BackEnd.NoticeResponse, this::handleNotice);
+        oobHandlers.put(BackEnd.NotificationResponse, handleNotifications);
+        oobHandlers.put(BackEnd.ParameterStatus, this::handleParameterStatus);
     }
     
     public boolean isOpen() {
@@ -33,9 +77,15 @@ class IO {
 
     private class Base {
         public void failed(final Throwable ex, final Task task) {
-            task.onFail(ex);
-            close();
-            resourcePool.bad(IO.this);
+            if(ex instanceof InterruptedByTimeoutException) {
+                TaskState state = task.onTimeout();
+                decide(state, task);
+            }
+            else {
+                task.onFail(ex);
+                close();
+                resourcePool.bad(IO.this);
+            }
         }
     }
 
@@ -43,11 +93,11 @@ class IO {
 
         public void completed(final Integer bytes, final Task task) {
             if(writeBuffer.remaining() > 0) {
-                channel.write(writeBuffer, task, writer);
+                channel.write(writeBuffer, task.getTimeout(), task.getUnits(), task, writer);
             }
             else {
                 writeBuffer.clear();
-                final TaskState state = task.onWrite(writeBuffer, readBuffer);
+                final TaskState state = task.onWrite(feMessage, readBuffer);
                 decide(state, task);
             }
         }
@@ -57,7 +107,7 @@ class IO {
 
         public void completed(final Integer bytes, final Task task) {
             readBuffer.flip();
-            final TaskState state = task.onRead(writeBuffer, readBuffer);
+            final TaskState state = task.onRead(feMessage, readBuffer);
             readBuffer.compact();
             decide(state, task);
         }
@@ -84,10 +134,10 @@ class IO {
                 increase(incrementBy(state.needs));
             }
             
-            channel.read(readBuffer, task, reader);
+            channel.read(readBuffer, task.getTimeout(), task.getUnits(), task, reader);
         }
         else if(state.next == TaskState.Next.WRITE) {
-            channel.write(writeBuffer, task, writer);
+            channel.write(writeBuffer, task.getTimeout(), task.getUnits(), task, writer);
         }
         else if(state.next == TaskState.Next.FINISHED) {
             resourcePool.good(this);
@@ -97,13 +147,14 @@ class IO {
         }
     }
     
-    public void execute(final Task task) {
+    public <T> void execute(final Task<T> task) {
         if(!channel.isOpen()) {
             task.getFuture().completeExceptionally(new ClosedChannelException());
             resourcePool.bad(this);
         }
 
-        final TaskState state = task.onStart(writeBuffer, readBuffer);
+        task.setOobHandlers(oobHandlers);
+        final TaskState state = task.onStart(feMessage, readBuffer);
         decide(state, task);
     }
 }

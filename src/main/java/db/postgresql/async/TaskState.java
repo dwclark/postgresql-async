@@ -1,11 +1,11 @@
 package db.postgresql.async;
 
-class TaskState {
+public class TaskState {
 
     enum Next { READ, WRITE, FINISHED };
     
-    final int needs;
-    final Next next;
+    public final int needs;
+    public final Next next;
     
     private static final TaskState READ = new TaskState(Next.READ, -1);
     private static final TaskState WRITE = new TaskState(Next.WRITE, -1);
