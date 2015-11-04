@@ -78,7 +78,7 @@ class IO {
     private class Base {
         public void failed(final Throwable ex, final Task task) {
             if(ex instanceof InterruptedByTimeoutException) {
-                TaskState state = task.onTimeout();
+                TaskState state = task.onTimeout(feMessage, readBuffer);
                 decide(state, task);
             }
             else {

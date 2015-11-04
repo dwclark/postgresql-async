@@ -1,5 +1,6 @@
 package db.postgresql.async.messages;
 
+import db.postgresql.async.DataRowIterator;
 import db.postgresql.async.pginfo.Registry;
 import db.postgresql.async.serializers.*;
 import java.nio.ByteBuffer;
@@ -8,7 +9,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.function.Function;
 
 public class DataRow extends Response {
 

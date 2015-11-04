@@ -1,8 +1,4 @@
-package db.postgresql.async.messages;
-
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
+package db.postgresql.async;
 
 public enum NoticeType {
     Severity,

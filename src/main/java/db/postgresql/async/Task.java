@@ -3,6 +3,7 @@ package db.postgresql.async;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.EnumMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -16,6 +17,8 @@ public abstract class Task <T> {
     private final CompletableFuture<T> future;
     private final long timeout;
     private final TimeUnit units;
+
+    private Notice errorNotice;
     
     public Task() {
         this(0L, TimeUnit.SECONDS);
@@ -30,7 +33,7 @@ public abstract class Task <T> {
     public abstract TaskState onStart(FrontEndMessage fe, ByteBuffer readBuffer);
     public abstract TaskState onRead(FrontEndMessage fe, ByteBuffer readBuffer);
     
-    public TaskState onWrite(FrontEndMessage fe, ByteBuffer readBuffer) {
+    public TaskState onWrite(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         return TaskState.read();
     }
 
@@ -52,6 +55,9 @@ public abstract class Task <T> {
             if(resp.getBackEnd().outOfBand) {
                 onOob(resp);
             }
+            else if(resp.getBackEnd() == BackEnd.ErrorResponse) {
+                onError((Notice) resp);
+            }
             else {
                 keepGoing = processor.test(resp);
             }
@@ -64,8 +70,13 @@ public abstract class Task <T> {
         future.completeExceptionally(t);
     }
 
-    public TaskState onTimeout() {
+    public TaskState onTimeout(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         return TaskState.finished();
+    }
+
+    public TaskState onError(final Notice e) {
+        this.errorNotice = e;
+        return TaskState.read();
     }
 
     public void onOob(final Response r) {

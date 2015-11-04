@@ -1,12 +1,16 @@
 package db.postgresql.async;
 
-import java.nio.charset.Charset;
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
-import java.net.SocketAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class SessionInfo {
+
     private final String user;
     public String getUser() { return user; }
     
@@ -54,6 +58,15 @@ public class SessionInfo {
 
     public SocketAddress getSocketAddress() {
         return new InetSocketAddress(host, port);
+    }
+
+     public Map<String,String> getInitKeysValues() {
+        Map<String,String> ret = new LinkedHashMap<>();
+        ret.put("user", user);
+        ret.put("database", getDatabase());
+        ret.put("application_name", getApplication());
+        ret.put("client_encoding", getPostgresEncoding());
+        return Collections.unmodifiableMap(ret);
     }
 
     private SessionInfo(final Builder builder) {

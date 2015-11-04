@@ -23,6 +23,10 @@ public class NotificationTask extends Task<Void> {
     protected final Set<String> unsubscribe = new CopyOnWriteArraySet<>();
     protected final Set<String> subscribe = new CopyOnWriteArraySet<>();
     private final Consumer<Notification> onNotification;
+
+    public NotificationTask(final Consumer<Notification> onNotification) {
+        this(onNotification, 5L, TimeUnit.SECONDS);
+    }
     
     public NotificationTask(final Consumer<Notification> onNotification, 
                             final long timeout, final TimeUnit units) {
@@ -38,49 +42,41 @@ public class NotificationTask extends Task<Void> {
     }
     
     public TaskState onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        final String msg = subscribeUnsubscribe();
-        if(msg.length() > 0) {
-            fe.query(msg);
+        return maintenance(fe);
+    }
+
+    private boolean readProcessor(final Response resp) {
+        switch(resp.getBackEnd()) {
+        case CommandComplete:
+            return true;
+        case NotificationResponse:
+            onNotification.accept((Notification) resp);
+            return true;
+        case ReadyForQuery:
+            return false;
+        default:
+            throw new UnsupportedOperationException("Can't handle back end of type " + resp.getBackEnd());
+        }
+    }
+
+    private TaskState maintenance(final FrontEndMessage fe) {
+        final String toDo = getMaintenancePayload();
+        if(toDo.length() > 0) {
+            fe.query(toDo);
             return TaskState.write();
         }
         else {
             return TaskState.read();
-        }
-    }
-
-    private boolean readProcessor(final Response resp) {
-        final BackEnd be = resp.getBackEnd();
-        if(be == BackEnd.CommandComplete) {
-            return true;
-        }
-        else if(be == BackEnd.NotificationResponse) {
-            onNotification.accept((Notification) resp);
-            return true;
-        }
-        else if(be == BackEnd.ReadyForQuery) {
-            return false;
-        }
-        else {
-            throw new UnsupportedOperationException("Can't handle back end of type " + be);
         } 
     }
         
-    public TaskState onRead(final FrontEndMessage fe, ByteBuffer readBuffer) {
-        return pump(readBuffer, this::readProcessor,
-                    () -> {
-                        final String toDo = subscribeUnsubscribe();
-                        if(toDo.length() > 0) {
-                            fe.query(toDo);
-                            return TaskState.write();
-                        }
-                        else {
-                            return TaskState.read();
-                        } });
+    public TaskState onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        return pump(readBuffer, this::readProcessor, () -> maintenance(fe));
     }
     
     @Override
-    public TaskState onTimeout() {
-        return TaskState.read();
+    public TaskState onTimeout(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        return maintenance(fe);
     }
 
     public void addSubscriptions(final Set<String> channels) {
@@ -91,7 +87,7 @@ public class NotificationTask extends Task<Void> {
         unsubscribe.addAll(channels);
     }
 
-    public final String subscribeUnsubscribe() {
+    public final String getMaintenancePayload() {
         String toDo = "";
         if(subscribe.size() > 0) {
             toDo += subscribe.stream().collect(joining(";", "listen ", ""));
