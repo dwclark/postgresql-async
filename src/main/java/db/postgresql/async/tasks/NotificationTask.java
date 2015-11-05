@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 import static java.util.stream.Collectors.joining;
 
 //TODO: enforce write checks in front end message
-public class NotificationTask extends Task<Void> {
+public class NotificationTask extends BaseTask<Void> {
 
     protected final Set<String> subscribed = new CopyOnWriteArraySet<>();
     protected final Set<String> unsubscribe = new CopyOnWriteArraySet<>();

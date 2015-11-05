@@ -11,7 +11,7 @@ import db.postgresql.async.messages.BackEnd;
 import java.util.function.BiFunction;
 import java.nio.ByteBuffer;
 
-public class SimpleTask<T> extends Task<T> {
+public class SimpleTask<T> extends BaseTask<T> {
 
     private T accumulator;
     private RowDescription description;
