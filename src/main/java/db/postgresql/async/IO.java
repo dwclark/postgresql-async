@@ -147,7 +147,7 @@ class IO {
         }
     }
     
-    public <T> void execute(final Task<T> task) {
+    public void execute(final Task task) {
         if(!channel.isOpen()) {
             task.getFuture().completeExceptionally(new ClosedChannelException());
             resourcePool.bad(this);

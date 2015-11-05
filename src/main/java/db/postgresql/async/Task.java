@@ -10,14 +10,14 @@ import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.Response;
 import db.postgresql.async.messages.Notice;
 
-public interface Task <T> {
+public interface Task {
 
     public TaskState onStart(FrontEndMessage fe, ByteBuffer readBuffer);
     public TaskState onRead(FrontEndMessage fe, ByteBuffer readBuffer);
     public TaskState onWrite(FrontEndMessage fe, ByteBuffer readBuffer);
     public void onFail(Throwable t);
     public TaskState onTimeout(FrontEndMessage fe, ByteBuffer readBuffer);
-    public CompletableFuture<T> getFuture();
+    public CompletableFuture<?> getFuture();
     public Notice getError();
     public long getTimeout();
     public TimeUnit getUnits();

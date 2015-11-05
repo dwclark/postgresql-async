@@ -11,17 +11,13 @@ import db.postgresql.async.messages.BackEnd;
 import java.util.function.BiFunction;
 import java.nio.ByteBuffer;
 
-public class SimpleTask<T> extends BaseTask<T> {
+public class SimpleTask extends BaseTask {
 
-    private T accumulator;
     private RowDescription description;
     private final String sql;
-    private final BiFunction<T,T,DataRowIterator> function;
     
-    public SimpleTask(final T accumulator, final String sql, final BiFunction<T,T,DataRowIterator> function) {
-        this.accumulator = accumulator;
+    public SimpleTask(final String sql) {
         this.sql = sql;
-        this.function = function;
     }
 
     private boolean readProcessor(final Response resp) {

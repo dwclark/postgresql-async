@@ -15,7 +15,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import java.util.function.Function;
 
-public class StartupTask extends BaseTask<Void> {
+public class StartupTask extends BaseTask {
 
     final SessionInfo info;
 

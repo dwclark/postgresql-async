@@ -13,10 +13,10 @@ import java.util.function.Supplier;
 import db.postgresql.async.messages.*;
 import java.util.concurrent.TimeUnit;
 
-public abstract class BaseTask <T> implements Task<T> {
+public abstract class BaseTask implements Task {
 
     private final Map<BackEnd,Consumer<Response>> oobHandlers = new EnumMap<>(BackEnd.class);
-    private final CompletableFuture<T> future;
+    private final CompletableFuture future;
     private final long timeout;
     private final TimeUnit units;
 
@@ -109,7 +109,7 @@ public abstract class BaseTask <T> implements Task<T> {
         oobHandlers.clear();
     }
     
-    public CompletableFuture<T> getFuture() { return future; }
+    public CompletableFuture<?> getFuture() { return future; }
     public long getTimeout() { return timeout; }
     public TimeUnit getUnits() { return units; }
 }
