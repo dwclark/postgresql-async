@@ -1,10 +1,10 @@
 package db.postgresql.async.messages;
 
 import java.nio.ByteBuffer;
+import db.postgresql.async.Action;
+import db.postgresql.async.CommandStatus;
 
-public class CommandComplete extends Response {
-
-    enum Action { INSERT, DELETE, UPDATE, SELECT, MOVE, FETCH, COPY; }
+public class CommandComplete extends Response implements CommandStatus {
 
     private final Action action;
     public Action getAction() { return action; }

@@ -1,5 +1,6 @@
 package db.postgresql.async;
 
+import db.postgresql.async.types.VoidResult;
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -127,7 +128,7 @@ public class Session {
         private void recover() {
             try {
                 final IO io = startupIO(this);
-                final Task notificationTask = notificationSupplier.get();
+                final CompletableTask<VoidResult> notificationTask = notificationSupplier.get();
                 io.execute(notificationTask);
             }
             catch(IOException | InterruptedException | ExecutionException ex) {
@@ -146,15 +147,15 @@ public class Session {
     private final ExecutorService busyService;
     private final AsynchronousChannelGroup channelGroup;
     private final IOPool ioPool;
-    private final Supplier<Task> startupSupplier;
-    private final Supplier<Task> notificationSupplier;
+    private final Supplier<CompletableTask<VoidResult>> startupSupplier;
+    private final Supplier<CompletableTask<VoidResult>> notificationSupplier;
     
-    public Session(final SessionInfo sessionInfo, final Supplier<Task> startupSupplier) {
+    public Session(final SessionInfo sessionInfo, final Supplier<CompletableTask<VoidResult>> startupSupplier) {
         this(sessionInfo, startupSupplier, null);
     }
 
-    public Session(final SessionInfo sessionInfo, final Supplier<Task> startupSupplier,
-                   final Supplier<Task> notificationSupplier) {
+    public Session(final SessionInfo sessionInfo, final Supplier<CompletableTask<VoidResult>> startupSupplier,
+                   final Supplier<CompletableTask<VoidResult>> notificationSupplier) {
         try {
             this.startupSupplier = startupSupplier;
             this.notificationSupplier = notificationSupplier;
@@ -176,13 +177,13 @@ public class Session {
         final AsynchronousSocketChannel channel = AsynchronousSocketChannel.open(channelGroup);
         channel.connect(sessionInfo.getSocketAddress()).get();
         final IO io = new IO(sessionInfo, channel, pool);
-        final Task startupTask = startupSupplier.get();
+        final CompletableTask<VoidResult> startupTask = startupSupplier.get();
         io.execute(startupTask);
         startupTask.getFuture().get();
         return io;
     }
 
-    public CompletableFuture<?> execute(final Task task) {
+    public <T> CompletableFuture<T> execute(final CompletableTask<T> task) {
         final IO io = ioPool.fast();
         if(io != null) {
             io.execute(task);

@@ -6,6 +6,7 @@ import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.Notification;
 import db.postgresql.async.messages.Response;
+import db.postgresql.async.types.VoidResult;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Queue;
@@ -17,7 +18,7 @@ import java.util.function.Consumer;
 import static java.util.stream.Collectors.joining;
 
 //TODO: enforce write checks in front end message
-public class NotificationTask extends BaseTask {
+public class NotificationTask extends BaseTask<VoidResult> {
 
     protected final Set<String> subscribed = new CopyOnWriteArraySet<>();
     protected final Set<String> unsubscribe = new CopyOnWriteArraySet<>();
@@ -100,5 +101,9 @@ public class NotificationTask extends BaseTask {
         }
 
         return toDo;
+    }
+
+    public VoidResult getResult() {
+        return VoidResult.instance;
     }
 }

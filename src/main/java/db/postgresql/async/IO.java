@@ -1,29 +1,32 @@
 package db.postgresql.async;
 
+import db.postgresql.async.messages.BackEnd;
+import db.postgresql.async.messages.BackEnd;
+import db.postgresql.async.messages.FrontEndMessage;
+import db.postgresql.async.messages.Notice;
+import db.postgresql.async.messages.Notification;
+import db.postgresql.async.messages.ParameterStatus;
+import db.postgresql.async.messages.Response;
+import db.postgresql.async.pginfo.StatementCache;
+import db.postgresql.async.serializers.SerializationContext;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.CompletionHandler;
-import java.util.concurrent.CompletableFuture;
-import java.util.Map;
-import java.util.LinkedHashMap;
-import java.util.EnumMap;
-import db.postgresql.async.messages.FrontEndMessage;
-import db.postgresql.async.messages.ParameterStatus;
-import db.postgresql.async.messages.Notice;
-import db.postgresql.async.messages.Notification;
-import db.postgresql.async.messages.BackEnd;
-import db.postgresql.async.messages.Response;
-import db.postgresql.async.messages.BackEnd;
-import java.util.function.Consumer;
 import java.nio.channels.InterruptedByTimeoutException;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 class IO {
     private final SessionInfo sessionInfo;
     private final FrontEndMessage feMessage;
     private final AsynchronousSocketChannel channel;
     private final ResourcePool<IO> resourcePool;
+    private final StatementCache statementCache = new StatementCache();
     private final Reader reader = new Reader();
     private final Writer writer = new Writer();
     private final ByteBuffer writeBuffer = ByteBuffer.allocateDirect(32 * 1024);
@@ -76,7 +79,7 @@ class IO {
     }
 
     private class Base {
-        public void failed(final Throwable ex, final Task task) {
+        public void failed(final Throwable ex, final CompletableTask task) {
             if(ex instanceof InterruptedByTimeoutException) {
                 TaskState state = task.onTimeout(feMessage, readBuffer);
                 decide(state, task);
@@ -89,9 +92,9 @@ class IO {
         }
     }
 
-    private class Writer extends Base implements CompletionHandler<Integer,Task> {
+    private class Writer extends Base implements CompletionHandler<Integer,CompletableTask> {
 
-        public void completed(final Integer bytes, final Task task) {
+        public void completed(final Integer bytes, final CompletableTask task) {
             if(writeBuffer.remaining() > 0) {
                 channel.write(writeBuffer, task.getTimeout(), task.getUnits(), task, writer);
             }
@@ -103,10 +106,12 @@ class IO {
         }
     }
 
-    private class Reader extends Base implements CompletionHandler<Integer,Task> {
+    private class Reader extends Base implements CompletionHandler<Integer,CompletableTask> {
 
-        public void completed(final Integer bytes, final Task task) {
+        public void completed(final Integer bytes, final CompletableTask task) {
             readBuffer.flip();
+            SerializationContext.registry(sessionInfo.getMainRegistry());
+            SerializationContext.encoding(sessionInfo.getEncoding());
             final TaskState state = task.onRead(feMessage, readBuffer);
             readBuffer.compact();
             decide(state, task);
@@ -128,7 +133,7 @@ class IO {
         return (needed - remainingCapacity);
     }
 
-    private void decide(final TaskState state, final Task task) {
+    private void decide(final TaskState state, final CompletableTask task) {
         if(state.next == TaskState.Next.READ) {
             if(state.needs > 0 && incrementBy(state.needs) > 0) {
                 increase(incrementBy(state.needs));
@@ -147,7 +152,7 @@ class IO {
         }
     }
     
-    public void execute(final Task task) {
+    public <T> void execute(final CompletableTask<T> task) {
         if(!channel.isOpen()) {
             task.getFuture().completeExceptionally(new ClosedChannelException());
             resourcePool.bad(this);

@@ -2,7 +2,7 @@ package db.postgresql.async;
 
 public class TaskState {
 
-    enum Next { READ, WRITE, FINISHED };
+    public enum Next { READ, WRITE, FINISHED };
     
     public final int needs;
     public final Next next;

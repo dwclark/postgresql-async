@@ -9,13 +9,14 @@ import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;
 import db.postgresql.async.SessionInfo;
 import db.postgresql.async.messages.FrontEndMessage;
+import db.postgresql.async.types.VoidResult;
 import java.nio.ByteBuffer;
 import java.util.function.Predicate;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import java.util.function.Function;
 
-public class StartupTask extends BaseTask {
+public class StartupTask extends BaseTask<VoidResult> {
 
     final SessionInfo info;
 
@@ -70,5 +71,9 @@ public class StartupTask extends BaseTask {
     public TaskState onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         fe.startup(info.getInitKeysValues());
         return TaskState.write();
+    }
+
+    public VoidResult getResult() {
+        return VoidResult.instance;
     }
 }

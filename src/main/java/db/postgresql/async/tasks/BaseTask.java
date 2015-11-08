@@ -1,9 +1,10 @@
 package db.postgresql.async.tasks;
 
+import db.postgresql.async.CompletableTask;
+import db.postgresql.async.PostgresqlException;
 import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;
 import java.nio.ByteBuffer;
-import java.util.concurrent.CompletableFuture;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.EnumMap;
@@ -13,14 +14,13 @@ import java.util.function.Supplier;
 import db.postgresql.async.messages.*;
 import java.util.concurrent.TimeUnit;
 
-public abstract class BaseTask implements Task {
+public abstract class BaseTask<T> implements Task<T> {
 
     private final Map<BackEnd,Consumer<Response>> oobHandlers = new EnumMap<>(BackEnd.class);
-    private final CompletableFuture future;
     private final long timeout;
     private final TimeUnit units;
 
-    private Notice error;
+    private PostgresqlException error;
     
     public BaseTask() {
         this(0L, TimeUnit.SECONDS);
@@ -29,14 +29,13 @@ public abstract class BaseTask implements Task {
     public BaseTask(final long timeout, final TimeUnit units) {
         this.timeout = timeout;
         this.units = units;
-        this.future = new CompletableFuture<>();
     }
 
-    public Notice getError() {
+    public PostgresqlException getError() {
         return error;
     }
 
-    public void setError(final Notice val) {
+    public void setError(final PostgresqlException val) {
         error = val;
     }
 
@@ -77,14 +76,16 @@ public abstract class BaseTask implements Task {
     }
     
     public void onFail(Throwable t) {
-        future.completeExceptionally(t);
+        //do nothing
     }
 
     public TaskState onTimeout(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         return TaskState.finished();
     }
 
-    public TaskState onError(final Notice e) {
+    public TaskState onError(final Notice val) {
+        PostgresqlException e = val.toException();
+        e.fillInStackTrace();
         setError(e);
         return TaskState.read();
     }
@@ -109,7 +110,6 @@ public abstract class BaseTask implements Task {
         oobHandlers.clear();
     }
     
-    public CompletableFuture<?> getFuture() { return future; }
     public long getTimeout() { return timeout; }
     public TimeUnit getUnits() { return units; }
 }

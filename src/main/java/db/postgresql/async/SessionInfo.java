@@ -8,6 +8,9 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import db.postgresql.async.pginfo.Registry;
+import db.postgresql.async.pginfo.BootstrapRegistry;
+import db.postgresql.async.pginfo.PgTypeRegistry;
 
 public class SessionInfo {
 
@@ -60,7 +63,7 @@ public class SessionInfo {
         return new InetSocketAddress(host, port);
     }
 
-     public Map<String,String> getInitKeysValues() {
+    public Map<String,String> getInitKeysValues() {
         Map<String,String> ret = new LinkedHashMap<>();
         ret.put("user", user);
         ret.put("database", getDatabase());
@@ -69,8 +72,13 @@ public class SessionInfo {
         return Collections.unmodifiableMap(ret);
     }
 
+    private final Registry bootstrapRegistry;
+    public Registry getBootstrapRegistry() { return bootstrapRegistry; }
+
+    private final Registry mainRegistry;
+    public Registry getMainRegistry() { return mainRegistry; }
+
     private SessionInfo(final Builder builder) {
-                        
         this.user = builder.user;
         this.password = builder.password;
         this.database = builder.database;
@@ -86,6 +94,8 @@ public class SessionInfo {
         this.maxChannels = builder.maxChannels;
         this.backOff = builder.backOff;
         this.backOffUnits = builder.backOffUnits;
+        this.bootstrapRegistry = builder.bootstrapRegistry;
+        this.mainRegistry = builder.mainRegistry;
     }
 
     public static class Builder {
@@ -104,6 +114,8 @@ public class SessionInfo {
         private int maxChannels = 1;
         private long backOff = 60L;
         private TimeUnit backOffUnits = TimeUnit.SECONDS;
+        private Registry bootstrapRegistry = new BootstrapRegistry();
+        private Registry mainRegistry = new PgTypeRegistry();
 
         public Builder() { }
 
@@ -152,6 +164,16 @@ public class SessionInfo {
         public Builder backOff(final long backOff, final TimeUnit units) {
             this.backOff = backOff;
             this.backOffUnits = units;
+            return this;
+        }
+
+        public Builder bootstrapRegistry(final Registry val) {
+            this.bootstrapRegistry = val;
+            return this;
+        }
+
+        public Builder mainRegistry(final Registry val) {
+            this.mainRegistry = val;
             return this;
         }
 

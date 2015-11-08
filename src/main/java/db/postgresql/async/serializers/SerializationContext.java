@@ -1,5 +1,7 @@
 package db.postgresql.async.serializers;
 
+import db.postgresql.async.messages.RowDescription;
+import db.postgresql.async.pginfo.Registry;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
@@ -11,15 +13,25 @@ import java.nio.BufferOverflowException;
 public class SerializationContext {
 
     public static class StringOps {
-        
-        private CharBuffer charBuffer = CharBuffer.allocate(1024);
+        private static final int MIN = 1024;
+        private static final int MAX = 1_073_741_824;
+        private CharBuffer charBuffer = CharBuffer.allocate(MIN);
         private Charset encoding = Charset.forName("UTF-8");
-        private CharsetEncoder encoder = encoding.newEncoder();
-        private CharsetDecoder decoder = encoding.newDecoder();
+        private CharsetEncoder encoder = null;
+        private CharsetDecoder decoder = null;
+
+        private int nextAllocation(final int size) {
+            int accum = MIN * size;
+            while(accum < size && accum != MAX) {
+                accum *= 2;
+            }
+
+            return accum;
+        }
         
         public CharBuffer ensure(final int size) {
             if(charBuffer.capacity() < size) {
-                charBuffer = CharBuffer.allocate(1024);
+                charBuffer = CharBuffer.allocate(nextAllocation(size));
             }
 
             charBuffer.clear();
@@ -28,8 +40,8 @@ public class SerializationContext {
 
         public void setEncoding(final Charset val) {
             this.encoding = val;
-            this.encoder = val.newEncoder();
-            this.decoder = val.newDecoder();
+            this.encoder = null;
+            this.decoder = null;
         }
 
         public Charset getEncoding() {
@@ -37,10 +49,18 @@ public class SerializationContext {
         }
 
         public CharsetEncoder getEncoder() {
+            if(encoder == null) {
+                encoder = encoding.newEncoder();
+            }
+            
             return encoder.reset();
         }
 
         public CharsetDecoder getDecoder() {
+            if(decoder == null) {
+                decoder = encoding.newDecoder();
+            }
+            
             return decoder.reset();
         }
     }
@@ -50,6 +70,26 @@ public class SerializationContext {
                 return new StringOps();
             } };
 
+    private static final ThreadLocal<RowDescription> description = new ThreadLocal<RowDescription>();    
+
+    public static void description(final RowDescription val) {
+        description.set(val);
+    }
+
+    public static RowDescription description() {
+        return description.get();
+    }
+    
+    private static final ThreadLocal<Registry> registry = new ThreadLocal<Registry>();
+
+    public static void registry(final Registry val) {
+        registry.set(val);
+    }
+
+    public static Registry registry() {
+        return registry.get();
+    }
+    
     public static StringOps stringOps() { return stringOps.get(); }
 
     public static void encoding(final Charset charset) {

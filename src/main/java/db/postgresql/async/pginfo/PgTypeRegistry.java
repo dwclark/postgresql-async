@@ -29,9 +29,8 @@ public class PgTypeRegistry implements Registry {
     }
 
     public PgTypeRegistry add(final PgType val) {
-        final PgType pgType = builder(val).registry(id).build();
-        oidMap.put(pgType.getOid(), pgType);
-        nameMap.put(pgType.getNameKey(), pgType);
+        oidMap.put(val.getOid(), val);
+        nameMap.put(val.getNameKey(), val);
         return this;
     }
 

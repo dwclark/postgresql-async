@@ -1,13 +1,30 @@
 package db.postgresql.async.messages;
 
 import java.nio.ByteBuffer;
-
+import java.util.Iterator;
+import java.util.Arrays;
 public class RowDescription extends Response {
 
     private final FieldDescriptor[] fields;
 
     public FieldDescriptor field(final int i) {
         return fields[i];
+    }
+
+    public int length() { return fields.length; }
+
+    public int indexOf(final String name) {
+        for(int i = 0; i < fields.length; ++i) {
+            if(fields[i].getName().equals(name)) {
+                return i;
+            }
+        }
+
+        throw new IllegalArgumentException(name + " is not a valid field name");
+    }
+
+    public Iterator<FieldDescriptor> iterator() {
+        return Arrays.asList(fields).iterator();
     }
     
     public RowDescription(final ByteBuffer buffer) {
