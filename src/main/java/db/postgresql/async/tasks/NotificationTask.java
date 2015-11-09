@@ -1,16 +1,20 @@
 package db.postgresql.async.tasks;
 
+import db.postgresql.async.CompletableTask;
+import db.postgresql.async.Result;
 import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;
+import db.postgresql.async.TransactionStatus;
+import db.postgresql.async.CommandStatus;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.Notification;
 import db.postgresql.async.messages.Response;
-import db.postgresql.async.types.VoidResult;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
@@ -18,7 +22,7 @@ import java.util.function.Consumer;
 import static java.util.stream.Collectors.joining;
 
 //TODO: enforce write checks in front end message
-public class NotificationTask extends BaseTask<VoidResult> {
+public class NotificationTask extends BaseTask<Void> implements CompletableTask<Void> {
 
     protected final Set<String> subscribed = new CopyOnWriteArraySet<>();
     protected final Set<String> unsubscribe = new CopyOnWriteArraySet<>();
@@ -103,7 +107,19 @@ public class NotificationTask extends BaseTask<VoidResult> {
         return toDo;
     }
 
-    public VoidResult getResult() {
-        return VoidResult.instance;
+    public Void getResult() {
+        return null;
+    }
+
+    public CommandStatus getCommandStatus() {
+        return null;
+    }
+
+    public TransactionStatus getTransactionStatus() {
+        return null;
+    }
+
+    public CompletableFuture<Void> getFuture() {
+        return null;
     }
 }

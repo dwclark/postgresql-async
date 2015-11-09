@@ -1,5 +1,6 @@
 package db.postgresql.async.messages;
 
+import db.postgresql.async.TaskState;
 import java.util.function.Function;
 import java.nio.ByteBuffer;
 
@@ -81,5 +82,10 @@ public enum BackEnd {
         final int needed = Math.max(buffer.remaining() - messageSize, 0);
         buffer.reset();
         return needed;
+    }
+
+    public static TaskState ensure(final ByteBuffer buffer) {
+        final int needs = needs(buffer);
+        return (needs > 0) ? TaskState.needs(needs) : TaskState.read();
     }
 }

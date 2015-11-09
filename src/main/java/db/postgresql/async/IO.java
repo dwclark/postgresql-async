@@ -3,6 +3,7 @@ package db.postgresql.async;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
+import db.postgresql.async.messages.KeyData;
 import db.postgresql.async.messages.Notice;
 import db.postgresql.async.messages.Notification;
 import db.postgresql.async.messages.ParameterStatus;
@@ -34,7 +35,16 @@ class IO {
     private final Map<String,String> parameterStatuses = new LinkedHashMap<>();
     private Notice lastNotice;
     private final Map<BackEnd,Consumer<Response>> oobHandlers = new EnumMap<>(BackEnd.class);
+    private volatile KeyData keyData;
 
+    public void setKeyData(final KeyData val) {
+        this.keyData = val;
+    }
+
+    public KeyData getKeyData() {
+        return keyData;
+    }
+    
     //OOB handlers
     public void handleParameterStatus(final Response r) {
         final ParameterStatus pstatus = (ParameterStatus) r;

@@ -13,6 +13,8 @@ import java.util.function.Consumer;
 public interface Task<T> {
 
     public T getResult();
+    public TransactionStatus getTransactionStatus();
+    public CommandStatus getCommandStatus();
     public PostgresqlException getError();
     public TaskState onStart(FrontEndMessage fe, ByteBuffer readBuffer);
     public TaskState onRead(FrontEndMessage fe, ByteBuffer readBuffer);
@@ -28,7 +30,7 @@ public interface Task<T> {
             return (CompletableTask<T>) this;
         }
         else {
-            return new SingleCompletableTask<>(this);
+            return new SingleCompletableTask<T>(this);
         }
     }
 }

@@ -1,6 +1,7 @@
 package db.postgresql.async.messages;
 
 import java.nio.ByteBuffer;
+import db.postgresql.async.TransactionStatus;
 
 public class ReadyForQuery extends Response {
 

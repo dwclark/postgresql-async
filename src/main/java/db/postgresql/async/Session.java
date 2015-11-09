@@ -1,9 +1,12 @@
 package db.postgresql.async;
 
-import db.postgresql.async.types.VoidResult;
+import db.postgresql.async.messages.KeyData;
+import db.postgresql.async.tasks.StartupTask;
+import db.postgresql.async.tasks.NotificationTask;
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -128,7 +131,7 @@ public class Session {
         private void recover() {
             try {
                 final IO io = startupIO(this);
-                final CompletableTask<VoidResult> notificationTask = notificationSupplier.get();
+                final NotificationTask notificationTask = notificationSupplier.get();
                 io.execute(notificationTask);
             }
             catch(IOException | InterruptedException | ExecutionException ex) {
@@ -147,19 +150,12 @@ public class Session {
     private final ExecutorService busyService;
     private final AsynchronousChannelGroup channelGroup;
     private final IOPool ioPool;
-    private final Supplier<CompletableTask<VoidResult>> startupSupplier;
-    private final Supplier<CompletableTask<VoidResult>> notificationSupplier;
+    private final Supplier<NotificationTask> notificationSupplier;
     
-    public Session(final SessionInfo sessionInfo, final Supplier<CompletableTask<VoidResult>> startupSupplier) {
-        this(sessionInfo, startupSupplier, null);
-    }
-
-    public Session(final SessionInfo sessionInfo, final Supplier<CompletableTask<VoidResult>> startupSupplier,
-                   final Supplier<CompletableTask<VoidResult>> notificationSupplier) {
+    public Session(final SessionInfo sessionInfo, final Supplier<NotificationTask> notificationSupplier) {
         try {
-            this.startupSupplier = startupSupplier;
-            this.notificationSupplier = notificationSupplier;
             this.sessionInfo = sessionInfo;
+            this.notificationSupplier = notificationSupplier;
             this.recoveryService = Executors.newSingleThreadScheduledExecutor();
             this.ioService = new ThreadPoolExecutor(sessionInfo.getMinChannels(), sessionInfo.getMaxChannels(),
                                                     60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
@@ -177,9 +173,10 @@ public class Session {
         final AsynchronousSocketChannel channel = AsynchronousSocketChannel.open(channelGroup);
         channel.connect(sessionInfo.getSocketAddress()).get();
         final IO io = new IO(sessionInfo, channel, pool);
-        final CompletableTask<VoidResult> startupTask = startupSupplier.get();
+        final CompletableTask<KeyData> startupTask = new StartupTask(sessionInfo);
         io.execute(startupTask);
-        startupTask.getFuture().get();
+        KeyData keyData = startupTask.getFuture().get();
+        io.setKeyData(keyData);
         return io;
     }
 

@@ -1,4 +1,4 @@
-package db.postgresql.async.messages;
+package db.postgresql.async;
 
 public enum TransactionStatus {
 

@@ -46,11 +46,6 @@ public abstract class BaseTask<T> implements Task<T> {
         return TaskState.read();
     }
 
-    public TaskState ensureRecord(final ByteBuffer buffer) {
-        final int needs = BackEnd.needs(buffer);
-        return (needs > 0) ? TaskState.needs(needs) : TaskState.read();
-    }
-
     public TaskState pump(final ByteBuffer readBuffer,
                           final Predicate<Response> processor,
                           final Supplier<TaskState> post) {
@@ -58,7 +53,7 @@ public abstract class BaseTask<T> implements Task<T> {
         boolean keepGoing = true;
         while(keepGoing &&
               readBuffer.hasRemaining() &&
-              (readState = ensureRecord(readBuffer)).needs == 0) {
+              (readState = BackEnd.ensure(readBuffer)).needs == 0) {
             final Response resp = BackEnd.find(readBuffer.get()).builder.apply(readBuffer);
 
             if(resp.getBackEnd().outOfBand) {

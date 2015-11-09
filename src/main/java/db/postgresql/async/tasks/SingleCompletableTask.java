@@ -1,9 +1,12 @@
 package db.postgresql.async.tasks;
 
+import db.postgresql.async.CommandStatus;
 import db.postgresql.async.CompletableTask;
 import db.postgresql.async.PostgresqlException;
+import db.postgresql.async.Result;
 import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;
+import db.postgresql.async.TransactionStatus;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.Response;
@@ -26,8 +29,8 @@ public class SingleCompletableTask<T> implements CompletableTask<T> {
     public CompletableFuture<T> getFuture() {
         return future;
     }
-
-    private TaskState processFuture(final TaskState state) {
+    
+    private TaskState process(final TaskState state) {
         if(state.next == TaskState.Next.FINISHED) {
             if(task.getError() == null) {
                 future.complete(task.getResult());
@@ -47,17 +50,25 @@ public class SingleCompletableTask<T> implements CompletableTask<T> {
     public PostgresqlException getError() {
         return task.getError();
     }
+
+    public CommandStatus getCommandStatus() {
+        return task.getCommandStatus();
+    }
+
+    public TransactionStatus getTransactionStatus() {
+        return task.getTransactionStatus();
+    }
     
     public TaskState onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return processFuture(task.onStart(fe, readBuffer));
+        return process(task.onStart(fe, readBuffer));
     }
     
     public TaskState onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return processFuture(task.onRead(fe, readBuffer));
+        return process(task.onRead(fe, readBuffer));
     }
     
     public TaskState onWrite(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return processFuture(task.onWrite(fe, readBuffer));
+        return process(task.onWrite(fe, readBuffer));
     }
     
     public void onFail(final Throwable t) {
@@ -65,7 +76,7 @@ public class SingleCompletableTask<T> implements CompletableTask<T> {
     }
     
     public TaskState onTimeout(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return processFuture(task.onTimeout(fe, readBuffer));
+        return process(task.onTimeout(fe, readBuffer));
     }
 
     public long getTimeout() {
