@@ -1,7 +1,6 @@
 package db.postgresql.async.tasks;
 
 import db.postgresql.async.CommandStatus;
-import db.postgresql.async.Result;
 import db.postgresql.async.Row;
 import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;

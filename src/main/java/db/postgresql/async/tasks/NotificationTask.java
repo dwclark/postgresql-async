@@ -1,7 +1,6 @@
 package db.postgresql.async.tasks;
 
 import db.postgresql.async.CompletableTask;
-import db.postgresql.async.Result;
 import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;
 import db.postgresql.async.TransactionStatus;
