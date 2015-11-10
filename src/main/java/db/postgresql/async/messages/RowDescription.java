@@ -11,6 +11,21 @@ public class RowDescription extends Response {
         return fields[i];
     }
 
+    private String[] names;
+
+    public String[] getNames() {
+        if(names == null) {
+            String[] tmp = new String[fields.length];
+            for(int i = 0; i < fields.length; ++i) {
+                tmp[i] = fields[i].getName();
+            }
+
+            names = tmp;
+        }
+
+        return names;
+    }
+
     public int length() { return fields.length; }
 
     public int indexOf(final String name) {

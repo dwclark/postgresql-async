@@ -57,27 +57,6 @@ public class DataRow extends Response implements Row {
         buffer.position(buffer.position() + getSize());
     }
 
-    public List<Object> toList() {
-        List<Object> ret = new ArrayList<>(description.length());
-        Iterator iter = iterator();
-        while(iter.hasNext()) {
-            ret.add(iter.next());
-        }
-
-        return ret;
-    }
-
-    public Map<String,Object> toMap() {
-        Map<String,Object> ret = new LinkedHashMap<>(description.length());
-        java.util.Iterator<FieldDescriptor> fieldIterator = description.iterator();
-        Iterator valueIterator = new Iterator();
-        while(valueIterator.hasNext()) {
-            ret.put(fieldIterator.next().getName(), valueIterator.next());
-        }
-
-        return ret;
-    }
-    
     public Iterator iterator() {
         return new Iterator();
     }
@@ -86,6 +65,18 @@ public class DataRow extends Response implements Row {
         return new Extractor();
     }
 
+    public int length() {
+        return description.length();
+    }
+
+    public String name(final int index) {
+        return description.field(index).getName();
+    }
+
+    public String[] getNames() {
+        return description.getNames();
+    }
+    
     private class Iterator implements Row.Iterator {
         private int index = -1;
         private FieldDescriptor field;
@@ -96,6 +87,10 @@ public class DataRow extends Response implements Row {
             if(index >= description.length()) {
                 throw new NoSuchElementException();
             }
+        }
+
+        public int length() {
+            return description.length();
         }
 
         public boolean hasNext() {
@@ -157,6 +152,10 @@ public class DataRow extends Response implements Row {
                 final int size = buffer.getInt();
                 buffer.position(buffer.position() + Math.max(size, 0));
             }
+        }
+
+        public int length() {
+            return description.length();
         }
 
         public Object getAt(final String field) {

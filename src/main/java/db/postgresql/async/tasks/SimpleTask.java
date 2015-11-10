@@ -1,5 +1,6 @@
 package db.postgresql.async.tasks;
 
+import db.postgresql.async.Action;
 import db.postgresql.async.CommandStatus;
 import db.postgresql.async.Result;
 import db.postgresql.async.Row;
@@ -102,12 +103,7 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         }
 
         public void onDataRow(final DataRow dataRow) {
-            try {
-                this.accumulator = func.apply(accumulator, dataRow);
-            }
-            finally {
-                dataRow.finish();
-            }
+            Row.withRow(dataRow, () -> { this.accumulator = func.apply(accumulator, dataRow); });
         }
 
         public T getResult() {
@@ -120,32 +116,45 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         return new ForQuery<>(sql, accumulator, func);
     }
 
-    public static class Multi extends SimpleTask<List<?>> {
-        private final Iterator<MultiQueryPart<?>> iter;
-        private MultiQueryPart<?> current;
+    public static class Multi extends SimpleTask<List<Object>> {
+        private final Iterator<QueryPart<?>> iter;
+        private QueryPart<?> current;
         
-        public Multi(final String sql, final List<MultiQueryPart<?>> parts) {
+        public Multi(final String sql, final List<QueryPart<?>> parts) {
             super(sql, new ArrayList<>(parts.size()));
             this.iter = parts.iterator();
             current = iter.next();
         }
         
         public void onDataRow(final DataRow dataRow) {
-            current.accumulator = current.func.apply(current.accumulator
+            current.onDataRow(dataRow);
         }
         
         protected void onCommandComplete(final CommandComplete commandComplete) {
             this.commandComplete = commandComplete;
+            if(commandComplete.getAction() == Action.SELECT) {
+                accumulator.add(current.accumulator);
+            }
+            else {
+                accumulator.add(commandComplete.getRows());
+            }
+
+            if(iter.hasNext()) {
+                current = iter.next();
+            }
         }
-        
+
+        public List<Object> getResult() {
+            return accumulator;
+        }
     }
 
-    public static SimpleTask<List<?>> forMulti(final List<MultiQueryPart<?>> parts) {
+    public static SimpleTask<List<Object>> forMulti(final List<QueryPart<?>> parts) {
         StringBuilder sb = new StringBuilder();
-        for(MultiQueryPart<?> part : parts) {
+        for(QueryPart<?> part : parts) {
             String sql = part.sql.trim();
             sb.append(sql);
-            if(!sql.endsWith(';')) {
+            if(!sql.endsWith(";")) {
                 sb.append(";");
             }
         }
