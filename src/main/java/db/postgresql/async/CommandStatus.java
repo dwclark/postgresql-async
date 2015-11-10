@@ -1,7 +1,10 @@
 package db.postgresql.async;
 
 public interface CommandStatus {
-    Action getAction();
+    String getAction();
+    boolean isMutation();
+    boolean hasRows();
     int getRows();
+    boolean hasOid();
     int getOid();
 }

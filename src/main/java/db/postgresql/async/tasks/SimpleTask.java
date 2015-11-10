@@ -1,6 +1,5 @@
 package db.postgresql.async.tasks;
 
-import db.postgresql.async.Action;
 import db.postgresql.async.CommandStatus;
 import db.postgresql.async.Result;
 import db.postgresql.async.Row;
@@ -50,11 +49,10 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
             onDataRow((DataRow) resp);
             return true;
         case CommandComplete:
-            commandComplete = (CommandComplete) resp;
+            onCommandComplete((CommandComplete) resp);
             return true;
         case ReadyForQuery:
-            readyForQuery = (ReadyForQuery) resp;
-            return false;
+            return onReadyForQuery((ReadyForQuery) resp);
         default:
             throw new UnsupportedOperationException(resp.getBackEnd() + " is not supported by simple task");
         }
@@ -64,6 +62,11 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
 
     protected void onCommandComplete(final CommandComplete commandComplete) {
         this.commandComplete = commandComplete;
+    }
+
+    protected boolean onReadyForQuery(final ReadyForQuery readForQuery) {
+        this.readyForQuery = readyForQuery;
+        return false;
     }
     
     public TaskState onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
@@ -117,48 +120,77 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
     }
 
     public static class Multi extends SimpleTask<List<Object>> {
-        private final Iterator<QueryPart<?>> iter;
+        private final List<QueryPart<?>> parts;
+        private Iterator<QueryPart<?>> iter;
         private QueryPart<?> current;
         
-        public Multi(final String sql, final List<QueryPart<?>> parts) {
-            super(sql, new ArrayList<>(parts.size()));
-            this.iter = parts.iterator();
-            current = iter.next();
+        public Multi(final List<QueryPart<?>> parts) {
+            super(null, new ArrayList<>(parts.size()));
+            this.parts = parts;
         }
-        
+
+        @Override
         public void onDataRow(final DataRow dataRow) {
             current.onDataRow(dataRow);
         }
-        
+
+        @Override
         protected void onCommandComplete(final CommandComplete commandComplete) {
             this.commandComplete = commandComplete;
-            if(commandComplete.getAction() == Action.SELECT) {
-                accumulator.add(current.accumulator);
+            if(commandComplete.isSelect()) {
+                accumulator.add(current.getAccumulator());
             }
-            else {
+            else if(commandComplete.isMutation()) {
                 accumulator.add(commandComplete.getRows());
             }
+
+            //ignore any non select, insert, update, delete commands
 
             if(iter.hasNext()) {
                 current = iter.next();
             }
         }
 
+        @Override
+        protected boolean onReadyForQuery(final ReadyForQuery readyForQuery) {
+            super.onReadyForQuery(readyForQuery);
+            return iter.hasNext();
+        }
+
+        @Override
         public List<Object> getResult() {
             return accumulator;
+        }
+
+        @Override
+        public TaskState onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+            this.iter = parts.iterator();
+            this.current = iter.next();
+            return writePossible(fe, readBuffer);
+        }
+
+        private TaskState writePossible(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+            while(fe.query(current.sql) && iter.hasNext()) {
+                this.current = iter.next();
+            }
+
+            if(iter.hasNext()) {
+                return TaskState.write();
+            }
+            else {
+                this.iter = parts.iterator();
+                this.current = iter.next();
+                return TaskState.read();
+            }
+        }
+
+        @Override
+        public TaskState onWrite(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+            return writePossible(fe, readBuffer);
         }
     }
 
     public static SimpleTask<List<Object>> forMulti(final List<QueryPart<?>> parts) {
-        StringBuilder sb = new StringBuilder();
-        for(QueryPart<?> part : parts) {
-            String sql = part.sql.trim();
-            sb.append(sql);
-            if(!sql.endsWith(";")) {
-                sb.append(";");
-            }
-        }
-
-        return new Multi(sb.toString(), parts);
+        return new Multi(parts);
     }
 }

@@ -10,8 +10,13 @@ import java.util.function.BiFunction;
 
 public class QueryPart<A> {
     public final String sql;
+    public String getSql() { return sql; }
+    
     public A accumulator;
+    public A getAccumulator() { return accumulator; }
+    
     public final BiFunction<A,Row,A> func;
+    public BiFunction<A,Row,A> getFunc() { return func; }
     
     public QueryPart(final String sql, final A accumulator, final BiFunction<A,Row,A> func) {
         this.sql = sql;
