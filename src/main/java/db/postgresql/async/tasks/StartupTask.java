@@ -35,7 +35,8 @@ public class StartupTask extends BaseTask<KeyData> implements CompletableTask<Ke
     private boolean readProcessor(final FrontEndMessage fe, final Response resp) {
         switch(resp.getBackEnd()) {
         case Authentication:
-            return authentication(fe, (Authentication) resp);
+            authentication(fe, (Authentication) resp);
+            return true;
         case BackendKeyData:
             keyData = (KeyData) resp;
             return true;
@@ -48,24 +49,24 @@ public class StartupTask extends BaseTask<KeyData> implements CompletableTask<Ke
         }
     }
 
-    private boolean authentication(final FrontEndMessage fe, final Authentication auth) {
+    private void authentication(final FrontEndMessage fe, final Authentication auth) {
         switch(auth.getType()) {
         case AuthenticationOk:
             authenticated = true;
-            return false;
+            return;
         case AuthenticationCleartextPassword:
             fe.password(info.getPassword());
-            return true;
+            return;
         case AuthenticationMD5Password:
             fe.md5(info.getUser(), info.getPassword(), ByteBuffer.wrap(auth.getSalt()));
-            return true;
+            return;
         default:
             throw new UnsupportedOperationException(auth.getBackEnd() + " is not a supported authentication type");
         }
     }
 
     private TaskState nextOp() {
-        return authenticated ? TaskState.read() : TaskState.write();
+        return authenticated ? TaskState.finished() : TaskState.write();
     }
 
     public TaskState onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {

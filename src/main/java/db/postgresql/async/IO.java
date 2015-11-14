@@ -152,10 +152,14 @@ class IO {
             channel.read(readBuffer, task.getTimeout(), task.getUnits(), task, reader);
         }
         else if(state.next == TaskState.Next.WRITE) {
+            writeBuffer.flip();
             channel.write(writeBuffer, task.getTimeout(), task.getUnits(), task, writer);
         }
         else if(state.next == TaskState.Next.FINISHED) {
             resourcePool.good(this);
+        }
+        else if(state.next == TaskState.Next.TERMINATE) {
+            close();
         }
         else {
             throw new UnsupportedOperationException(state.next + " is not a supported operation");

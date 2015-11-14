@@ -61,7 +61,7 @@ public enum FrontEnd {
             buffer.putInt(80_877_103); }),
 
     StartupMessage((buffer, size) -> {
-            buffer.putInt(size);
+            buffer.putInt(size + 8);
             buffer.putInt(196_608); }),
 
     Sync((buffer, size) -> {

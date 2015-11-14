@@ -77,9 +77,9 @@ public enum BackEnd {
         }
         
         buffer.mark();
-        buffer.get();
+        final char msgHeader = (char) buffer.get();
         final int messageSize = buffer.getInt() - 4;
-        final int needed = Math.max(buffer.remaining() - messageSize, 0);
+        final int needed = Math.max(messageSize - buffer.remaining(), 0);
         buffer.reset();
         return needed;
     }

@@ -3,6 +3,7 @@ package db.postgresql.async;
 import db.postgresql.async.messages.KeyData;
 import db.postgresql.async.tasks.StartupTask;
 import db.postgresql.async.tasks.NotificationTask;
+import db.postgresql.async.tasks.TerminateTask;
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -23,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 public class Session {
 
@@ -53,11 +55,12 @@ public class Session {
         private final Semaphore semaphore = new Semaphore(0);
         private final Lock lock = new ReentrantLock();
         private volatile int total = 0;
-
+        private volatile boolean shuttingDown = false;
+        
         private void add() {
             lock.lock();
             try {
-                if(total == sessionInfo.getMaxChannels()) {
+                if(!shuttingDown && total == sessionInfo.getMaxChannels()) {
                     return;
                 }
 
@@ -72,6 +75,26 @@ public class Session {
             finally {
                 lock.unlock();
             }
+        }
+
+        private void shutdown() {
+            shuttingDown = true;
+            lock.lock();
+            IntStream
+                .range(0, total).mapToObj( (i) -> {
+                        final IO io = guaranteed();
+                        final CompletableTask<Void> task = new TerminateTask().toCompletable();
+                        io.execute(task);
+                        return task.getFuture();
+                    })
+                .forEach((future) -> {
+                        try {
+                            future.get();
+                        }
+                        catch(InterruptedException | ExecutionException e) {}
+                    });
+            
+            lock.unlock();
         }
         
         public IOPool() {
@@ -178,6 +201,10 @@ public class Session {
         KeyData keyData = startupTask.getFuture().get();
         io.setKeyData(keyData);
         return io;
+    }
+
+    public void shutdown() {
+        ioPool.shutdown();
     }
 
     public <T> CompletableFuture<T> execute(final CompletableTask<T> task) {

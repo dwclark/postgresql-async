@@ -54,7 +54,8 @@ public abstract class BaseTask<T> implements Task<T> {
         while(keepGoing &&
               readBuffer.hasRemaining() &&
               (readState = BackEnd.ensure(readBuffer)).needs == 0) {
-            final Response resp = BackEnd.find(readBuffer.get()).builder.apply(readBuffer);
+            final int pos = readBuffer.position();
+            final Response resp = BackEnd.find(readBuffer.get(pos)).builder.apply(readBuffer);
 
             if(resp.getBackEnd().outOfBand) {
                 onOob(resp);
