@@ -1,5 +1,7 @@
 package db.postgresql.async.tasks;
 
+import db.postgresql.async.Isolation;
+import db.postgresql.async.RwMode;
 import db.postgresql.async.CommandStatus;
 import db.postgresql.async.Row;
 import db.postgresql.async.Task;
@@ -77,6 +79,20 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         return TaskState.write();
     }
 
+    private static class NoOutput extends SimpleTask<Void> {
+        public NoOutput(final String sql) {
+            super(sql, null);
+        }
+
+        public Void getResult() {
+            return null;
+        }
+
+        public void onDataRow(final DataRow dataRow) {
+            throw new UnsupportedOperationException();
+        }
+    }
+    
     private static class ForExecute extends SimpleTask<Integer> {
         public ForExecute(final String sql) {
             super(sql, null);
@@ -89,10 +105,6 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         public void onDataRow(final DataRow dataRow) {
             throw new UnsupportedOperationException();
         }
-    }
-
-    public static SimpleTask<Integer> forExecute(final String sql) {
-        return new ForExecute(sql);
     }
 
     private static class ForQuery<T> extends SimpleTask<T> {
@@ -111,11 +123,6 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         public T getResult() {
             return accumulator;
         }
-    }
-
-    public static <T> SimpleTask<T> forQuery(final String sql, final T accumulator,
-                                             final BiFunction<T,Row,T> func) {
-        return new ForQuery<>(sql, accumulator, func);
     }
 
     public static class Multi extends SimpleTask<List<Object>> {
@@ -189,7 +196,30 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         }
     }
 
+    public static <T> SimpleTask<T> forQuery(final String sql, final T accumulator,
+                                             final BiFunction<T,Row,T> func) {
+        return new ForQuery<>(sql, accumulator, func);
+    }
+
+    public static SimpleTask<Integer> forExecute(final String sql) {
+        return new ForExecute(sql);
+    }
+
     public static SimpleTask<List<Object>> forMulti(final List<QueryPart<?>> parts) {
         return new Multi(parts);
+    }
+
+    public static SimpleTask<Void> begin(final Isolation isolation, final RwMode mode, final boolean deferrable) {
+        final String sql = String.format("BEGIN ISOLATION LEVEL %s %s %s;", isolation, mode,
+                                         deferrable ? "DEFERRABLE" : "NOT DEFERRABLE");
+        return new NoOutput(sql);
+    }
+
+    public static SimpleTask<Void> commit() {
+        return new NoOutput("commit;");
+    }
+
+    public static SimpleTask<Void> rollback() {
+        return new NoOutput("rollback;");
     }
 }
