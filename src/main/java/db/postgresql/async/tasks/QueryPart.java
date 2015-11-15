@@ -25,7 +25,7 @@ public class QueryPart<A> {
     }
 
     public void onDataRow(final DataRow dataRow) {
-        Row.withRow(dataRow, () -> { accumulator = func.apply(accumulator, dataRow); });
+        dataRow.with(() -> accumulator = func.apply(accumulator, dataRow));
     }
 
     public static QueryPart<Integer> forExecute(final String sql) {

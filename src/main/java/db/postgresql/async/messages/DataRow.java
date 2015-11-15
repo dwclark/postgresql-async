@@ -78,13 +78,13 @@ public class DataRow extends Response implements Row {
     }
     
     private class Iterator implements Row.Iterator {
-        private int index = -1;
+        private int index = 0;
         private FieldDescriptor field;
 
         private void advance() {
             ++index;
-            field = description.field(index);
-            if(index >= description.length()) {
+            field = description.field(index-1);
+            if(index > description.length()) {
                 throw new NoSuchElementException();
             }
         }
@@ -106,7 +106,12 @@ public class DataRow extends Response implements Row {
             advance();
             return registry.serializer(type).read(buffer, buffer.getInt());
         }
-        
+
+        public String nextString() {
+            advance();
+            return StringSerializer.instance.read(buffer, buffer.getInt());
+        }
+
         public boolean nextBoolean() {
             advance();
             return BooleanSerializer.instance.readPrimitive(buffer, buffer.getInt());

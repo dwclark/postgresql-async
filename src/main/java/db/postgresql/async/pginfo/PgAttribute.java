@@ -11,10 +11,10 @@ public class PgAttribute implements Comparable<PgAttribute> {
     private final int typeId;
     public int getTypeId() { return typeId; }
     
-    private final int num;
-    public int getNum() { return num; }
+    private final short num;
+    public short getNum() { return num; }
     
-    public PgAttribute(final int relId, final String name, final int typeId, final int num) {
+    public PgAttribute(final int relId, final String name, final int typeId, final short num) {
         this.relId = relId;
         this.name = name;
         this.typeId = typeId;

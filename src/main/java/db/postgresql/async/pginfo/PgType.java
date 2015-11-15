@@ -48,10 +48,13 @@ public class PgType {
         public Builder relId(final int val) { relId = val; return this; }
         public Builder delimiter(final char val) { delimiter = val; return this; }
         public Builder attribute(final PgAttribute val) { attributes.add(val); return this; }
+        public Builder attributes(final SortedSet<PgAttribute> val) { attributes = val; return this; }
         
         public PgType build() {
             return new PgType(oid, arrayId, NameKey.immutable(schema, name), relId, delimiter,
-                              attributes.size() == 0 ? Collections.emptySortedSet() : attributes);
+                              (attributes == null || attributes.size() == 0) ?
+                              Collections.emptySortedSet() :
+                              Collections.unmodifiableSortedSet(attributes));
         }
 
         public Builder() { }

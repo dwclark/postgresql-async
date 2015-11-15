@@ -16,7 +16,7 @@ public enum BackEnd {
     CopyInResponse(CopyResponse::new),
     CopyOutResponse(CopyResponse::new),
     CopyBothResponse(CopyResponse::new),
-    DataRow((buffer) -> { throw new UnsupportedOperationException(); }),
+    DataRow(DataRow::new),
     EmptyQueryResponse(Response::new),
     ErrorResponse(Notice::new),
     FunctionCallResponse(FunctionCallResponse::new),

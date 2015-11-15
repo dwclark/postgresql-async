@@ -15,9 +15,6 @@ public class PgTypeRegistry implements Registry {
     private static final IntegerSerializer iser = IntegerSerializer.instance;
     private static final StringSerializer sser = StringSerializer.instance;
     private static final AtomicInteger counter = new AtomicInteger(1);
-
-    private final short id;
-    public short getId() { return id; }
     
     private final ConcurrentMap<Integer,PgType> oidMap = new ConcurrentHashMap<>(200, 0.75f, 1);
     private final ConcurrentMap<NameKey,PgType> nameMap = new ConcurrentHashMap<>(200, 0.75f, 1);
@@ -25,7 +22,7 @@ public class PgTypeRegistry implements Registry {
     private final ConcurrentMap<Integer,Serializer> oidSerializers = new ConcurrentHashMap<>(200, 0.75f, 1);
 
     public PgTypeRegistry() {
-        this.id = (short) counter.getAndIncrement();
+        
     }
 
     public PgTypeRegistry add(final PgType val) {

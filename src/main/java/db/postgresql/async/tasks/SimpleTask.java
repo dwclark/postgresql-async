@@ -14,6 +14,9 @@ import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.Response;
 import db.postgresql.async.messages.ReadyForQuery;
 import db.postgresql.async.messages.RowDescription;
+import db.postgresql.async.pginfo.Registry;
+import db.postgresql.async.pginfo.PgType;
+import db.postgresql.async.pginfo.PgAttribute;
 import db.postgresql.async.serializers.SerializationContext;
 import java.nio.ByteBuffer;
 import java.util.function.BiFunction;
@@ -92,7 +95,7 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
             throw new UnsupportedOperationException();
         }
     }
-    
+
     private static class ForExecute extends SimpleTask<Integer> {
         public ForExecute(final String sql) {
             super(sql, null);
@@ -117,7 +120,7 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         }
 
         public void onDataRow(final DataRow dataRow) {
-            Row.withRow(dataRow, () -> { this.accumulator = func.apply(accumulator, dataRow); });
+            dataRow.with(() -> this.accumulator = func.apply(accumulator, dataRow));
         }
 
         public T getResult() {

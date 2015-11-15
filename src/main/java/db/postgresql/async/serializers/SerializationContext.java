@@ -99,11 +99,13 @@ public class SerializationContext {
     public static String bufferToString(final ByteBuffer buffer, final int size) {
         final StringOps ops = stringOps.get();
         final CharBuffer targetBuffer = ops.ensure(size);
-        final ByteBuffer sourceBuffer = (ByteBuffer) buffer.slice().limit(size);
+        final int limit = buffer.limit();
+        buffer.limit(buffer.position() + size);
         final CharsetDecoder decoder = ops.getDecoder();
-        decoder.decode(sourceBuffer, targetBuffer, false);
-        decoder.decode(sourceBuffer, targetBuffer, true);
+        decoder.decode(buffer, targetBuffer, false);
+        decoder.decode(buffer, targetBuffer, true);
         decoder.flush(targetBuffer);
+        buffer.limit(limit);
         targetBuffer.flip();
         return targetBuffer.toString();
     }

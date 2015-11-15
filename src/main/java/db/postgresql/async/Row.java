@@ -47,6 +47,7 @@ public interface Row {
 
     public interface Iterator extends java.util.Iterator<Object> {
         <T> T next(Class<T> type);
+        String nextString();
         boolean nextBoolean();
         double nextDouble();
         float nextFloat();
@@ -62,12 +63,12 @@ public interface Row {
         return count;
     }
 
-    public static void withRow(final Row row, final Runnable runner) {
+    default public void with(final Runnable runner) {
         try {
             runner.run();
         }
         finally {
-            row.finish();
+            finish();
         }
     }
 
