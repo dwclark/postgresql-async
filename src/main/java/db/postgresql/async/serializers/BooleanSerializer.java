@@ -1,11 +1,10 @@
 package db.postgresql.async.serializers;
 
-import db.postgresql.async.pginfo.PgId;
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
-import static db.postgresql.async.serializers.SerializationContext.*;
+import java.util.Collections;
+import java.util.List;
 
-@PgId("bool")
 public class BooleanSerializer extends Serializer<Boolean> {
 
     public static final byte T = (byte) 't';
@@ -15,7 +14,12 @@ public class BooleanSerializer extends Serializer<Boolean> {
 
     @Override
     public Class getArrayType() { return boolean.class; }
+
     public Class<Boolean> getType() { return Boolean.class; }
+
+    public List<String> getPgNames() {
+        return Collections.singletonList("pg_catalog.bool");
+    }
     
     @Override
     public void place(final Object ary, final int index, final String val) {

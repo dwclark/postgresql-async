@@ -1,12 +1,10 @@
 package db.postgresql.async.serializers;
 
-import db.postgresql.async.pginfo.PgId;
-import java.nio.ByteBuffer;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import static db.postgresql.async.serializers.SerializationContext.*;
+import java.util.Collections;
+import java.util.List;
 
-@PgId("time")
 public class LocalTimeSerializer extends Serializer<LocalTime> {
 
     private static final String STR = "HH:mm:ss.n";
@@ -15,6 +13,10 @@ public class LocalTimeSerializer extends Serializer<LocalTime> {
     public static final LocalTimeSerializer instance = new LocalTimeSerializer();
 
     public Class<LocalTime> getType() { return LocalTime.class; }
+
+    public List<String> getPgNames() {
+        return Collections.singletonList("pg_catalog.time");
+    }
     
     public LocalTime fromString(final String str) {
         return LocalTime.parse(str + "000", DATE);

@@ -14,7 +14,7 @@ class TypeLoadTest extends Specification {
         session.shutdown();
     }
 
-    def "Test Load Attributes"() {
+    def "Test Load Types"() {
         setup:
         def list = session.loadTypes();
 

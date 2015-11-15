@@ -259,8 +259,7 @@ public class Session {
                 Row.Iterator iter = row.iterator();
                 PgType.Builder builder = new PgType.Builder()
                     .oid(iter.nextInt())
-                    .schema(iter.nextString())
-                    .name(iter.nextString())
+                    .name(iter.nextString() + "." + iter.nextString())
                     .arrayId(iter.nextInt());
                 final int relId = iter.nextInt();
                 PgType pgType = builder

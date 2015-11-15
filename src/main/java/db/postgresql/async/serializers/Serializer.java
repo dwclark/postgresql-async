@@ -2,6 +2,7 @@ package db.postgresql.async.serializers;
 
 import java.nio.ByteBuffer;
 import java.lang.reflect.Array;
+import java.util.List;
 import db.postgresql.async.serializers.parsers.ArrayParser;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
@@ -13,6 +14,7 @@ public abstract class Serializer<T> {
     
     //basic information for java type identification
     public abstract Class<T> getType();
+    public abstract List<String> getPgNames();
     public Class getArrayType() { return getType(); }
 
     //serialization for udt types

@@ -1,16 +1,18 @@
 package db.postgresql.async.serializers;
 
-import db.postgresql.async.pginfo.PgId;
-import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
-import static db.postgresql.async.serializers.SerializationContext.*;
 
-@PgId("uuid")
 public class UUIDSerializer extends Serializer<UUID> {
 
     public static final UUIDSerializer instance = new UUIDSerializer();
     
     public Class<UUID> getType() { return UUID.class; }
+
+    public List<String> getPgNames() {
+        return Collections.singletonList("pg_catalog.uuid");
+    }
 
     public UUID fromString(final String str) {
         return UUID.fromString(str);

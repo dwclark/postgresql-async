@@ -1,16 +1,14 @@
 package db.postgresql.async.serializers;
 
-import db.postgresql.async.pginfo.PgId;
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.text.FieldPosition;
 import java.text.NumberFormat;
 import java.text.ParsePosition;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
-import static db.postgresql.async.serializers.SerializationContext.*;
 
-@PgId("numeric")
 public class NumericSerializer extends Serializer<BigDecimal> {
 
     private final Locale locale;
@@ -20,6 +18,10 @@ public class NumericSerializer extends Serializer<BigDecimal> {
     }
 
     public Class<BigDecimal> getType() { return BigDecimal.class; }
+
+    public List<String> getPgNames() {
+        return Collections.singletonList("pg_catalog.numeric");
+    }
 
     public DecimalFormat getFormatter() {
         DecimalFormat formatter = (DecimalFormat) NumberFormat.getInstance(locale);

@@ -1,11 +1,12 @@
 package db.postgresql.async.serializers;
 
-import db.postgresql.async.pginfo.PgId;
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.List;
+
 import static db.postgresql.async.serializers.SerializationContext.*;
 
-@PgId("int4")
 public class IntegerSerializer extends Serializer<Integer> {
 
     private IntegerSerializer() { }
@@ -13,8 +14,13 @@ public class IntegerSerializer extends Serializer<Integer> {
     public static final IntegerSerializer instance = new IntegerSerializer();
 
     public Class<Integer> getType() { return Integer.class; }
-    
+
+    @Override
     public Class getArrayType() { return int.class; }
+
+    public List<String> getPgNames() {
+        return Collections.singletonList("pg_catalog.int4");
+    }
 
     @Override
     public void place(final Object ary, final int index, final String val) {

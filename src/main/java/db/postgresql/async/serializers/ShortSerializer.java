@@ -1,17 +1,22 @@
 package db.postgresql.async.serializers;
 
-import db.postgresql.async.pginfo.PgId;
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.List;
+
 import static db.postgresql.async.serializers.SerializationContext.*;
 
-@PgId("int2")
 public class ShortSerializer extends Serializer<Short> {
 
     public static final ShortSerializer instance = new ShortSerializer();
 
     public Class<Short> getType() { return Short.class; }
     public Class getArrayType() { return short.class; }
+
+    public List<String> getPgNames() {
+        return Collections.singletonList("pg_catalog.int2");
+    }
     
     @Override
     public void place(final Object ary, final int index, final String val) {

@@ -1,13 +1,10 @@
 package db.postgresql.async.serializers;
 
-import db.postgresql.async.pginfo.PgId;
-import java.lang.reflect.Array;
-import java.nio.ByteBuffer;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import static db.postgresql.async.serializers.SerializationContext.*;
+import java.util.Collections;
+import java.util.List;
 
-@PgId("timestamptz")
 public class OffsetDateTimeSerializer extends Serializer<OffsetDateTime> {
 
     private static final String STR = "uuuu-MM-dd HH:mm:ss.nx";
@@ -16,6 +13,10 @@ public class OffsetDateTimeSerializer extends Serializer<OffsetDateTime> {
     public static final OffsetDateTimeSerializer instance = new OffsetDateTimeSerializer();
     
     public Class<OffsetDateTime> getType() { return OffsetDateTime.class; }
+
+    public List<String> getPgNames() {
+        return Collections.singletonList("pg_catalog.timestamptz");
+    }
 
     public OffsetDateTime fromString(final String str) {
         final int index = str.lastIndexOf('-');

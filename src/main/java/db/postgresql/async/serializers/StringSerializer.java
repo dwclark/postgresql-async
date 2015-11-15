@@ -1,10 +1,8 @@
 package db.postgresql.async.serializers;
 
-import db.postgresql.async.pginfo.PgId;
-import java.nio.ByteBuffer;
-import static db.postgresql.async.serializers.SerializationContext.*;
+import java.util.Arrays;
+import java.util.List;
 
-@PgId({"text","varchar"})
 public class StringSerializer extends Serializer<String> {
 
     private StringSerializer() { }
@@ -13,6 +11,10 @@ public class StringSerializer extends Serializer<String> {
 
     public Class<String> getType() { return String.class; }
     public Class getArrayType() { return String.class; }
+
+    public List<String> getPgNames() {
+        return Arrays.asList("pg_catalog.text", "pg_catalog.varchar");
+    }
 
     public String fromString(final String str) {
         return str;

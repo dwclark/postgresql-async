@@ -8,22 +8,21 @@ import static db.postgresql.async.types.UdtHashing.*;
     
 public class PgType {
 
-    public static final String DEFAULT_SCHEMA = "public";
     public static final int DEFAULT_RELID = 0;
     public static final char DEFAULT_DELIMITER = ',';
 
     final private int oid;
-    final private NameKey nameKey;
+    final private String name;
     final private int arrayId;
     final private int relId;
     final private char delimiter;
     final private SortedSet<PgAttribute> attributes;
 
-    private PgType(final int oid, final int arrayId, final NameKey nameKey,
+    private PgType(final int oid, final int arrayId, final String name,
                    final int relId, final char delimiter, final SortedSet<PgAttribute> attributes) {
         this.oid = oid;;
         this.arrayId = arrayId;
-        this.nameKey = nameKey;
+        this.name = name;
         this.relId = relId;
         this.delimiter = delimiter;
         this.attributes = attributes;
@@ -33,7 +32,6 @@ public class PgType {
     public static Builder builder(final PgType pgType) { return new Builder(pgType); }
 
     public static class Builder {
-        private String schema = DEFAULT_SCHEMA;
         private String name;
         private int oid;
         private int arrayId;
@@ -41,7 +39,6 @@ public class PgType {
         private char delimiter = DEFAULT_DELIMITER;
         private SortedSet<PgAttribute> attributes = new TreeSet<>();
 
-        public Builder schema(final String val) { schema = val; return this; }
         public Builder name(final String val) { name = val; return this; }
         public Builder oid(final int val) { oid = val; return this; }
         public Builder arrayId(final int val) { arrayId = val; return this; }
@@ -51,7 +48,7 @@ public class PgType {
         public Builder attributes(final SortedSet<PgAttribute> val) { attributes = val; return this; }
         
         public PgType build() {
-            return new PgType(oid, arrayId, NameKey.immutable(schema, name), relId, delimiter,
+            return new PgType(oid, arrayId, name, relId, delimiter,
                               (attributes == null || attributes.size() == 0) ?
                               Collections.emptySortedSet() :
                               Collections.unmodifiableSortedSet(attributes));
@@ -60,7 +57,6 @@ public class PgType {
         public Builder() { }
 
         public Builder(final PgType pgType) {
-            this.schema = pgType.getSchema();
             this.name = pgType.getName();
             this.oid = pgType.getOid();
             this.arrayId = pgType.getArrayId();
@@ -70,16 +66,12 @@ public class PgType {
         }
     }
 
-    public NameKey getNameKey() { return nameKey; }
     public int getOid() { return oid; }
-    public String getSchema() { return nameKey.getSchema(); }
-    public String getName() { return nameKey.getName(); }
+    public String getName() { return name; }
     public int getArrayId() { return arrayId; }
     public int getRelId() { return relId; }
     public char getDelimiter() { return delimiter; }
     public boolean isComplex() { return relId != 0; }
-    public String getFullName() { return nameKey.getFullName(); }
-    public boolean isBuiltin() { return nameKey.isBuiltin(); } 
 
     @Override
     public boolean equals(Object rhs) {
@@ -100,14 +92,11 @@ public class PgType {
     public String toString() {
         return new StringBuilder(256)
             .append("PgType(")
-            .append("schema: " + getSchema() + ", ")
             .append("name: " + getName() + ", ")
-            .append("fullName: " + getFullName() + ", ")
             .append("arrayId: " + getArrayId() + ", ")
             .append("relId: " + getRelId() + ", ")
             .append("delimiter: '" + getDelimiter() + "', ")
             .append("complex: " + isComplex() + ", ")
-            .append("builtin: " + isBuiltin() + ", ")
             .append("attributes: " + attributes + ")").toString();
     }
 

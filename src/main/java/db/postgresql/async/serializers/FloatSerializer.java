@@ -1,17 +1,23 @@
 package db.postgresql.async.serializers;
 
-import db.postgresql.async.pginfo.PgId;
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.List;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
-@PgId("float4")
 public class FloatSerializer extends Serializer<Float> {
 
     public static final FloatSerializer instance = new FloatSerializer();
 
     public Class<Float> getType() { return Float.class; }
+
+    @Override
     public Class getArrayType() { return float.class; }
+
+    public List<String> getPgNames() {
+        return Collections.singletonList("pg_catalog.float4");
+    }
 
     @Override
     public void place(final Object ary, final int index, final String val) {

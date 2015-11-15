@@ -38,7 +38,7 @@ public class UdtMap extends AbstractMap<String,Object> implements Udt {
 
     public UdtMap(final List<Map.Entry<String,Object>> entries, final PgType pgType) {
         this.entries = Collections.unmodifiableList(entries);
-        this.name = pgType.getFullName();
+        this.name = pgType.getName();
     }
 
     public String getName() {
