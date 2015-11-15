@@ -60,7 +60,7 @@ public class Session {
         private void add() {
             lock.lock();
             try {
-                if(!shuttingDown && total == sessionInfo.getMaxChannels()) {
+                if(shuttingDown || total == sessionInfo.getMaxChannels()) {
                     return;
                 }
 
@@ -90,6 +90,7 @@ public class Session {
                 .forEach((future) -> {
                         try {
                             future.get();
+                            --total;
                         }
                         catch(InterruptedException | ExecutionException e) {}
                     });
@@ -127,6 +128,10 @@ public class Session {
         public void bad(final IO io) {
             lock.lock();
             try {
+                if(shuttingDown) {
+                    return;
+                }
+                
                 --total;
                 if(total < sessionInfo.getMinChannels()) {
                     recoveryService.schedule(() -> add(), sessionInfo.getBackOff(), sessionInfo.getBackOffUnits());
@@ -205,6 +210,10 @@ public class Session {
 
     public void shutdown() {
         ioPool.shutdown();
+    }
+
+    public int getIoCount() {
+        return ioPool.total;
     }
 
     public <T> CompletableFuture<T> execute(final CompletableTask<T> task) {

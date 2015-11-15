@@ -30,7 +30,7 @@ public class SingleCompletableTask<T> implements CompletableTask<T> {
     }
     
     private TaskState process(final TaskState state) {
-        if(state.next == TaskState.Next.FINISHED) {
+        if(state.next == TaskState.Next.FINISHED || state.next == TaskState.Next.TERMINATE) {
             if(task.getError() == null) {
                 future.complete(task.getResult());
             }
