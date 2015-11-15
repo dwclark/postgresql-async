@@ -3,6 +3,7 @@ package db.postgresql.async;
 import db.postgresql.async.messages.KeyData;
 import db.postgresql.async.pginfo.PgAttribute;
 import db.postgresql.async.pginfo.PgType;
+import db.postgresql.async.pginfo.PgTypeRegistry;
 import db.postgresql.async.tasks.NotificationTask;
 import db.postgresql.async.tasks.SimpleTask;
 import db.postgresql.async.tasks.StartupTask;
@@ -217,6 +218,10 @@ public class Session {
         return io;
     }
 
+    public SessionInfo getSessionInfo() {
+        return sessionInfo;
+    }
+
     public void shutdown() {
         ioPool.shutdown();
     }
@@ -239,7 +244,7 @@ public class Session {
         return map;
     }
 
-    public Map<Integer,SortedSet<PgAttribute>> loadAttributes() throws InterruptedException, ExecutionException {
+    private Map<Integer,SortedSet<PgAttribute>> loadAttributes() throws InterruptedException, ExecutionException {
         final Map<Integer,SortedSet<PgAttribute>> ret = new HashMap<>();
         return execute(SimpleTask
                        .forQuery("select attrelid, attname, atttypid, attnum " +
@@ -248,8 +253,8 @@ public class Session {
                                  ret, this::extract).toCompletable()).get();
     }
 
-    private List<PgType> extract(final Map<Integer,SortedSet<PgAttribute>> attributes,
-                                 final List<PgType> list, final Row row) {
+    private PgTypeRegistry extract(final Map<Integer,SortedSet<PgAttribute>> attributes,
+                                   final PgTypeRegistry registry, final Row row) {
         row.with(() -> {
                 Row.Iterator iter = row.iterator();
                 PgType.Builder builder = new PgType.Builder()
@@ -262,22 +267,22 @@ public class Session {
                     .relId(relId)
                     .delimiter(iter.nextString().charAt(0))
                     .attributes(attributes.get(relId)).build();
-                list.add(pgType); });
-
-        return list;
+                registry.add(pgType); });
+        
+        return registry;
     }
     
-    public List<PgType> loadTypes() {
+    public void loadTypes() {
         final String sql = "select typ.oid, ns.nspname, typ.typname, typ.typarray, typ.typrelid, typ.typdelim " +
             "from pg_type typ " +
             "join pg_namespace ns on typ.typnamespace = ns.oid";
         
         try {
             final Map<Integer,SortedSet<PgAttribute>> attributes = loadAttributes();
-            List<PgType> ret = new ArrayList<>();
-            SimpleTask<List<PgType>> task = SimpleTask
-                .forQuery(sql, ret, (list,row) -> extract(attributes, ret, row));
-            return execute(task.toCompletable()).get();
+            final PgTypeRegistry reg = sessionInfo.getRegistry();
+            SimpleTask<PgTypeRegistry> task = SimpleTask
+                .forQuery(sql, reg, (registry,row) -> extract(attributes, registry, row));
+            execute(task.toCompletable()).get();
         }
         catch(InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);

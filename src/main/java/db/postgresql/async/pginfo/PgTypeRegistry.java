@@ -12,8 +12,6 @@ import db.postgresql.async.serializers.*;
 
 public class PgTypeRegistry implements Registry {
 
-    private static final IntegerSerializer iser = IntegerSerializer.instance;
-    private static final StringSerializer sser = StringSerializer.instance;
     private static final AtomicInteger counter = new AtomicInteger(1);
     
     private final ConcurrentMap<Integer,PgType> oidMap = new ConcurrentHashMap<>(200, 0.75f, 1);

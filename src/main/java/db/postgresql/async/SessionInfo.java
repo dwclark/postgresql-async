@@ -71,8 +71,8 @@ public class SessionInfo {
         return Collections.unmodifiableMap(ret);
     }
 
-    private final Registry mainRegistry;
-    public Registry getMainRegistry() { return mainRegistry; }
+    private final PgTypeRegistry registry;
+    public PgTypeRegistry getRegistry() { return registry; }
 
     private SessionInfo(final Builder builder) {
         this.user = builder.user;
@@ -90,7 +90,7 @@ public class SessionInfo {
         this.maxChannels = builder.maxChannels;
         this.backOff = builder.backOff;
         this.backOffUnits = builder.backOffUnits;
-        this.mainRegistry = builder.mainRegistry;
+        this.registry = builder.registry;
     }
 
     public static class Builder {
@@ -109,7 +109,7 @@ public class SessionInfo {
         private int maxChannels = 1;
         private long backOff = 60L;
         private TimeUnit backOffUnits = TimeUnit.SECONDS;
-        private Registry mainRegistry = new PgTypeRegistry();
+        private PgTypeRegistry registry = new PgTypeRegistry();
 
         public Builder() { }
 
@@ -161,8 +161,8 @@ public class SessionInfo {
             return this;
         }
 
-        public Builder mainRegistry(final Registry val) {
-            this.mainRegistry = val;
+        public Builder registry(final PgTypeRegistry val) {
+            this.registry = val;
             return this;
         }
 

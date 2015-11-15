@@ -16,9 +16,10 @@ class TypeLoadTest extends Specification {
 
     def "Test Load Attributes"() {
         setup:
-        def list = session.loadAttributes();
+        def list = session.loadTypes();
 
         expect:
-        list;
+        session.sessionInfo.registry.pgType(23);
+        session.sessionInfo.registry.pgType(1043);
     }
 }

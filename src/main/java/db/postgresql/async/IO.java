@@ -120,7 +120,7 @@ class IO {
 
         public void completed(final Integer bytes, final CompletableTask task) {
             readBuffer.flip();
-            SerializationContext.registry(sessionInfo.getMainRegistry());
+            SerializationContext.registry(sessionInfo.getRegistry());
             SerializationContext.encoding(sessionInfo.getEncoding());
             final TaskState state = task.onRead(feMessage, readBuffer);
             readBuffer.compact();
