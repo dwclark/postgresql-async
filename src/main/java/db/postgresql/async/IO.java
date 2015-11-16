@@ -30,8 +30,8 @@ class IO {
     private final StatementCache statementCache = new StatementCache();
     private final Reader reader = new Reader();
     private final Writer writer = new Writer();
-    private final ByteBuffer writeBuffer = ByteBuffer.allocateDirect(32 * 1024);
-    private ByteBuffer readBuffer = ByteBuffer.allocateDirect(32 * 1024);
+    private final ByteBuffer writeBuffer = ByteBuffer.allocate(32 * 1024);
+    private ByteBuffer readBuffer = ByteBuffer.allocate(32 * 1024);
     private final Map<String,String> parameterStatuses = new LinkedHashMap<>();
     private Notice lastNotice;
     private final Map<BackEnd,Consumer<Response>> oobHandlers = new EnumMap<>(BackEnd.class);
@@ -105,7 +105,7 @@ class IO {
     private class Writer extends Base implements CompletionHandler<Integer,CompletableTask> {
 
         public void completed(final Integer bytes, final CompletableTask task) {
-            if(writeBuffer.remaining() > 0) {
+            if(writeBuffer.hasRemaining()) {
                 channel.write(writeBuffer, task.getTimeout(), task.getUnits(), task, writer);
             }
             else {
@@ -149,7 +149,7 @@ class IO {
             if(state.needs > 0 && incrementBy(state.needs) > 0) {
                 increase(incrementBy(state.needs));
             }
-            
+
             channel.read(readBuffer, task.getTimeout(), task.getUnits(), task, reader);
         }
         else if(state.next == TaskState.Next.WRITE) {

@@ -4,24 +4,19 @@ import db.postgresql.async.Isolation;
 import db.postgresql.async.RwMode;
 import db.postgresql.async.CommandStatus;
 import db.postgresql.async.Row;
-import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;
 import db.postgresql.async.TransactionStatus;
-import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.CommandComplete;
 import db.postgresql.async.messages.DataRow;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.Response;
 import db.postgresql.async.messages.ReadyForQuery;
 import db.postgresql.async.messages.RowDescription;
-import db.postgresql.async.pginfo.Registry;
-import db.postgresql.async.pginfo.PgType;
-import db.postgresql.async.pginfo.PgAttribute;
 import db.postgresql.async.serializers.SerializationContext;
 import java.nio.ByteBuffer;
 import java.util.function.BiFunction;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.ListIterator;
 import java.util.List;
 
 public abstract class SimpleTask<T> extends BaseTask<T> {
@@ -140,7 +135,7 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
 
     public static class Multi extends SimpleTask<List<Object>> {
         private final List<QueryPart<?>> parts;
-        private Iterator<QueryPart<?>> iter;
+        private ListIterator<QueryPart<?>> iter;
         private QueryPart<?> current;
         
         public Multi(final List<QueryPart<?>> parts) {
@@ -164,23 +159,17 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
             }
 
             //ignore any non select, insert, update, delete commands
-
-            if(iter.hasNext()) {
-                current = iter.next();
-            }
-            else {
-                current = null;
-            }
         }
 
         @Override
         protected boolean onReadyForQuery(final ReadyForQuery val) {
-            if(current == null) {
-                readyForQuery = val;
-                return false;
+            if(iter.hasNext()) {
+                this.current = iter.next();
+                return true;
             }
             else {
-                return true;
+                readyForQuery = val;
+                return false;
             }
         }
 
@@ -191,23 +180,27 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
 
         @Override
         public void onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-            this.iter = parts.iterator();
-            this.current = iter.next();
+            this.iter = parts.listIterator();
             writePossible(fe, readBuffer);
         }
         
         private void writePossible(final FrontEndMessage fe, final ByteBuffer readBuffer) {
             boolean wrote = false;
-            while(fe.query(current.sql) && iter.hasNext()) {
-                wrote = true;
+            while(iter.hasNext()) {
                 this.current = iter.next();
+                if(fe.query(current.sql)) {
+                    wrote = true;
+                }
+                else {
+                    this.current = iter.previous();
+                }
             }
 
             if(wrote) {
                 nextState = TaskState.write();
             }
             else {
-                this.iter = parts.iterator();
+                this.iter = parts.listIterator();
                 this.current = iter.next();
                 nextState = TaskState.read();
             }

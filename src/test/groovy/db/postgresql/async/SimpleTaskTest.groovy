@@ -57,4 +57,22 @@ class SimpleTaskTest extends Specification {
         results[0].size() == 2;
         results[1].size() == 1;
     }
+
+    def "Test Multi Phase"() {
+        setup:
+        def func = { List<Map> accum, Row row -> accum << row.toMap(); };
+        def parts = [ QueryPart.forExecute("insert into items (id, description) values (3, 'three');"),
+                      QueryPart.forExecute("update items set description = 'iii' where id = 3;"),
+                      QueryPart.forList('select * from items where id = 3;', func),
+                      QueryPart.forExecute('delete from items where id = 3;') ];
+        def task = SimpleTask.forMulti(parts).toCompletable();
+        def results = session.execute(task).get();
+
+        expect:
+        results.size() == 4;
+        results[0] == 1;
+        results[1] == 1;
+        results[2].size() == 1;
+        results[3] == 1;
+    }
 }
