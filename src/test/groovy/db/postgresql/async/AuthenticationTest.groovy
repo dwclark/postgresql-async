@@ -7,16 +7,11 @@ import db.postgresql.async.messages.*;
 
 class AuthenticationTest extends Specification {
 
-    final String host = '127.0.0.1';
-    final int port = 5432;
-    final String database = 'testdb';
-    final SessionInfo.Builder builder = new SessionInfo.Builder().host(host).port(port).database(database);
     final FrontEndMessage feMessage = new FrontEndMessage(Charset.forName('UTF-8'));
 
     def "No Authentication"() {
         when:
-        def info = builder.user('noauth').build();
-        Session session = new Session(info, null);
+        Session session = Helper.noAuth();
 
         then:
         session.ioCount == 1;
@@ -30,8 +25,7 @@ class AuthenticationTest extends Specification {
 
     def "Clear Text Password"() {
         setup:
-        def info = builder.user('clearauth').password('clearauth').build();
-        Session session = new Session(info, null);
+        Session session = Helper.clearAuth();
 
         expect:
         session.ioCount == 1;
@@ -42,8 +36,7 @@ class AuthenticationTest extends Specification {
 
     def "MD5 Password"() {
         setup:
-        def info = builder.user('md5auth').password('md5auth').build();
-        Session session = new Session(info, null);
+        Session session = Helper.md5Auth();
 
         expect:
         session.ioCount == 1;

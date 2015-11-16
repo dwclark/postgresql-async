@@ -22,19 +22,19 @@ import java.util.concurrent.CompletableFuture;
 public class TerminateTask extends BaseTask<Void> {
 
     @Override
-    public TaskState onRead(final FrontEndMessage feMessage, final ByteBuffer buffer) {
+    public void onRead(final FrontEndMessage feMessage, final ByteBuffer buffer) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public TaskState onWrite(final FrontEndMessage feMessage, final ByteBuffer buffer) {
-        return TaskState.terminate();
+    public void onWrite(final FrontEndMessage feMessage, final ByteBuffer buffer) {
+        nextState = TaskState.terminate();
     }
 
     @Override
-    public TaskState onStart(final FrontEndMessage feMessage, final ByteBuffer buffer) {
+    public void onStart(final FrontEndMessage feMessage, final ByteBuffer buffer) {
         feMessage.terminate();
-        return TaskState.write();
+        nextState = TaskState.write();
     }
 
     public CommandStatus getCommandStatus() {

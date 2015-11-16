@@ -19,8 +19,15 @@ public abstract class BaseTask<T> implements Task<T> {
     private final Map<BackEnd,Consumer<Response>> oobHandlers = new EnumMap<>(BackEnd.class);
     private final long timeout;
     private final TimeUnit units;
-
+    
     private PostgresqlException error;
+    protected TaskState nextState;
+    protected CommandComplete commandComplete;
+    protected ReadyForQuery readyForQuery;
+
+    public TaskState getNextState() {
+        return nextState;
+    }
     
     public BaseTask() {
         this(0L, TimeUnit.SECONDS);
@@ -39,21 +46,19 @@ public abstract class BaseTask<T> implements Task<T> {
         error = val;
     }
 
-    public abstract TaskState onStart(FrontEndMessage fe, ByteBuffer readBuffer);
-    public abstract TaskState onRead(FrontEndMessage fe, ByteBuffer readBuffer);
+    public abstract void onStart(FrontEndMessage fe, ByteBuffer readBuffer);
+    public abstract void onRead(FrontEndMessage fe, ByteBuffer readBuffer);
     
-    public TaskState onWrite(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return TaskState.read();
+    public void onWrite(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        nextState = TaskState.read();
     }
-
-    public TaskState pump(final ByteBuffer readBuffer,
-                          final Predicate<Response> processor,
-                          final Supplier<TaskState> post) {
-        TaskState readState = null;
+    
+    public int pump(final ByteBuffer readBuffer, final Predicate<Response> processor) {
+        int needs = 0;
         boolean keepGoing = true;
         while(keepGoing &&
               readBuffer.hasRemaining() &&
-              (readState = BackEnd.ensure(readBuffer)).needs == 0) {
+              (needs = BackEnd.needs(readBuffer)) == 0) {
             final int pos = readBuffer.position();
             final Response resp = BackEnd.find(readBuffer.get(pos)).builder.apply(readBuffer);
 
@@ -68,22 +73,22 @@ public abstract class BaseTask<T> implements Task<T> {
             }
         }
 
-        return (readState.needs > 0) ? readState : post.get(); 
+        return needs;
     }
     
     public void onFail(Throwable t) {
         //do nothing
     }
 
-    public TaskState onTimeout(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return TaskState.finished();
+    public void onTimeout(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        nextState = TaskState.finished();
     }
 
-    public TaskState onError(final Notice val) {
+    public void onError(final Notice val) {
         PostgresqlException e = val.toException();
         e.fillInStackTrace();
         setError(e);
-        return TaskState.read();
+        nextState = TaskState.read();
     }
 
     public void onOob(final Response r) {

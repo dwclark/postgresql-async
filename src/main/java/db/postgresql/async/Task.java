@@ -16,11 +16,12 @@ public interface Task<T> {
     public TransactionStatus getTransactionStatus();
     public CommandStatus getCommandStatus();
     public PostgresqlException getError();
-    public TaskState onStart(FrontEndMessage fe, ByteBuffer readBuffer);
-    public TaskState onRead(FrontEndMessage fe, ByteBuffer readBuffer);
-    public TaskState onWrite(FrontEndMessage fe, ByteBuffer readBuffer);
+    public void onStart(FrontEndMessage fe, ByteBuffer readBuffer);
+    public void onRead(FrontEndMessage fe, ByteBuffer readBuffer);
+    public void onWrite(FrontEndMessage fe, ByteBuffer readBuffer);
     public void onFail(Throwable t);
-    public TaskState onTimeout(FrontEndMessage fe, ByteBuffer readBuffer);
+    public void onTimeout(FrontEndMessage fe, ByteBuffer readBuffer);
+    public TaskState getNextState();
     public long getTimeout();
     public TimeUnit getUnits();
     public void setOobHandlers(final Map<BackEnd,Consumer<Response>> oobHandlers);

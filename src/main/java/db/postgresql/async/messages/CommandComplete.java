@@ -33,7 +33,7 @@ public class CommandComplete extends Response implements CommandStatus {
         super(buffer);
         final String[] parts = ascii(buffer).split(" ");
         this.rows = extract(parts, parts.length - 1);
-        this.oid = (this.rows == -1) ? -1 : extract(parts, parts.length - 1);
+        this.oid = (this.rows == -1) ? -1 : extract(parts, parts.length - 2);
         this.action = Arrays.stream(parts, 0, lastActionIndex(parts)).collect(Collectors.joining(" "));
     }
 

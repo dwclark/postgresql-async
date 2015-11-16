@@ -1,15 +1,19 @@
 package db.postgresql.async;
 
+import db.postgresql.async.pginfo.PgTypeRegistry;
+import db.postgresql.async.pginfo.Registry;
+import db.postgresql.async.serializers.*;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import db.postgresql.async.pginfo.Registry;
-import db.postgresql.async.pginfo.PgTypeRegistry;
 
 public class SessionInfo {
 
@@ -62,6 +66,11 @@ public class SessionInfo {
         return new InetSocketAddress(host, port);
     }
 
+    private final List<Serializer<?>> serializers;
+    public final List<Serializer<?>> getSerializers() {
+        return serializers;
+    }
+
     public Map<String,String> getInitKeysValues() {
         Map<String,String> ret = new LinkedHashMap<>();
         ret.put("user", user);
@@ -91,6 +100,7 @@ public class SessionInfo {
         this.backOff = builder.backOff;
         this.backOffUnits = builder.backOffUnits;
         this.registry = builder.registry;
+        this.serializers = Collections.unmodifiableList(builder.serializers);
     }
 
     public static class Builder {
@@ -111,6 +121,27 @@ public class SessionInfo {
         private TimeUnit backOffUnits = TimeUnit.SECONDS;
         private PgTypeRegistry registry = new PgTypeRegistry();
 
+        private List<Serializer<?>> DEFAULT_SERIALIZERS =
+            Arrays.asList(BitSetSerializer.instance,
+                          BooleanSerializer.instance,
+                          BytesSerializer.instance,
+                          DoubleSerializer.instance,
+                          FloatSerializer.instance,
+                          IntegerSerializer.instance,
+                          LocalDateSerializer.instance,
+                          LocalDateTimeSerializer.instance,
+                          LocalTimeSerializer.instance,
+                          LongSerializer.instance,
+                          new MoneySerializer(money),
+                          new NumericSerializer(numeric),
+                          OffsetDateTimeSerializer.instance,
+                          OffsetTimeSerializer.instance,
+                          ShortSerializer.instance,
+                          StringSerializer.instance,
+                          UUIDSerializer.instance);
+        
+        private List<Serializer<?>> serializers = new ArrayList<>(DEFAULT_SERIALIZERS);
+        
         public Builder() { }
 
         public Builder user(final String val) { user = val; return this; }
@@ -163,6 +194,11 @@ public class SessionInfo {
 
         public Builder registry(final PgTypeRegistry val) {
             this.registry = val;
+            return this;
+        }
+
+        public Builder serializer(final Serializer<?> serializer) {
+            this.serializers.add(serializer);
             return this;
         }
 

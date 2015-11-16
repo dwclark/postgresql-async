@@ -45,8 +45,8 @@ public class NotificationTask extends BaseTask<Void> implements CompletableTask<
         this.onNotification = onNotification;
     }
     
-    public TaskState onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return maintenance(fe);
+    public void onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        maintenance(fe);
     }
 
     private boolean readProcessor(final Response resp) {
@@ -63,24 +63,33 @@ public class NotificationTask extends BaseTask<Void> implements CompletableTask<
         }
     }
 
-    private TaskState maintenance(final FrontEndMessage fe) {
+    private void maintenance(final FrontEndMessage fe) {
         final String toDo = getMaintenancePayload();
         if(toDo.length() > 0) {
             fe.query(toDo);
-            return TaskState.write();
+            nextState = TaskState.write();
         }
         else {
-            return TaskState.read();
+            nextState = TaskState.read();
         } 
     }
-        
-    public TaskState onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return pump(readBuffer, this::readProcessor, () -> maintenance(fe));
+
+    private void computeNextState(final int needs, final FrontEndMessage fe) {
+        if(needs > 0) {
+            nextState = TaskState.needs(needs);
+        }
+        else {
+            maintenance(fe);
+        }
+    }
+
+    public void onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        computeNextState(pump(readBuffer, this::readProcessor), fe);
     }
     
     @Override
-    public TaskState onTimeout(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return maintenance(fe);
+    public void onTimeout(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        maintenance(fe);
     }
 
     public void addSubscriptions(final Set<String> channels) {

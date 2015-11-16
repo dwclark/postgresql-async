@@ -59,11 +59,11 @@ public interface Row {
     Extractor extractor();
     Iterator iterator();
 
-    public static Integer nullExecute(final Integer count, final Row row) {
+    static Integer nullExecute(final Integer count, final Row row) {
         return count;
     }
 
-    default public void with(final Runnable runner) {
+    default void with(final Runnable runner) {
         try {
             runner.run();
         }
@@ -72,7 +72,7 @@ public interface Row {
         }
     }
 
-    default public Object[] toArray() {
+    default Object[] toArray() {
         final Object[] ret = new Object[length()];
         final Iterator iter = iterator();
         int index = 0;
@@ -83,11 +83,11 @@ public interface Row {
         return ret;
     }
     
-    default public List<Object> toList() {
+    default List<Object> toList() {
         return Arrays.asList(toArray());
     }
 
-    default public Map<String,Object> toMap() {
+    default Map<String,Object> toMap() {
         Map<String,Object> ret = new LinkedHashMap<>(length());
         Iterator valueIterator = iterator();
         int index = 0;
@@ -98,15 +98,15 @@ public interface Row {
         return ret;
     }
 
-    default public <T> T toObject(final Class<T> type) {
+    default <T> T toObject(final Class<T> type) {
         return toObject(type, Row::nullTranslator);
     }
 
-    public static String nullTranslator(final String fieldName) {
+    static String nullTranslator(final String fieldName) {
         return fieldName;
     }
     
-    default public <T> T toObject(final Class<T> type, final Function<String,String> translator) {
+    default <T> T toObject(final Class<T> type, final Function<String,String> translator) {
         try {
             T ret = type.newInstance();
             Extractor e = extractor();
@@ -124,15 +124,15 @@ public interface Row {
         }
     }
 
-    public static Object[] nullTranslator(final String[] names, final Object[] values) {
+    static Object[] nullTranslator(final String[] names, final Object[] values) {
         return values;
     }
 
-    default public <T> T toImmutableObject(final Class<T> type) {
+    default <T> T toImmutableObject(final Class<T> type) {
         return toImmutableObject(type, Row::nullTranslator);
     }
 
-    default public <T> T toImmutableObject(final Class<T> type, final BiFunction<String[],Object[],Object[]> translator) {
+    default <T> T toImmutableObject(final Class<T> type, final BiFunction<String[],Object[],Object[]> translator) {
         try {
             final Object[] args = translator.apply(getNames(), toArray());
             final Class[] types = Arrays.stream(args).map((obj) -> obj.getClass()).toArray(Class[]::new);

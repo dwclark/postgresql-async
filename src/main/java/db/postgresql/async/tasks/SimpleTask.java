@@ -28,8 +28,6 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
 
     private final String sql;
     protected T accumulator;
-    protected CommandComplete commandComplete;
-    protected ReadyForQuery readyForQuery;
     
     public SimpleTask(final String sql, final T accumulator) {
         this.sql = sql;
@@ -68,18 +66,30 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         this.commandComplete = commandComplete;
     }
 
-    protected boolean onReadyForQuery(final ReadyForQuery readForQuery) {
-        this.readyForQuery = readyForQuery;
+    protected boolean onReadyForQuery(final ReadyForQuery val) {
+        readyForQuery = val;
         return false;
     }
-    
-    public TaskState onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return pump(readBuffer, this::readProcessor, () -> TaskState.finished());
+
+    public void computeNextState(final int needs) {
+        if(needs > 0) {
+            nextState = TaskState.needs(needs);
+        }
+        else if(readyForQuery == null) {
+            nextState = TaskState.read();
+        }
+        else {
+            nextState = TaskState.finished();
+        }
     }
 
-    public TaskState onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+    public void onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        computeNextState(pump(readBuffer, this::readProcessor));
+    }
+
+    public void onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         fe.query(sql);
-        return TaskState.write();
+        nextState = TaskState.write();
     }
 
     private static class NoOutput extends SimpleTask<Void> {
@@ -158,12 +168,20 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
             if(iter.hasNext()) {
                 current = iter.next();
             }
+            else {
+                current = null;
+            }
         }
 
         @Override
-        protected boolean onReadyForQuery(final ReadyForQuery readyForQuery) {
-            super.onReadyForQuery(readyForQuery);
-            return iter.hasNext();
+        protected boolean onReadyForQuery(final ReadyForQuery val) {
+            if(current == null) {
+                readyForQuery = val;
+                return false;
+            }
+            else {
+                return true;
+            }
         }
 
         @Override
@@ -172,30 +190,32 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         }
 
         @Override
-        public TaskState onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        public void onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
             this.iter = parts.iterator();
             this.current = iter.next();
-            return writePossible(fe, readBuffer);
+            writePossible(fe, readBuffer);
         }
-
-        private TaskState writePossible(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        
+        private void writePossible(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+            boolean wrote = false;
             while(fe.query(current.sql) && iter.hasNext()) {
+                wrote = true;
                 this.current = iter.next();
             }
 
-            if(iter.hasNext()) {
-                return TaskState.write();
+            if(wrote) {
+                nextState = TaskState.write();
             }
             else {
                 this.iter = parts.iterator();
                 this.current = iter.next();
-                return TaskState.read();
+                nextState = TaskState.read();
             }
         }
 
         @Override
-        public TaskState onWrite(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-            return writePossible(fe, readBuffer);
+        public void onWrite(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+            writePossible(fe, readBuffer);
         }
     }
 

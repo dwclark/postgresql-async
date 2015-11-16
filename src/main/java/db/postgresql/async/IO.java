@@ -91,8 +91,8 @@ class IO {
     private class Base {
         public void failed(final Throwable ex, final CompletableTask task) {
             if(ex instanceof InterruptedByTimeoutException) {
-                TaskState state = task.onTimeout(feMessage, readBuffer);
-                decide(state, task);
+                task.onTimeout(feMessage, readBuffer);
+                decide(task);
             }
             else {
                 task.onFail(ex);
@@ -110,8 +110,8 @@ class IO {
             }
             else {
                 writeBuffer.clear();
-                final TaskState state = task.onWrite(feMessage, readBuffer);
-                decide(state, task);
+                task.onWrite(feMessage, readBuffer);
+                decide(task);
             }
         }
     }
@@ -122,9 +122,9 @@ class IO {
             readBuffer.flip();
             SerializationContext.registry(sessionInfo.getRegistry());
             SerializationContext.encoding(sessionInfo.getEncoding());
-            final TaskState state = task.onRead(feMessage, readBuffer);
+            task.onRead(feMessage, readBuffer);
             readBuffer.compact();
-            decide(state, task);
+            decide(task);
         }
     }
     
@@ -143,7 +143,8 @@ class IO {
         return (needed - remainingCapacity);
     }
 
-    private void decide(final TaskState state, final CompletableTask task) {
+    private void decide(final CompletableTask task) {
+        final TaskState state = task.getNextState();
         if(state.next == TaskState.Next.READ) {
             if(state.needs > 0 && incrementBy(state.needs) > 0) {
                 increase(incrementBy(state.needs));
@@ -173,7 +174,7 @@ class IO {
         }
 
         task.setOobHandlers(oobHandlers);
-        final TaskState state = task.onStart(feMessage, readBuffer);
-        decide(state, task);
+        task.onStart(feMessage, readBuffer);
+        decide(task);
     }
 }

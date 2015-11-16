@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -230,64 +231,6 @@ public class Session {
         return ioPool.total;
     }
 
-    private Map<Integer,SortedSet<PgAttribute>> extract(final Map<Integer,SortedSet<PgAttribute>> map, final Row row) {
-        row.with(() -> {
-                Row.Iterator iter = row.iterator();
-                final PgAttribute attr = new PgAttribute(iter.nextInt(), iter.nextString(),
-                                                         iter.nextInt(), iter.nextShort());
-                if(!map.containsKey(attr.getRelId())) {
-                    map.put(attr.getRelId(), new TreeSet<>());
-                }
-
-                map.get(attr.getRelId()).add(attr); });
-        
-        return map;
-    }
-
-    private Map<Integer,SortedSet<PgAttribute>> loadAttributes() throws InterruptedException, ExecutionException {
-        final Map<Integer,SortedSet<PgAttribute>> ret = new HashMap<>();
-        return execute(SimpleTask
-                       .forQuery("select attrelid, attname, atttypid, attnum " +
-                                 "from pg_attribute where attnum >= 1 " +
-                                 "order by attrelid asc, atttypid asc",
-                                 ret, this::extract).toCompletable()).get();
-    }
-
-    private PgTypeRegistry extract(final Map<Integer,SortedSet<PgAttribute>> attributes,
-                                   final PgTypeRegistry registry, final Row row) {
-        row.with(() -> {
-                Row.Iterator iter = row.iterator();
-                PgType.Builder builder = new PgType.Builder()
-                    .oid(iter.nextInt())
-                    .name(iter.nextString() + "." + iter.nextString())
-                    .arrayId(iter.nextInt());
-                final int relId = iter.nextInt();
-                PgType pgType = builder
-                    .relId(relId)
-                    .delimiter(iter.nextString().charAt(0))
-                    .attributes(attributes.get(relId)).build();
-                registry.add(pgType); });
-        
-        return registry;
-    }
-    
-    public void loadTypes() {
-        final String sql = "select typ.oid, ns.nspname, typ.typname, typ.typarray, typ.typrelid, typ.typdelim " +
-            "from pg_type typ " +
-            "join pg_namespace ns on typ.typnamespace = ns.oid";
-        
-        try {
-            final Map<Integer,SortedSet<PgAttribute>> attributes = loadAttributes();
-            final PgTypeRegistry reg = sessionInfo.getRegistry();
-            SimpleTask<PgTypeRegistry> task = SimpleTask
-                .forQuery(sql, reg, (registry,row) -> extract(attributes, registry, row));
-            execute(task.toCompletable()).get();
-        }
-        catch(InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public <T> CompletableFuture<T> execute(final CompletableTask<T> task) {
         final IO io = ioPool.fast();
         if(io != null) {
@@ -298,5 +241,14 @@ public class Session {
         }
         
         return task.getFuture();
+    }
+
+    public CompletableFuture<Integer> execute(final String sql) {
+        return execute(SimpleTask.forExecute(sql).toCompletable());
+    }
+
+    public <T> CompletableFuture<T> query(final String sql, final T accumulator,
+                                          final BiFunction<T,Row,T> func) {
+        return execute(SimpleTask.forQuery(sql, accumulator, func).toCompletable());
     }
 }

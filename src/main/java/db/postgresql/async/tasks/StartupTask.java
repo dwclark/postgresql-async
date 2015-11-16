@@ -23,7 +23,6 @@ public class StartupTask extends BaseTask<KeyData> implements CompletableTask<Ke
 
     final SessionInfo info;
     private KeyData keyData;
-    private ReadyForQuery readyForQuery;
     private boolean authenticated = false;
     private CompletableFuture<KeyData> future;
     
@@ -65,17 +64,25 @@ public class StartupTask extends BaseTask<KeyData> implements CompletableTask<Ke
         }
     }
 
-    private TaskState nextOp() {
-        return authenticated ? TaskState.finished() : TaskState.write();
+    public void computeNextState(final int needs) {
+        if(needs > 0) {
+            nextState = TaskState.needs(needs);
+        }
+        else if(authenticated) {
+            nextState = TaskState.finished();
+        }
+        else {
+            nextState = TaskState.write();
+        }
     }
 
-    public TaskState onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return pump(readBuffer, (resp) -> readProcessor(fe, resp), this::nextOp);
+    public void onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        computeNextState(pump(readBuffer, (resp) -> readProcessor(fe, resp)));
     }
 
-    public TaskState onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+    public void onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         fe.startup(info.getInitKeysValues());
-        return TaskState.write();
+        nextState = TaskState.write();
     }
 
     public KeyData getResult() {

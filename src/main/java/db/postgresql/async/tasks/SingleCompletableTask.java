@@ -29,8 +29,9 @@ public class SingleCompletableTask<T> implements CompletableTask<T> {
         return future;
     }
     
-    private TaskState process(final TaskState state) {
-        if(state.next == TaskState.Next.FINISHED || state.next == TaskState.Next.TERMINATE) {
+    private void process() {
+        final TaskState state = getNextState();
+        if(state.next== TaskState.Next.FINISHED || state.next == TaskState.Next.TERMINATE) {
             if(task.getError() == null) {
                 future.complete(task.getResult());
             }
@@ -38,8 +39,6 @@ public class SingleCompletableTask<T> implements CompletableTask<T> {
                 future.completeExceptionally(task.getError());
             }
         }
-
-        return state;
     }
 
     public T getResult() {
@@ -57,25 +56,33 @@ public class SingleCompletableTask<T> implements CompletableTask<T> {
     public TransactionStatus getTransactionStatus() {
         return task.getTransactionStatus();
     }
-    
-    public TaskState onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return process(task.onStart(fe, readBuffer));
+
+    public TaskState getNextState() {
+        return task.getNextState();
     }
     
-    public TaskState onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return process(task.onRead(fe, readBuffer));
+    public void onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        task.onStart(fe, readBuffer);
+        process();
     }
     
-    public TaskState onWrite(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return process(task.onWrite(fe, readBuffer));
+    public void onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        task.onRead(fe, readBuffer);
+        process();
+    }
+    
+    public void onWrite(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        task.onWrite(fe, readBuffer);
+        process();
     }
     
     public void onFail(final Throwable t) {
         future.completeExceptionally(t);
     }
     
-    public TaskState onTimeout(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        return process(task.onTimeout(fe, readBuffer));
+    public void onTimeout(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        task.onTimeout(fe, readBuffer);
+        process();
     }
 
     public long getTimeout() {
