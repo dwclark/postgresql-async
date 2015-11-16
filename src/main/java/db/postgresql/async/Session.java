@@ -75,9 +75,9 @@ public class Session {
                 }
 
 
-                startupIO(this);
+                IO io = startupIO(this);
                 ++total;
-                semaphore.release();
+                good(io);
             }
             catch(IOException | InterruptedException | ExecutionException ex) {
                 recoveryService.schedule(() -> add(), sessionInfo.getBackOff(), sessionInfo.getBackOffUnits());
@@ -216,6 +216,7 @@ public class Session {
         io.execute(startupTask);
         KeyData keyData = startupTask.getFuture().get();
         io.setKeyData(keyData);
+        io.setInitialized(true);
         return io;
     }
 

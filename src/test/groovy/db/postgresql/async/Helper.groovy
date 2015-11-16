@@ -9,7 +9,7 @@ class Helper {
     static final String database = 'testdb';
 
     public static Session noAuth() {
-        SessionInfo.Builder builder = new SessionInfo.Builder().host(host).port(port).database(database);
+        SessionInfo.Builder builder = new SessionInfo.Builder().host(host).port(port).database(database).channels(1, 5);
         return new Session(builder.user('noauth').build(), null);
     }
 

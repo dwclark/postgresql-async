@@ -34,10 +34,10 @@ class TypeLoadTest extends Specification {
         
         expect:
         list.size() == 2;
-        list[0][0] instanceof Integer;
-        list[0][0] == 1;
-        list[0][1] instanceof String;
-        list[0][1] == 'one';
+        list[0][1] instanceof Integer;
+        list[0][1] == 1;
+        list[0][2] instanceof String;
+        list[0][2] == 'one';
     }
 
     def "Test All Types Automatic Serialization"() {

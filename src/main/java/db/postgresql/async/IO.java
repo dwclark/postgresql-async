@@ -35,7 +35,8 @@ class IO {
     private final Map<String,String> parameterStatuses = new LinkedHashMap<>();
     private Notice lastNotice;
     private final Map<BackEnd,Consumer<Response>> oobHandlers = new EnumMap<>(BackEnd.class);
-    private volatile KeyData keyData;
+    private KeyData keyData;
+    private boolean initialized;
 
     public void setKeyData(final KeyData val) {
         this.keyData = val;
@@ -43,6 +44,14 @@ class IO {
 
     public KeyData getKeyData() {
         return keyData;
+    }
+
+    public boolean isInitialized() {
+        return initialized;
+    }
+
+    public void setInitialized(final boolean val) {
+        this.initialized = val;
     }
     
     //OOB handlers
@@ -157,7 +166,9 @@ class IO {
             channel.write(writeBuffer, task.getTimeout(), task.getUnits(), task, writer);
         }
         else if(state.next == TaskState.Next.FINISHED) {
-            resourcePool.good(this);
+            if(isInitialized()) {
+                resourcePool.good(this);
+            }
         }
         else if(state.next == TaskState.Next.TERMINATE) {
             close();
