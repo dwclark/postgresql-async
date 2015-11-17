@@ -1,29 +1,44 @@
 package db.postgresql.async.tasks;
 
+import db.postgresql.async.CommandStatus;
 import db.postgresql.async.CompletableTask;
 import db.postgresql.async.PostgresqlException;
 import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;
+import db.postgresql.async.TransactionStatus;
+import db.postgresql.async.messages.*;
 import java.nio.ByteBuffer;
-import java.util.Map;
-import java.util.LinkedHashMap;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import db.postgresql.async.messages.*;
-import java.util.concurrent.TimeUnit;
 
 public abstract class BaseTask<T> implements Task<T> {
-
+    
     private final Map<BackEnd,Consumer<Response>> oobHandlers = new EnumMap<>(BackEnd.class);
     private final long timeout;
     private final TimeUnit units;
-    
+
     private PostgresqlException error;
     protected TaskState nextState;
     protected CommandComplete commandComplete;
     protected ReadyForQuery readyForQuery;
+
+    public CommandStatus getCommandStatus() {
+        return commandComplete;
+    }
+
+    public TransactionStatus getTransactionStatus() {
+        if(readyForQuery == null) {
+            return null;
+        }
+        else {
+            return readyForQuery.getStatus();
+        }
+    }
 
     public TaskState getNextState() {
         return nextState;

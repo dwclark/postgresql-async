@@ -1,11 +1,9 @@
 package db.postgresql.async.tasks;
 
 import db.postgresql.async.CompletableTask;
-import db.postgresql.async.CommandStatus;
 import db.postgresql.async.SessionInfo;
 import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;
-import db.postgresql.async.TransactionStatus;
 import db.postgresql.async.messages.Authentication;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
@@ -87,14 +85,6 @@ public class StartupTask extends BaseTask<KeyData> implements CompletableTask<Ke
 
     public KeyData getResult() {
         return keyData;
-    }
-
-    public CommandStatus getCommandStatus() {
-        return null;
-    }
-
-    public TransactionStatus getTransactionStatus() {
-        return readyForQuery.getStatus();
     }
 
     public CompletableFuture<KeyData> getFuture() {

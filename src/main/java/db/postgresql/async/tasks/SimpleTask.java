@@ -5,7 +5,6 @@ import db.postgresql.async.RwMode;
 import db.postgresql.async.CommandStatus;
 import db.postgresql.async.Row;
 import db.postgresql.async.TaskState;
-import db.postgresql.async.TransactionStatus;
 import db.postgresql.async.messages.CommandComplete;
 import db.postgresql.async.messages.DataRow;
 import db.postgresql.async.messages.FrontEndMessage;
@@ -29,14 +28,6 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         this.accumulator = accumulator;
     }
     
-    public TransactionStatus getTransactionStatus() {
-        return readyForQuery.getStatus();
-    }
-
-    public CommandStatus getCommandStatus() {
-        return commandComplete;
-    }
-
     private boolean readProcessor(final Response resp) {
         switch(resp.getBackEnd()) {
         case RowDescription:

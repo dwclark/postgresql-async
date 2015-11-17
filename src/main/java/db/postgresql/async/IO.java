@@ -8,7 +8,7 @@ import db.postgresql.async.messages.Notice;
 import db.postgresql.async.messages.Notification;
 import db.postgresql.async.messages.ParameterStatus;
 import db.postgresql.async.messages.Response;
-import db.postgresql.async.pginfo.StatementCache;
+import db.postgresql.async.pginfo.PgSessionCache;
 import db.postgresql.async.serializers.SerializationContext;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -27,7 +27,7 @@ class IO {
     private final FrontEndMessage feMessage;
     private final AsynchronousSocketChannel channel;
     private final ResourcePool<IO> resourcePool;
-    private final StatementCache statementCache = new StatementCache();
+    private final PgSessionCache pgSessionCache = new PgSessionCache();
     private final Reader reader = new Reader();
     private final Writer writer = new Writer();
     private final ByteBuffer writeBuffer = ByteBuffer.allocate(32 * 1024);

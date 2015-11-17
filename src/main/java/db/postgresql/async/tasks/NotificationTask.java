@@ -3,8 +3,6 @@ package db.postgresql.async.tasks;
 import db.postgresql.async.CompletableTask;
 import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;
-import db.postgresql.async.TransactionStatus;
-import db.postgresql.async.CommandStatus;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.Notification;
@@ -116,14 +114,6 @@ public class NotificationTask extends BaseTask<Void> implements CompletableTask<
     }
 
     public Void getResult() {
-        return null;
-    }
-
-    public CommandStatus getCommandStatus() {
-        return null;
-    }
-
-    public TransactionStatus getTransactionStatus() {
         return null;
     }
 
