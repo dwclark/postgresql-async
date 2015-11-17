@@ -9,6 +9,10 @@ import java.nio.channels.WritableByteChannel;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import static java.nio.ByteBuffer.wrap;
+import db.postgresql.async.pginfo.Statement;
+import db.postgresql.async.pginfo.Registry;
+import db.postgresql.async.serializers.SerializationContext;
+import db.postgresql.async.serializers.Serializer;
 
 //Not thread safe
 public class FrontEndMessage {
@@ -73,6 +77,66 @@ public class FrontEndMessage {
                 return true; });
     }
 
+    public static final Object[] EMPTY_ARGS = new Object[0];
+
+    public boolean bindAndExecute(final Statement statement, final Object[] args) {
+        final int startAt = buffer.position();
+        final boolean success = bind(statement, args) && execute(statement);
+        if(!success) {
+            buffer.position(startAt);
+        }
+        
+        return success;
+    }
+    
+    public boolean bind(final Statement statement, final Object[] args) {
+        return guard(FrontEnd.Bind, () -> {
+                putNullString(statement.getPortalValue());
+                putNullString(statement.getValue());
+                buffer.putShort((short) args.length);
+
+                for(int i = 0; i < args.length; ++i) {
+                    buffer.putShort(Format.TEXT.getCode());
+                }
+
+                for(int i = 0; i < args.length; ++i) {
+                    final Object arg = args[i];
+                    if(arg == null) {
+                        buffer.putInt(-1);
+                    }
+                    else {
+                        final int sizeAt = buffer.position();
+                        buffer.putInt(0);
+                        writeArg(arg);
+                        final int lastAt = buffer.position();
+                        buffer.position(sizeAt);
+                        buffer.putInt((lastAt - sizeAt) - 4);
+                        buffer.position(lastAt);
+                    }
+                }
+
+                buffer.putShort((short) 0);
+                return true; });
+    }
+    
+    public boolean execute(final Statement statement) {
+        return execute(statement, 0);
+    }
+    
+    public boolean execute(final Statement statement, final int maxRows) {
+        return guard(FrontEnd.Execute, () -> {
+                putNullString(statement.getPortalValue());
+                buffer.putInt(maxRows);
+                return true; });
+    }
+
+
+    @SuppressWarnings("unchecked")
+    private void writeArg(final Object arg) {
+        final Serializer s = SerializationContext.registry().serializer(arg.getClass());
+        s.write(buffer, arg);
+    }
+
     public boolean cancel(final int pid, final int secretKey) {
         return guard(FrontEnd.CancelRequest, () -> { buffer.putInt(pid); buffer.putInt(secretKey); return true; });
     }
@@ -120,14 +184,6 @@ public class FrontEndMessage {
 
     public boolean describePortal(final String name) {
         return describe('P', name);
-    }
-
-    public boolean execute(final String name) {
-        return execute(name, 0);
-    }
-
-    public boolean execute(final String name, final int maxRows) {
-        return guard(FrontEnd.Execute, () -> { putNullString(name); buffer.putInt(maxRows); return true; });
     }
 
     public boolean flush() {

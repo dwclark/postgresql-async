@@ -58,6 +58,10 @@ public class PgTypeRegistry implements Registry {
         return (Serializer<T>) serializerMap.get(type);
     }
 
+    public Serializer untyped(final Class type) {
+        return (Serializer) serializerMap.get(type);
+    }
+
     public Serializer serializer(final Integer oid) {
         return serializerMap.get(oid);
     }

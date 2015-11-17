@@ -11,11 +11,15 @@ public class Statement extends Portal {
     private final ParameterDescription parameterDescription;
     public ParameterDescription getParameterDescription() { return parameterDescription; }
 
+    private final String portalValue;
+    public String getPortalValue() { return portalValue; }
+
     public Statement(final String id,
                      final ParameterDescription parameterDescription,
                      final RowDescription rowDescription) {
         super(id, rowDescription);
         this.parameterDescription = parameterDescription;
+        this.portalValue = String.format("%s_portal", id);
     }
 
     public static String nextId() {
