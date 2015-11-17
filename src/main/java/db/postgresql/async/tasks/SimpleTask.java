@@ -1,5 +1,6 @@
 package db.postgresql.async.tasks;
 
+import db.postgresql.async.NullOutput;
 import db.postgresql.async.Isolation;
 import db.postgresql.async.RwMode;
 import db.postgresql.async.CommandStatus;
@@ -78,13 +79,13 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         nextState = TaskState.write();
     }
 
-    private static class NoOutput extends SimpleTask<Void> {
+    private static class NoOutput extends SimpleTask<NullOutput> {
         public NoOutput(final String sql) {
             super(sql, null);
         }
 
-        public Void getResult() {
-            return null;
+        public NullOutput getResult() {
+            return NullOutput.instance;
         }
 
         public void onDataRow(final DataRow dataRow) {
@@ -216,17 +217,21 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         return new Multi(parts);
     }
 
-    public static SimpleTask<Void> begin(final Isolation isolation, final RwMode mode, final boolean deferrable) {
-        final String sql = String.format("BEGIN ISOLATION LEVEL %s %s %s;", isolation, mode,
-                                         deferrable ? "DEFERRABLE" : "NOT DEFERRABLE");
+    public static SimpleTask<NullOutput> noOutput(final String sql) {
         return new NoOutput(sql);
     }
 
-    public static SimpleTask<Void> commit() {
-        return new NoOutput("commit;");
+    public static SimpleTask<NullOutput> begin(final Isolation isolation, final RwMode mode, final boolean deferrable) {
+        final String sql = String.format("BEGIN ISOLATION LEVEL %s %s %s;", isolation, mode,
+                                         deferrable ? "DEFERRABLE" : "NOT DEFERRABLE");
+        return noOutput(sql);
     }
 
-    public static SimpleTask<Void> rollback() {
-        return new NoOutput("rollback;");
+    public static SimpleTask<NullOutput> commit() {
+        return noOutput("commit;");
+    }
+
+    public static SimpleTask<NullOutput> rollback() {
+        return noOutput("rollback;");
     }
 }
