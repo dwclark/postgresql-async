@@ -154,6 +154,11 @@ class IO {
 
     private void decide(final CompletableTask task) {
         final TaskState state = task.getNextState();
+        if(state.next == TaskState.Next.START) {
+            readBuffer.clear();
+            writeBuffer.clear();
+            task.onStart(feMessage, readBuffer);
+        }
         if(state.next == TaskState.Next.READ) {
             if(state.needs > 0 && incrementBy(state.needs) > 0) {
                 increase(incrementBy(state.needs));
@@ -184,6 +189,8 @@ class IO {
             resourcePool.bad(this);
         }
 
+        readBuffer.clear();
+        writeBuffer.clear();
         task.setOobHandlers(oobHandlers);
         task.onStart(feMessage, readBuffer);
         decide(task);

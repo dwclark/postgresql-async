@@ -13,6 +13,7 @@ import db.postgresql.async.messages.Response;
 import db.postgresql.async.messages.RowDescription;
 import db.postgresql.async.pginfo.PgSessionCache;
 import db.postgresql.async.pginfo.Statement;
+import db.postgresql.async.serializers.SerializationContext;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,10 +38,6 @@ public class ExecuteTask<T> extends BaseTask<T> {
         this.args = args;
         this.accumulator = accumulator;
         this.func = func;
-    }
-
-    public RowDescription getRowDescription() {
-        return cache.statement(sql).getRowDescription();
     }
 
     @Override
@@ -115,6 +112,7 @@ public class ExecuteTask<T> extends BaseTask<T> {
             nextState = TaskState.write();
         }
         else {
+            SerializationContext.description(statement.getRowDescription());
             nextState = TaskState.read();
         }
     }

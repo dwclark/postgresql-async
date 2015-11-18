@@ -92,8 +92,8 @@ class SimpleTaskTest extends Specification {
     }
 
     public MapEntry singleTask(int notUsed) {
-        def func = { List<Map> accum, Row row -> accum << row.toMap(); };
-        def task = SimpleTask.forQuery('select * from items where id < 3;', [], func).toCompletable();
+        def func = { Row row -> row.toMap(); };
+        def task = SimpleTask.forQuery('select * from items where id < 3;', func).toCompletable();
         def expect = { results -> results.size() == 2; };
 
         return new MapEntry(task, expect);

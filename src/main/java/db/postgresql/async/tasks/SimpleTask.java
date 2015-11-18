@@ -14,6 +14,7 @@ import db.postgresql.async.messages.ReadyForQuery;
 import db.postgresql.async.messages.RowDescription;
 import db.postgresql.async.serializers.SerializationContext;
 import java.nio.ByteBuffer;
+import java.util.function.Function;
 import java.util.function.BiFunction;
 import java.util.ArrayList;
 import java.util.ListIterator;
@@ -207,6 +208,15 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
     public static <T> SimpleTask<T> forQuery(final String sql, final T accumulator,
                                              final BiFunction<T,Row,T> func) {
         return new ForQuery<>(sql, accumulator, func);
+    }
+
+    public static <T> SimpleTask<List<T>> forQuery(final String sql, final Function<Row,T> func) {
+        final BiFunction<List<T>, Row, List<T>> biFunc = (list, row) -> {
+            list.add(func.apply(row));
+            return list;
+        };
+
+        return forQuery(sql, new ArrayList<>(), biFunc);
     }
 
     public static SimpleTask<Integer> forExecute(final String sql) {

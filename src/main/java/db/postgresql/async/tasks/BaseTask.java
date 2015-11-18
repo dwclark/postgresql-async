@@ -92,7 +92,7 @@ public abstract class BaseTask<T> implements Task<T> {
     }
     
     public void onFail(Throwable t) {
-        //do nothing
+        nextState = TaskState.terminate();
     }
 
     public void onTimeout(final FrontEndMessage fe, final ByteBuffer readBuffer) {
