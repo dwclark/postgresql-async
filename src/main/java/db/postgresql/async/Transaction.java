@@ -9,6 +9,7 @@ import db.postgresql.async.messages.Response;
 import db.postgresql.async.tasks.SimpleTask;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -203,37 +204,11 @@ public abstract class Transaction<T> implements CompletableTask<T> {
         }
     }
     
-    public static class Builder {
-        private Isolation isolation = Isolation.READ_COMMITTED;
-        public Builder isolation(final Isolation val) { this.isolation = val; return this; }
-
-        private RwMode mode = RwMode.READ_WRITE;
-        public Builder mode(final RwMode val) { this.mode = val; return this; }
-
-        private boolean deferrable = false;
-        public Builder deferrable(final boolean val) { this.deferrable = val; return this; }
-
-        private List<Task> tasks = new ArrayList<>();
-        public Builder task(final Task task) { tasks.add(task); return this; }
-        public List<Task> tasks() {
-            if(tasks.size() == 1) {
-                return Collections.singletonList(tasks.get(0));
-            }
-            else {
-                return Collections.unmodifiableList(tasks);
-            }
-        }
-
-        public SimpleTask<NullOutput> begin() {
-            return SimpleTask.begin(isolation, mode, deferrable);
-        }
-
-        public <T> Transaction<T> single(final Task<T> task) {
-            return new Single<>(begin(), task);
-        }
-
-        public Transaction<List> multiple() {
-            return new Multiple(begin(), tasks());
-        }
+    public static <T> Transaction<T> single(final Concurrency concurrency, final Task<T> task) {
+        return new Single<>(concurrency.begin(), task);
+    }
+    
+    public static Transaction<List> multiple(final Concurrency concurrency, final Task... tasks) {
+        return new Multiple(concurrency.begin(), Arrays.asList(tasks));
     }
 }
