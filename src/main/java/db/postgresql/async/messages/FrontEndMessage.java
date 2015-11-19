@@ -79,9 +79,9 @@ public class FrontEndMessage {
 
     public static final Object[] EMPTY_ARGS = new Object[0];
 
-    public boolean bindAndExecute(final Statement statement, final Object[] args) {
+    public boolean bindExecuteSync(final Statement statement, final Object[] args) {
         final int startAt = buffer.position();
-        final boolean success = bind(statement, args) && execute(statement);
+        final boolean success = bind(statement, args) && execute(statement) && sync();
         if(!success) {
             buffer.position(startAt);
         }
@@ -99,6 +99,7 @@ public class FrontEndMessage {
                     buffer.putShort(Format.TEXT.getCode());
                 }
 
+                buffer.putShort((short) args.length);
                 for(int i = 0; i < args.length; ++i) {
                     final Object arg = args[i];
                     if(arg == null) {

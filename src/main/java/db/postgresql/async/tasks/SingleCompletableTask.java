@@ -9,6 +9,7 @@ import db.postgresql.async.TransactionStatus;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.Response;
+import db.postgresql.async.pginfo.PgSessionCache;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -95,5 +96,9 @@ public class SingleCompletableTask<T> implements CompletableTask<T> {
     
     public void setOobHandlers(final Map<BackEnd,Consumer<Response>> oobHandlers) {
         task.setOobHandlers(oobHandlers);
+    }
+
+    public void setStatementCache(final PgSessionCache cache) {
+        task.setStatementCache(cache);
     }
 }

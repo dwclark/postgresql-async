@@ -7,6 +7,7 @@ import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;
 import db.postgresql.async.TransactionStatus;
 import db.postgresql.async.messages.*;
+import db.postgresql.async.pginfo.PgSessionCache;
 import java.nio.ByteBuffer;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
@@ -120,6 +121,10 @@ public abstract class BaseTask<T> implements Task<T> {
 
     public void setOobHandlers(final Map<BackEnd,Consumer<Response>> oobHandlers) {
         this.oobHandlers.putAll(oobHandlers);
+    }
+
+    public void setStatementCache(final PgSessionCache cache) {
+        //not needed
     }
 
     public void clearOobHandlers() {

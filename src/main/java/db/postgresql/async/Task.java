@@ -26,6 +26,7 @@ public interface Task<T> {
     long getTimeout();
     TimeUnit getUnits();
     void setOobHandlers(final Map<BackEnd,Consumer<Response>> oobHandlers);
+    void setStatementCache(PgSessionCache cache);
     
     default CompletableTask<T> toCompletable() {
         if(this instanceof CompletableTask) {
@@ -34,9 +35,5 @@ public interface Task<T> {
         else {
             return new SingleCompletableTask<T>(this);
         }
-    }
-
-    default Task<Void> prepareTask(final PgSessionCache cache) {
-        return null;
     }
 }

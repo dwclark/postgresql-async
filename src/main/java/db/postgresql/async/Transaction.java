@@ -6,6 +6,7 @@ import db.postgresql.async.TransactionStatus;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.Response;
+import db.postgresql.async.pginfo.PgSessionCache;
 import db.postgresql.async.tasks.SimpleTask;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public abstract class Transaction<T> implements CompletableTask<T> {
     private final List<Task> tasks;
     private Phase phase;
     private Map<BackEnd,Consumer<Response>> oobHandlers;
+    private PgSessionCache statementCache;
     private Iterator<Task> iter;
     private Task<?> current;
     private TransactionStatus transactionStatus;
@@ -119,6 +121,7 @@ public abstract class Transaction<T> implements CompletableTask<T> {
 
     public void onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         current.setOobHandlers(oobHandlers);
+        current.setStatementCache(statementCache);
         current.onStart(fe, readBuffer);
         computeNextAction();
     }
@@ -169,6 +172,10 @@ public abstract class Transaction<T> implements CompletableTask<T> {
         this.oobHandlers = oobHandlers;
     }
 
+    public void setStatementCache(final PgSessionCache cache) {
+        this.statementCache = cache;
+    }
+    
     private static class Single<T> extends Transaction<T> {
 
         private Task<T> theTask;

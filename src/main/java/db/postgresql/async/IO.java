@@ -192,6 +192,7 @@ class IO {
         readBuffer.clear();
         writeBuffer.clear();
         task.setOobHandlers(oobHandlers);
+        task.setStatementCache(pgSessionCache);
         task.onStart(feMessage, readBuffer);
         decide(task);
     }
