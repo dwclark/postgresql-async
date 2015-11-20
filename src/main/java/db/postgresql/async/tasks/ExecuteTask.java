@@ -244,15 +244,15 @@ public class ExecuteTask<T> extends BaseTask<T> {
         }
     }
 
-    public static ExecuteTask<List<Integer>> forBulkExecute(final String sql, final List<Object[]> args) {
+    public static ExecuteTask<List<Integer>> execute(final String sql, final List<Object[]> args) {
         return new BulkExecute(sql, args);
     }
 
-    public static ExecuteTask<Integer> forExecute(final String sql, final Object[] args) {
+    public static ExecuteTask<Integer> execute(final String sql, final Object[] args) {
         return new Execute(sql, args);
     }
 
-    public static <R> ExecuteTask<List<R>> forQuery(final String sql, final Object[] args, final Function<Row,R> func) {
+    public static <R> ExecuteTask<List<R>> query(final String sql, final Object[] args, final Function<Row,R> func) {
         final BiFunction<List<R>,Row,List<R>> biFunc = (list,row) -> { list.add(func.apply(row)); return list; };
         return new ExecuteTask<>(sql, Collections.singletonList(args),
                                  new ArrayList<>(), biFunc);

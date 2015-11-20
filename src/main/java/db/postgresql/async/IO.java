@@ -111,6 +111,11 @@ class IO {
         }
     }
 
+    private void prepareThread() {
+        SerializationContext.registry(sessionInfo.getRegistry());
+        SerializationContext.encoding(sessionInfo.getEncoding());
+    }
+    
     private class Writer extends Base implements CompletionHandler<Integer,CompletableTask> {
 
         public void completed(final Integer bytes, final CompletableTask task) {
@@ -119,6 +124,7 @@ class IO {
             }
             else {
                 writeBuffer.clear();
+                prepareThread();
                 task.onWrite(feMessage, readBuffer);
                 decide(task);
             }
@@ -129,8 +135,7 @@ class IO {
 
         public void completed(final Integer bytes, final CompletableTask task) {
             readBuffer.flip();
-            SerializationContext.registry(sessionInfo.getRegistry());
-            SerializationContext.encoding(sessionInfo.getEncoding());
+            prepareThread();
             task.onRead(feMessage, readBuffer);
             readBuffer.compact();
             decide(task);
@@ -153,6 +158,7 @@ class IO {
     }
 
     private void decide(final CompletableTask task) {
+        prepareThread();
         final TaskState state = task.getNextState();
         if(state.next == TaskState.Next.START) {
             readBuffer.clear();
@@ -193,6 +199,7 @@ class IO {
         writeBuffer.clear();
         task.setOobHandlers(oobHandlers);
         task.setStatementCache(pgSessionCache);
+        prepareThread();
         task.onStart(feMessage, readBuffer);
         decide(task);
     }

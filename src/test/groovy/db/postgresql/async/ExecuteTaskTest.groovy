@@ -19,29 +19,35 @@ class ExecuteTaskTest extends Specification {
         session.shutdown();
     }
 
-    def "Test Execute Simple"() {
+    def "Test Query Simple"() {
         setup:
         String sql = "select * from all_types;";
-        ExecuteTask<List<Map>> task = forQuery(sql, [] as Object[], { Row r -> r.toMap(); });
-        CompletableTask ct = task.toCompletable();
+        CompletableTask ct = query(sql, [] as Object[], { Row r -> r.toMap(); }).toCompletable();
         List<Map> output = session.execute(ct).get();
 
-        task = forQuery(sql, [] as Object[], { Row r -> r.toMap(); });
-        ct = task.toCompletable();
+        ct = query(sql, [] as Object[], { Row r -> r.toMap(); }).toCompletable();
         List<Map> output2 = session.execute(ct).get();
     }
 
     def "Test Query With Args"() {
         setup:
         String sql = 'select * from items where id = $1;';
-        ExecuteTask<List<Map>> task = forQuery(sql, [2] as Object[], { Row r -> r.toMap(); });
-        CompletableTask ct = task.toCompletable();
+        CompletableTask ct = query(sql, [2] as Object[], { Row r -> r.toMap(); }).toCompletable();
         List<Map> output = session.execute(ct).get();
 
         expect:
         println(output);
         output[0].id == 2;
         output[0].description == 'two';
+    }
+
+    def "Test Multiple Executions"() {
+        setup:
+        (0..10).each { num ->
+            [ query("select * from all_types;", [] as Object[], { Row r -> r.toMap(); }).toCompletable(),
+              query('select * from items where id = $1;', [2] as Object[], { Row r -> r.toMap(); }).toCompletable() ].each { ct ->
+                  println("Execution ${num}");
+                  assert(session.execute(ct).get()); }; };
     }
 }
 
