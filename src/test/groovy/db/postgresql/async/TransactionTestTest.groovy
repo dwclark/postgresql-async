@@ -1,9 +1,10 @@
-package db.postgresql.async;
+package db.postgresql.async
 
-import spock.lang.*;
-import db.postgresql.async.tasks.*;
+import db.postgresql.async.tasks.TransactionTask;
+import spock.lang.*
+
 import static db.postgresql.async.tasks.SimpleTask.*;
-import static db.postgresql.async.tasks.Transaction.*;
+import static db.postgresql.async.tasks.TransactionTask.*;
 
 class TransactionTest extends Specification {
 
@@ -20,10 +21,10 @@ class TransactionTest extends Specification {
 
     def "Define Simple Transactions"() {
         setup:
-        Transaction one = single(concurrency,
+        TransactionTask one = single(concurrency,
                                  execute("insert into items (id, description) values (44, 'forty-four');"));
         
-        Transaction multi = multiple(concurrency,
+        TransactionTask multi = multiple(concurrency,
                                      execute("insert into items (id, description) values (44, 'fourty-four');"),
                                      execute("update items set description = 'forty-four' where id 44;"));
     }

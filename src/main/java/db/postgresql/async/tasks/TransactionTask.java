@@ -17,9 +17,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-public abstract class Transaction<T> implements CompletableTask<T> {
+public abstract class TransactionTask<T> implements CompletableTask<T> {
 
-    private Transaction(SimpleTask<NullOutput> beginTask, final List<Task> tasks) {
+    private TransactionTask(SimpleTask<NullOutput> beginTask, final List<Task> tasks) {
         this.current = beginTask;
         this.tasks = tasks;
         this.phase = Phase.BEGIN;
@@ -113,7 +113,7 @@ public abstract class Transaction<T> implements CompletableTask<T> {
             advanceNext();
         }
         else {
-            throw new IllegalStateException("Transaction status should never be " + current.getTransactionStatus() +
+            throw new IllegalStateException("TransactionTask status should never be " + current.getTransactionStatus() +
                                             "inside a transaction block");
         }
     }
@@ -175,7 +175,7 @@ public abstract class Transaction<T> implements CompletableTask<T> {
         this.statementCache = cache;
     }
     
-    private static class Single<T> extends Transaction<T> {
+    private static class Single<T> extends TransactionTask<T> {
 
         private Task<T> theTask;
 
@@ -193,7 +193,7 @@ public abstract class Transaction<T> implements CompletableTask<T> {
         }
     }
 
-    private static class Multiple extends Transaction<List> {
+    private static class Multiple extends TransactionTask<List> {
         private List result = new ArrayList<>();
 
         public List getResult() {
@@ -210,11 +210,11 @@ public abstract class Transaction<T> implements CompletableTask<T> {
         }
     }
     
-    public static <T> Transaction<T> single(final Concurrency concurrency, final Task<T> task) {
+    public static <T> TransactionTask<T> single(final Concurrency concurrency, final Task<T> task) {
         return new Single<>(concurrency.begin(), task);
     }
     
-    public static Transaction<List> multiple(final Concurrency concurrency, final Task... tasks) {
+    public static TransactionTask<List> multiple(final Concurrency concurrency, final Task... tasks) {
         return new Multiple(concurrency.begin(), Arrays.asList(tasks));
     }
 }
