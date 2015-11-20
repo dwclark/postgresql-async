@@ -48,7 +48,7 @@ class SimpleTaskTest extends Specification {
         def func =  { List<Map> accum, Row r -> accum << r.toMap(); }
         def part1 = QueryPart.forList('select * from items where id < 3;', func);
         def part2 = QueryPart.forList('select * from all_types;', func);
-        def task = SimpleTask.forMulti([ part1, part2]).toCompletable();
+        def task = SimpleTask.multi([ part1, part2]).toCompletable();
 
         def expect = { results ->
             results.size() == 2 && results[0].size() == 2 &&  results[1].size() == 1;
@@ -72,7 +72,7 @@ class SimpleTaskTest extends Specification {
                       QueryPart.forExecute("update items set description = 'iii' where id = ${index};"),
                       QueryPart.forList("select * from items where id < 3;", func),
                       QueryPart.forExecute("delete from items where id = ${index};") ];
-        def task = SimpleTask.forMulti(parts).toCompletable();
+        def task = SimpleTask.multi(parts).toCompletable();
 
         def expect = { results ->
             (results.size() == 4 && results[0] == 1 && results[1] == 1 &&
@@ -93,7 +93,7 @@ class SimpleTaskTest extends Specification {
 
     public MapEntry singleTask(int notUsed) {
         def func = { Row row -> row.toMap(); };
-        def task = SimpleTask.forQuery('select * from items where id < 3;', func).toCompletable();
+        def task = SimpleTask.query('select * from items where id < 3;', func).toCompletable();
         def expect = { results -> results.size() == 2; };
 
         return new MapEntry(task, expect);

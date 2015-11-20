@@ -41,4 +41,9 @@ public class TaskState {
     public static TaskState terminate() {
         return TERMINATE;
     }
+
+    @Override
+    public String toString() {
+        return String.format("%s %d", next.name(), needs);
+    }
 }

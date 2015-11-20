@@ -28,7 +28,7 @@ class TypeLoadTest extends Specification {
     def "Test Simple Automatic Serialization"() {
         setup:
         def sql = 'select * from items;';
-        def task = SimpleTask.forQuery(sql, { Row row -> row.toArray(); }).toCompletable();
+        def task = SimpleTask.query(sql, { Row row -> row.toArray(); }).toCompletable();
         def list = session.execute(task).get();
         println(list);
         
@@ -43,7 +43,7 @@ class TypeLoadTest extends Specification {
     def "Test All Types Automatic Serialization"() {
         setup:
         def sql = 'select * from all_types;';
-        def task = SimpleTask.forQuery(sql, { Row row -> row.toMap(); }).toCompletable();
+        def task = SimpleTask.query(sql, { Row row -> row.toMap(); }).toCompletable();
         def map = session.execute(task).get()[0];
         println(map);
 

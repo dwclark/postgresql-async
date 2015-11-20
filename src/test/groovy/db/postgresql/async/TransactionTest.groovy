@@ -3,11 +3,12 @@ package db.postgresql.async;
 import spock.lang.*;
 import db.postgresql.async.tasks.*;
 import static db.postgresql.async.tasks.SimpleTask.*;
-import static db.postgresql.async.Transaction.*;
+import static db.postgresql.async.tasks.Transaction.*;
 
 class TransactionTest extends Specification {
 
     @Shared Session session;
+    Concurrency concurrency = new Concurrency();
     
     def setupSpec() {
         session = Helper.noAuthLoadTypes();
@@ -19,13 +20,21 @@ class TransactionTest extends Specification {
 
     def "Define Simple Transactions"() {
         setup:
-        Concurrency concurrency = new Concurrency();
         Transaction one = single(concurrency,
-                                 forExecute("insert into items (id, description) values (44, 'forty-four');"));
-
+                                 execute("insert into items (id, description) values (44, 'forty-four');"));
+        
         Transaction multi = multiple(concurrency,
-                                     forExecute("insert into items (id, description) values (44, 'fourty-four');"),
-                                     forExecute("update items set description = 'forty-four' where id 44;"));
+                                     execute("insert into items (id, description) values (44, 'fourty-four');"),
+                                     execute("update items set description = 'forty-four' where id 44;"));
+    }
+    
+    def "Run Simple Transaction"() {
+        setup:
+        def list = session.execute(single(concurrency,
+                                          query("select * from all_types;",
+                                                { Row r -> r.toMap(); }))).get();
+        expect:
+        list.size() == 1;
     }
 
 }

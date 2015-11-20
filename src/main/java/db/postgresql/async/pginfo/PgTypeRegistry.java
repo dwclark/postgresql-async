@@ -83,10 +83,10 @@ public class PgTypeRegistry implements Registry {
     private Map<Integer,SortedSet<PgAttribute>> loadAttributes(final Session session) throws InterruptedException, ExecutionException {
         final Map<Integer,SortedSet<PgAttribute>> ret = new HashMap<>();
         return session.execute(SimpleTask
-                               .forQuery("select attrelid, attname, atttypid, attnum " +
-                                         "from pg_attribute where attnum >= 1 " +
-                                         "order by attrelid asc, atttypid asc",
-                                         ret, this::extractAttribute).toCompletable()).get();
+                               .query("select attrelid, attname, atttypid, attnum " +
+                                      "from pg_attribute where attnum >= 1 " +
+                                      "order by attrelid asc, atttypid asc",
+                                      ret, this::extractAttribute).toCompletable()).get();
     }
 
     private Void extractPgType(final Map<Integer,SortedSet<PgAttribute>> attributes, final Row row) {
@@ -114,7 +114,7 @@ public class PgTypeRegistry implements Registry {
         try {
             final Map<Integer,SortedSet<PgAttribute>> attributes = loadAttributes(session);
             SimpleTask<Void> task = SimpleTask
-                .forQuery(sql, null, (none,row) -> extractPgType(attributes, row));
+                .query(sql, null, (none,row) -> extractPgType(attributes, row));
             session.execute(task.toCompletable()).get();
         }
         catch(InterruptedException | ExecutionException e) {

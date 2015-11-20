@@ -1,13 +1,11 @@
-package db.postgresql.async;
+package db.postgresql.async.tasks;
 
-import db.postgresql.async.CommandStatus;
-import db.postgresql.async.PostgresqlException;
-import db.postgresql.async.TransactionStatus;
+import db.postgresql.async.*;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.Response;
 import db.postgresql.async.pginfo.PgSessionCache;
-import db.postgresql.async.tasks.SimpleTask;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -104,13 +102,14 @@ public abstract class Transaction<T> implements CompletableTask<T> {
     }
 
     private void computeNextAction() {
-        if(current.getTransactionStatus() == null) {
+        final TransactionStatus status = current.getTransactionStatus();
+        if(status == null) {
             nextState = current.getNextState();
         }
-        else if(current.getTransactionStatus() == TransactionStatus.FAILED) {
+        else if(status.isFailure()) {
             handleFail();
         }
-        else if(current.getTransactionStatus() == TransactionStatus.IN_BLOCK) {
+        else if(status.isSuccess()) {
             advanceNext();
         }
         else {

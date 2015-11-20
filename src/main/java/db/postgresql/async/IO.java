@@ -164,8 +164,9 @@ class IO {
             readBuffer.clear();
             writeBuffer.clear();
             task.onStart(feMessage, readBuffer);
+            decide(task);
         }
-        if(state.next == TaskState.Next.READ) {
+        else if(state.next == TaskState.Next.READ) {
             if(state.needs > 0 && incrementBy(state.needs) > 0) {
                 increase(incrementBy(state.needs));
             }

@@ -245,11 +245,11 @@ public class Session {
     }
 
     public CompletableFuture<Integer> execute(final String sql) {
-        return execute(SimpleTask.forExecute(sql).toCompletable());
+        return execute(SimpleTask.execute(sql).toCompletable());
     }
 
     public <T> CompletableFuture<T> query(final String sql, final T accumulator,
                                           final BiFunction<T,Row,T> func) {
-        return execute(SimpleTask.forQuery(sql, accumulator, func).toCompletable());
+        return execute(SimpleTask.query(sql, accumulator, func).toCompletable());
     }
 }

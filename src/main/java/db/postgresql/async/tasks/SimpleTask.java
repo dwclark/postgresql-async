@@ -205,25 +205,25 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         }
     }
 
-    public static <T> SimpleTask<T> forQuery(final String sql, final T accumulator,
+    public static <T> SimpleTask<T> query(final String sql, final T accumulator,
                                              final BiFunction<T,Row,T> func) {
         return new ForQuery<>(sql, accumulator, func);
     }
 
-    public static <T> SimpleTask<List<T>> forQuery(final String sql, final Function<Row,T> func) {
+    public static <T> SimpleTask<List<T>> query(final String sql, final Function<Row,T> func) {
         final BiFunction<List<T>, Row, List<T>> biFunc = (list, row) -> {
             list.add(func.apply(row));
             return list;
         };
 
-        return forQuery(sql, new ArrayList<>(), biFunc);
+        return query(sql, new ArrayList<>(), biFunc);
     }
 
-    public static SimpleTask<Integer> forExecute(final String sql) {
+    public static SimpleTask<Integer> execute(final String sql) {
         return new ForExecute(sql);
     }
 
-    public static SimpleTask<List<Object>> forMulti(final List<QueryPart<?>> parts) {
+    public static SimpleTask<List<Object>> multi(final List<QueryPart<?>> parts) {
         return new Multi(parts);
     }
 

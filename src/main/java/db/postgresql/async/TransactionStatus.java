@@ -12,4 +12,12 @@ public enum TransactionStatus {
         default: throw new IllegalStateException("Not a legal transaction status: " + (char) c);
         }
     }
+
+    public boolean isFailure() {
+        return this == FAILED;
+    }
+
+    public boolean isSuccess() {
+        return this == IDLE || this == IN_BLOCK;
+    }
 }
