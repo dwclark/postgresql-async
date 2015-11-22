@@ -136,14 +136,31 @@ insert into numerals (arabic, roman) values(18, 'xviii');
 insert into numerals (arabic, roman) values(19, 'xix');
 insert into numerals (arabic, roman) values(20, 'xx');
 
-CREATE OR REPLACE FUNCTION select_numerals() RETURNS refcursor AS '
-DECLARE
+create or replace function select_numerals() returns refcursor as '
+declare
     ref refcursor;
-BEGIN
-    OPEN ref FOR SELECT * from numerals;
-    RETURN ref;
-END;
-' LANGUAGE plpgsql;
+begin
+    open ref for select * from numerals;
+    return ref;
+end;
+' language plpgsql;
+
+create or replace function multiple_cursors() returns setof refcursor as '
+declare
+    one refcursor;
+    two refcursor;
+    three refcursor;
+begin
+    open one for select * from numerals;
+    return next one;
+
+    open two for select * from items;
+    return next two;
+
+    open three for select * from all_types;
+    return next three;
+end;
+' language plpgsql;
 
 
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public to noauth;

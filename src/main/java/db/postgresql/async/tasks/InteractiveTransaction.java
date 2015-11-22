@@ -18,8 +18,8 @@ public class InteractiveTransaction implements Transaction {
     public InteractiveTransaction(final IO io, final Concurrency concurrency) {
         this.io = io;
         CompletableTask<NullOutput> begin = concurrency.begin().toCompletable();
-        io.execute(begin);
         try {
+            io.execute(begin);
             begin.getFuture().get();
         }
         catch(InterruptedException | ExecutionException e) {
@@ -33,7 +33,14 @@ public class InteractiveTransaction implements Transaction {
         }
         
         completed = true;
-        guard(SimpleTask.commit().toCompletable());
+        try {
+            CompletableTask<NullOutput> task = SimpleTask.commit().toCompletable();
+            io.execute(task);
+            task.getFuture().get();
+        }
+        catch(InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void rollback() {
@@ -115,5 +122,9 @@ public class InteractiveTransaction implements Transaction {
 
     public <T> List<T> prepared(final String sql, final List<Object> args, final Function<Row,T> processor) {
         return guard(Task.prepared(sql, args, processor)).getResult();
+    }
+
+    public <T> T prepared(String sql, List<Object> args, T accumulator, final BiFunction<T,Row,T> processor) {
+        return guard(Task.prepared(sql, args, accumulator, processor)).getResult();
     }
 }

@@ -194,7 +194,7 @@ public class ExecuteTask<T> extends BaseTask<T> {
     }
 
     protected void onDataRow(final DataRow dataRow) {
-        accumulator = func.apply(accumulator, dataRow);
+        dataRow.with(() -> accumulator = func.apply(accumulator, dataRow));
     }
 
     protected void onCommandComplete(final CommandComplete val) {

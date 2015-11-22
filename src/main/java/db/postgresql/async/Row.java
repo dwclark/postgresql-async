@@ -72,6 +72,14 @@ public interface Row {
         }
     }
 
+    default <T> T single(Class<T> type) {
+        return iterator().next(type);
+    }
+
+    default Object single() {
+        return iterator().next();
+    }
+    
     default Object[] toArray() {
         final Object[] ret = new Object[length()];
         final Iterator iter = iterator();

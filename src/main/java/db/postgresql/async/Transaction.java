@@ -15,6 +15,7 @@ public interface Transaction {
     int prepared(String sql, List<Object> args);
     List<Integer> bulkPrepared(String sql, List<List<Object>> args);
     <T> List<T> prepared(String sql, List<Object> args, final Function<Row,T> processor);
+    <T> T prepared(String sql, List<Object> args, T accumulator, final BiFunction<T,Row,T> processor);
     
     void noOutput(final String sql);
     void rollback();

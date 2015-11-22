@@ -250,8 +250,13 @@ public class Session {
     public void withTransaction(final Concurrency concurrency, final Consumer<Transaction> consumer) {
         final IO io = ioPool.guaranteed();
         io.onCompleteDoNothing();
+        final InteractiveTransaction it = new InteractiveTransaction(io, concurrency);
         try {
-            consumer.accept(new InteractiveTransaction(io, concurrency));
+            consumer.accept(it);
+            it.commit();
+        }
+        catch(Throwable t) {
+            it.rollback();
         }
         finally {
             if(io.isOpen()) {

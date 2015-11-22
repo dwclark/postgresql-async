@@ -75,6 +75,10 @@ public interface Task<T> {
 
     static <T> Task<List<T>> prepared(final String sql, List<Object> args, final Function<Row,T> processor) {
         final BiFunction<List<T>,Row,List<T>> biFunc = (list,row) -> { list.add(processor.apply(row)); return list; };
-        return new ExecuteTask<>(sql, Collections.singletonList(args), new ArrayList<>(), biFunc);
+        return prepared(sql, args, new ArrayList<>(), biFunc);
+    }
+
+    static <T> Task<T> prepared(final String sql, List<Object> args, T accumulator, final BiFunction<T,Row,T> processor) {
+        return new ExecuteTask<>(sql, Collections.singletonList(args), accumulator, processor);
     }
 }
