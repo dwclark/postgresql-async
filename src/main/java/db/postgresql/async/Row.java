@@ -88,8 +88,8 @@ public interface Row {
     }
 
     default Map<String,Object> toMap() {
-        Map<String,Object> ret = new LinkedHashMap<>(length());
-        Iterator valueIterator = iterator();
+        final Map<String,Object> ret = new LinkedHashMap<>(length());
+        final Iterator valueIterator = iterator();
         int index = 0;
         while(valueIterator.hasNext()) {
             ret.put(name(index++), valueIterator.next());
@@ -108,8 +108,8 @@ public interface Row {
     
     default <T> T toObject(final Class<T> type, final Function<String,String> translator) {
         try {
-            T ret = type.newInstance();
-            Extractor e = extractor();
+            final T ret = type.newInstance();
+            final Extractor e = extractor();
             for(int i = 0; i < length(); ++i) {
                 final String fieldName = translator.apply(name(i));
                 final PropertyDescriptor pd = new PropertyDescriptor(fieldName, type);
