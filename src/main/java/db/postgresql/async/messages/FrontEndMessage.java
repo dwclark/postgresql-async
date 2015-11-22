@@ -3,6 +3,7 @@ package db.postgresql.async.messages;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.BufferOverflowException;
+import java.util.List;
 import java.util.Map;
 import java.nio.charset.Charset;
 import java.nio.channels.WritableByteChannel;
@@ -79,7 +80,7 @@ public class FrontEndMessage {
 
     public static final Object[] EMPTY_ARGS = new Object[0];
 
-    public boolean bindExecuteSync(final Statement statement, final Object[] args) {
+    public boolean bindExecuteSync(final Statement statement, final List<Object> args) {
         final int startAt = buffer.position();
         final boolean success = bind(statement, args) && execute(statement) && sync();
         if(!success) {
@@ -89,19 +90,19 @@ public class FrontEndMessage {
         return success;
     }
     
-    public boolean bind(final Statement statement, final Object[] args) {
+    public boolean bind(final Statement statement, final List<Object> args) {
         return guard(FrontEnd.Bind, () -> {
                 putNullString(statement.getPortalValue());
                 putNullString(statement.getValue());
-                buffer.putShort((short) args.length);
+                buffer.putShort((short) args.size());
 
-                for(int i = 0; i < args.length; ++i) {
+                for(int i = 0; i < args.size(); ++i) {
                     buffer.putShort(Format.TEXT.getCode());
                 }
 
-                buffer.putShort((short) args.length);
-                for(int i = 0; i < args.length; ++i) {
-                    final Object arg = args[i];
+                buffer.putShort((short) args.size());
+                for(int i = 0; i < args.size(); ++i) {
+                    final Object arg = args.get(i);
                     if(arg == null) {
                         buffer.putInt(-1);
                     }

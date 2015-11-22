@@ -24,7 +24,7 @@ import java.util.function.Function;
 public class ExecuteTask<T> extends BaseTask<T> {
 
     private final String sql;
-    private final List<Object[]> args;
+    private final List<List<Object>> args;
     private final BiFunction<T,Row,T> func;
     protected T accumulator;
 
@@ -33,7 +33,7 @@ public class ExecuteTask<T> extends BaseTask<T> {
     private int executionCount = 0;
     private TaskPhase phase;
     
-    public ExecuteTask(final String sql, final List<Object[]> args,
+    public ExecuteTask(final String sql, final List<List<Object>> args,
                        final T accumulator,
                        final BiFunction<T,Row,T> func) {
         this.sql = sql;
@@ -221,7 +221,7 @@ public class ExecuteTask<T> extends BaseTask<T> {
 
     public static class BulkExecute extends ExecuteTask<List<Integer>> {
         
-        public BulkExecute(final String sql, final List<Object[]> args) {
+        public BulkExecute(final String sql, final List<List<Object>> args) {
             super(sql, args, new ArrayList<>(), null);
         }
 
@@ -233,7 +233,7 @@ public class ExecuteTask<T> extends BaseTask<T> {
     }
 
     public static class Execute extends ExecuteTask<Integer> {
-        public Execute(final String sql, final Object[] args) {
+        public Execute(final String sql, final List<Object> args) {
             super(sql, Collections.singletonList(args), 0, null);
         }
 
@@ -242,19 +242,5 @@ public class ExecuteTask<T> extends BaseTask<T> {
             super.onCommandComplete(val);
             accumulator = val.getRows();
         }
-    }
-
-    public static ExecuteTask<List<Integer>> execute(final String sql, final List<Object[]> args) {
-        return new BulkExecute(sql, args);
-    }
-
-    public static ExecuteTask<Integer> execute(final String sql, final Object[] args) {
-        return new Execute(sql, args);
-    }
-
-    public static <R> ExecuteTask<List<R>> query(final String sql, final Object[] args, final Function<Row,R> func) {
-        final BiFunction<List<R>,Row,List<R>> biFunc = (list,row) -> { list.add(func.apply(row)); return list; };
-        return new ExecuteTask<>(sql, Collections.singletonList(args),
-                                 new ArrayList<>(), biFunc);
     }
 }

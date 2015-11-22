@@ -12,9 +12,9 @@ public interface Transaction {
     <T> T simple(final String sql, final T accumulator, final BiFunction<T,Row,T> processor);
     List simple(List<QueryPart<?>> parts);
     
-    int prepared(String sql, Object[] args);
-    List<Integer> prepared(String sql, List<Object[]> args);
-    <T> List<T> prepared(String sql, Object[] args, final Function<Row,T> processor);
+    int prepared(String sql, List<Object> args);
+    List<Integer> bulkPrepared(String sql, List<List<Object>> args);
+    <T> List<T> prepared(String sql, List<Object> args, final Function<Row,T> processor);
     
     void noOutput(final String sql);
     void rollback();

@@ -21,17 +21,17 @@ class ExecuteTaskTest extends Specification {
     def "Test Query Simple"() {
         setup:
         String sql = "select * from all_types;";
-        CompletableTask ct = Task.prepared(sql, [] as Object[], { Row r -> r.toMap(); }).toCompletable();
+        CompletableTask ct = Task.prepared(sql, [], { Row r -> r.toMap(); }).toCompletable();
         List<Map> output = session.execute(ct).get();
 
-        ct = Task.prepared(sql, [] as Object[], { Row r -> r.toMap(); }).toCompletable();
+        ct = Task.prepared(sql, [], { Row r -> r.toMap(); }).toCompletable();
         List<Map> output2 = session.execute(ct).get();
     }
 
     def "Test Query With Args"() {
         setup:
         String sql = 'select * from items where id = $1;';
-        CompletableTask ct = Task.prepared(sql, [2] as Object[], { Row r -> r.toMap(); }).toCompletable();
+        CompletableTask ct = Task.prepared(sql, [2], { Row r -> r.toMap(); }).toCompletable();
         List<Map> output = session.execute(ct).get();
 
         expect:
@@ -43,8 +43,8 @@ class ExecuteTaskTest extends Specification {
     def "Test Multiple Executions"() {
         setup:
         (0..10).each { num ->
-            [ Task.prepared("select * from all_types;", [] as Object[], { Row r -> r.toMap(); }).toCompletable(),
-              Task.prepared('select * from items where id = $1;', [2] as Object[], { Row r -> r.toMap(); }).toCompletable() ].each { ct ->
+            [ Task.prepared("select * from all_types;", [], { Row r -> r.toMap(); }).toCompletable(),
+              Task.prepared('select * from items where id = $1;', [2], { Row r -> r.toMap(); }).toCompletable() ].each { ct ->
                   println("Execution ${num}");
                   assert(session.execute(ct).get()); }; };
     }

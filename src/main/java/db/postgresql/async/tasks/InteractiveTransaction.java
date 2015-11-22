@@ -105,15 +105,15 @@ public class InteractiveTransaction implements Transaction {
         guard(Task.noOutput(sql));
     }
 
-    public int prepared(final String sql, final Object[] args) {
+    public int prepared(final String sql, final List<Object> args) {
         return guard(Task.prepared(sql, args)).getResult();
     }
 
-    public List<Integer> prepared(final String sql, final List<Object[]> args) {
-        return guard(Task.prepared(sql, args)).getResult();
+    public List<Integer> bulkPrepared(final String sql, final List<List<Object>> args) {
+        return guard(Task.bulkPrepared(sql, args)).getResult();
     }
 
-    public <T> List<T> prepared(final String sql, final Object[] args, final Function<Row,T> processor) {
+    public <T> List<T> prepared(final String sql, final List<Object> args, final Function<Row,T> processor) {
         return guard(Task.prepared(sql, args, processor)).getResult();
     }
 }

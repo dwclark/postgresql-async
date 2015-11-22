@@ -136,15 +136,29 @@ insert into numerals (arabic, roman) values(18, 'xviii');
 insert into numerals (arabic, roman) values(19, 'xix');
 insert into numerals (arabic, roman) values(20, 'xx');
 
+CREATE OR REPLACE FUNCTION select_numerals() RETURNS refcursor AS '
+DECLARE
+    ref refcursor;
+BEGIN
+    OPEN ref FOR SELECT * from numerals;
+    RETURN ref;
+END;
+' LANGUAGE plpgsql;
+
+
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public to noauth;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public to clearauth;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public to md5auth;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO noauth;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO clearauth;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO md5auth;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public to noauth;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public to clearauth;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public to md5auth;
 
 commit;
 
 -- select oid, typname, typarray from pg_type order by oid asc;
 -- select oid, typname, typarray, typrelid from pg_type order by oid asc;
 -- select * from pg_attribute where atttypid = 600;
+

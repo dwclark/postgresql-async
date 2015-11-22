@@ -65,17 +65,16 @@ public interface Task<T> {
         return new SimpleTask.NoOutput(sql);
     }
 
-    static Task<Integer> prepared(final String sql, final Object[] args) {
+    static Task<Integer> prepared(final String sql, final List<Object> args) {
         return new ExecuteTask.Execute(sql, args);
     }
 
-    static Task<List<Integer>> prepared(final String sql, final List<Object[]> args) {
+    static Task<List<Integer>> bulkPrepared(final String sql, final List<List<Object>> args) {
         return new ExecuteTask.BulkExecute(sql, args);
     }
 
-    static <T> Task<List<T>> prepared(final String sql, final Object[] args, final Function<Row,T> processor) {
+    static <T> Task<List<T>> prepared(final String sql, List<Object> args, final Function<Row,T> processor) {
         final BiFunction<List<T>,Row,List<T>> biFunc = (list,row) -> { list.add(processor.apply(row)); return list; };
-        return new ExecuteTask<>(sql, Collections.singletonList(args),
-                                 new ArrayList<>(), biFunc);
+        return new ExecuteTask<>(sql, Collections.singletonList(args), new ArrayList<>(), biFunc);
     }
 }
