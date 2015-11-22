@@ -125,6 +125,7 @@ public class SessionInfo {
             Arrays.asList(BitSetSerializer.instance,
                           BooleanSerializer.instance,
                           BytesSerializer.instance,
+                          CursorSerializer.instance,
                           DoubleSerializer.instance,
                           FloatSerializer.instance,
                           IntegerSerializer.instance,

@@ -28,7 +28,6 @@ public class ExecuteTask<T> extends BaseTask<T> {
     private final BiFunction<T,Row,T> func;
     protected T accumulator;
 
-    private ReadyForQuery readyForQuery;
     private PgSessionCache cache;
     private int executionCount = 0;
     private TaskPhase phase;

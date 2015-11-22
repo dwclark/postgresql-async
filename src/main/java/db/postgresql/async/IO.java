@@ -98,6 +98,10 @@ public class IO {
         oobHandlers.put(BackEnd.NotificationResponse, handleNotifications);
         oobHandlers.put(BackEnd.ParameterStatus, this::handleParameterStatus);
     }
+
+    public SessionInfo getSessionInfo() {
+        return sessionInfo;
+    }
     
     public boolean isOpen() {
         return channel.isOpen();
@@ -125,8 +129,7 @@ public class IO {
     }
 
     private void prepareThread() {
-        SerializationContext.registry(sessionInfo.getRegistry());
-        SerializationContext.encoding(sessionInfo.getEncoding());
+        SerializationContext.io(this);
     }
     
     private class Writer extends Base implements CompletionHandler<Integer,CompletableTask> {

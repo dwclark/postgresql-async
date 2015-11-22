@@ -5,6 +5,8 @@ import spock.lang.*
 
 import static db.postgresql.async.Task.*
 import static db.postgresql.async.Transaction.*;
+import db.postgresql.async.*;
+import static db.postgresql.async.Direction.*;
 
 class FunctionTest extends Specification {
 
@@ -19,10 +21,16 @@ class FunctionTest extends Specification {
         session.shutdown();
     }
 
-    def "Simple Function"() {
+    def "Simple Function With Cursor"() {
         setup:
-        Task t = prepared('select select_numerals();', [], { Row r -> r.toMap(); });
-        CompletableTask ct = single(concurrency, t);
-        session.execute(ct).get();
+        def cursorContents = [];
+        session.withTransaction(concurrency) { Transaction t ->
+            List results = t.prepared('select select_numerals();', [], { Row first -> first.toArray()[0]; });
+            Cursor cursor = results[0];
+            cursor.fetch(ALL, IGNORE_COUNT, { Row r -> cursorContents << r.toList(); }); };
+        
+        expect:
+        cursorContents;
+        println(cursorContents);
     }
 }

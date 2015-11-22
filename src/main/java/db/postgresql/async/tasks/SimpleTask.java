@@ -23,6 +23,11 @@ import java.util.List;
 public abstract class SimpleTask<T> extends BaseTask<T> {
 
     private final String sql;
+
+    public String getSql() {
+        return sql;
+    }
+    
     protected T accumulator;
     
     public SimpleTask(final String sql, final T accumulator) {
@@ -76,7 +81,7 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
     }
 
     public void onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        fe.query(sql);
+        fe.query(getSql());
         nextState = TaskState.write();
     }
 
@@ -181,7 +186,7 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
             boolean wrote = false;
             while(iter.hasNext()) {
                 this.current = iter.next();
-                if(fe.query(current.sql)) {
+                if(fe.query(current.getSql())) {
                     wrote = true;
                 }
                 else {
