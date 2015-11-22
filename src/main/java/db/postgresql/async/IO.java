@@ -22,11 +22,34 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-class IO {
+public class IO {
+
+    public static interface IOCompletion {
+        void success();
+        void failure();
+    }
+
+    public IO onCompleteToPool(final ResourcePool<IO> pool) {
+        ioCompletionHandler = new IOCompletion() {
+                public void success() { pool.good(IO.this); }
+                public void failure() { pool.bad(IO.this); }
+            };
+        return this;
+    }
+
+    private static final IOCompletion DO_NOTHING = new IOCompletion() {
+            public void success() { }
+            public void failure() { }
+        };
+    
+    public IO onCompleteDoNothing() {
+        ioCompletionHandler = DO_NOTHING;
+        return this;
+    }
+    
     private final SessionInfo sessionInfo;
     private final FrontEndMessage feMessage;
     private final AsynchronousSocketChannel channel;
-    private final ResourcePool<IO> resourcePool;
     private final PgSessionCache pgSessionCache = new PgSessionCache();
     private final Reader reader = new Reader();
     private final Writer writer = new Writer();
@@ -36,7 +59,7 @@ class IO {
     private Notice lastNotice;
     private final Map<BackEnd,Consumer<Response>> oobHandlers = new EnumMap<>(BackEnd.class);
     private KeyData keyData;
-    private boolean initialized;
+    private IOCompletion ioCompletionHandler = DO_NOTHING;
 
     public void setKeyData(final KeyData val) {
         this.keyData = val;
@@ -46,14 +69,6 @@ class IO {
         return keyData;
     }
 
-    public boolean isInitialized() {
-        return initialized;
-    }
-
-    public void setInitialized(final boolean val) {
-        this.initialized = val;
-    }
-    
     //OOB handlers
     public void handleParameterStatus(final Response r) {
         final ParameterStatus pstatus = (ParameterStatus) r;
@@ -69,18 +84,16 @@ class IO {
                                                 "a dedicated channel for notifications in the session");
     };
 
-    public IO(final SessionInfo sessionInfo, final AsynchronousSocketChannel channel,
-              final ResourcePool<IO> resourcePool) {
-        this(sessionInfo, channel, resourcePool, failNotification);
+    public IO(final SessionInfo sessionInfo, final AsynchronousSocketChannel channel) {
+        this(sessionInfo, channel, failNotification);
     }
     
     public IO(final SessionInfo sessionInfo, final AsynchronousSocketChannel channel,
-              final ResourcePool<IO> resourcePool, final Consumer<Response> handleNotifications) {
+              final Consumer<Response> handleNotifications) {
         this.sessionInfo = sessionInfo;
         this.feMessage = new FrontEndMessage(sessionInfo.getEncoding());
         feMessage.buffer = writeBuffer;
         this.channel = channel;
-        this.resourcePool = resourcePool;
         oobHandlers.put(BackEnd.NoticeResponse, this::handleNotice);
         oobHandlers.put(BackEnd.NotificationResponse, handleNotifications);
         oobHandlers.put(BackEnd.ParameterStatus, this::handleParameterStatus);
@@ -106,7 +119,7 @@ class IO {
             else {
                 task.onFail(ex);
                 close();
-                resourcePool.bad(IO.this);
+                ioCompletionHandler.failure();
             }
         }
     }
@@ -178,9 +191,7 @@ class IO {
             channel.write(writeBuffer, task.getTimeout(), task.getUnits(), task, writer);
         }
         else if(state.next == TaskState.Next.FINISHED) {
-            if(isInitialized()) {
-                resourcePool.good(this);
-            }
+            ioCompletionHandler.success();
         }
         else if(state.next == TaskState.Next.TERMINATE) {
             close();
@@ -193,7 +204,7 @@ class IO {
     public <T> void execute(final CompletableTask<T> task) {
         if(!channel.isOpen()) {
             task.getFuture().completeExceptionally(new ClosedChannelException());
-            resourcePool.bad(this);
+            ioCompletionHandler.failure();
         }
 
         readBuffer.clear();

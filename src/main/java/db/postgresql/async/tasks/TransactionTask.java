@@ -175,7 +175,7 @@ public abstract class TransactionTask<T> implements CompletableTask<T> {
         this.statementCache = cache;
     }
     
-    private static class Single<T> extends TransactionTask<T> {
+    public static class Single<T> extends TransactionTask<T> {
 
         private Task<T> theTask;
 
@@ -193,7 +193,7 @@ public abstract class TransactionTask<T> implements CompletableTask<T> {
         }
     }
 
-    private static class Multiple extends TransactionTask<List> {
+    public static class Multiple extends TransactionTask<List> {
         private List result = new ArrayList<>();
 
         public List getResult() {

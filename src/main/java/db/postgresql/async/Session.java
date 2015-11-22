@@ -4,6 +4,7 @@ import db.postgresql.async.messages.KeyData;
 import db.postgresql.async.pginfo.PgAttribute;
 import db.postgresql.async.pginfo.PgType;
 import db.postgresql.async.pginfo.PgTypeRegistry;
+import db.postgresql.async.tasks.InteractiveTransaction;
 import db.postgresql.async.tasks.NotificationTask;
 import db.postgresql.async.tasks.SimpleTask;
 import db.postgresql.async.tasks.StartupTask;
@@ -33,6 +34,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -75,7 +78,7 @@ public class Session {
                 }
 
 
-                IO io = startupIO(this);
+                IO io = startupIO();
                 ++total;
                 good(io);
             }
@@ -169,7 +172,7 @@ public class Session {
 
         private void recover() {
             try {
-                final IO io = startupIO(this);
+                final IO io = startupIO();
                 final NotificationTask notificationTask = notificationSupplier.get();
                 io.execute(notificationTask);
             }
@@ -208,15 +211,14 @@ public class Session {
         }
     }
 
-    private IO startupIO(final ResourcePool<IO> pool) throws IOException, InterruptedException, ExecutionException {
+    private IO startupIO() throws IOException, InterruptedException, ExecutionException {
         final AsynchronousSocketChannel channel = AsynchronousSocketChannel.open(channelGroup);
         channel.connect(sessionInfo.getSocketAddress()).get();
-        final IO io = new IO(sessionInfo, channel, pool);
+        final IO io = new IO(sessionInfo, channel);
         final CompletableTask<KeyData> startupTask = new StartupTask(sessionInfo);
         io.execute(startupTask);
         KeyData keyData = startupTask.getFuture().get();
         io.setKeyData(keyData);
-        io.setInitialized(true);
         return io;
     }
 
@@ -235,21 +237,29 @@ public class Session {
     public <T> CompletableFuture<T> execute(final CompletableTask<T> task) {
         final IO io = ioPool.fast();
         if(io != null) {
+            io.onCompleteToPool(ioPool);
             io.execute(task);
         }
         else {
-            busyService.execute(() -> ioPool.guaranteed().execute(task));
+            busyService.execute(() -> ioPool.guaranteed().onCompleteToPool(ioPool).execute(task));
         }
         
         return task.getFuture();
     }
 
-    public CompletableFuture<Integer> execute(final String sql) {
-        return execute(SimpleTask.execute(sql).toCompletable());
-    }
-
-    public <T> CompletableFuture<T> query(final String sql, final T accumulator,
-                                          final BiFunction<T,Row,T> func) {
-        return execute(SimpleTask.query(sql, accumulator, func).toCompletable());
+    public void withTransaction(final Concurrency concurrency, final Consumer<Transaction> consumer) {
+        final IO io = ioPool.guaranteed();
+        io.onCompleteDoNothing();
+        try {
+            consumer.accept(new InteractiveTransaction(io, concurrency));
+        }
+        finally {
+            if(io.isOpen()) {
+                ioPool.good(io);
+            }
+            else {
+                ioPool.bad(io);
+            }
+        }
     }
 }

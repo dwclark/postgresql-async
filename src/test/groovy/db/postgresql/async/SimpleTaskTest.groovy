@@ -1,8 +1,8 @@
 package db.postgresql.async;
 
 import spock.lang.*;
-import db.postgresql.async.tasks.*;
-import static db.postgresql.async.tasks.SimpleTask.*;
+import db.postgresql.async.QueryPart;
+import db.postgresql.async.tasks.*
 
 class SimpleTaskTest extends Specification {
 
@@ -18,27 +18,31 @@ class SimpleTaskTest extends Specification {
 
     def "Test Insert/Update/Delete/Select"() {
         when:
-        int count = session.execute("insert into items (id, description) values (3, 'three');").get();
+        final Task insert = Task.simple("insert into items (id, description) values (3, 'three');");
+        int count = session.execute(insert.toCompletable()).get();
 
         then:
         count == 1;
 
         when:
-        count = session.execute("update items set description = 'iii' where id = 3;").get();
+        final Task update = Task.simple("update items set description = 'iii' where id = 3;");
+        count = session.execute(update.toCompletable()).get();
 
         then:
         count == 1;
 
         when:
         def func = { List<Map> accum, Row row -> accum << row.toMap(); };
-        def map = session.query('select * from items where id = 3;', [], func).get()[0];
+        final Task select = Task.simple('select * from items where id = 3;', [], func);
+        def map = session.execute(select.toCompletable()).get()[0];
         
         then:
         map;
         map.description == 'iii';
 
         when:
-        count = session.execute('delete from items where id = 3;').get();
+        final Task delete = Task.simple('delete from items where id = 3;');
+        count = session.execute(delete.toCompletable()).get();
 
         then:
         count == 1;

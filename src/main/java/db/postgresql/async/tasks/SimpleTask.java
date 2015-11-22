@@ -1,9 +1,9 @@
 package db.postgresql.async.tasks;
 
+import db.postgresql.async.QueryPart;
 import db.postgresql.async.NullOutput;
 import db.postgresql.async.Isolation;
 import db.postgresql.async.RwMode;
-import db.postgresql.async.CommandStatus;
 import db.postgresql.async.Row;
 import db.postgresql.async.TaskState;
 import db.postgresql.async.messages.CommandComplete;
@@ -80,7 +80,7 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         nextState = TaskState.write();
     }
 
-    private static class NoOutput extends SimpleTask<NullOutput> {
+    public static class NoOutput extends SimpleTask<NullOutput> {
         public NoOutput(final String sql) {
             super(sql, null);
         }
@@ -94,8 +94,8 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         }
     }
 
-    private static class ForExecute extends SimpleTask<Integer> {
-        public ForExecute(final String sql) {
+    public static class Execute extends SimpleTask<Integer> {
+        public Execute(final String sql) {
             super(sql, null);
         }
 
@@ -108,11 +108,11 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         }
     }
 
-    private static class ForQuery<T> extends SimpleTask<T> {
+    public static class Query<T> extends SimpleTask<T> {
         private final BiFunction<T,Row,T> func;
             
-        public ForQuery(final String sql, final T accumulator,
-                        final BiFunction<T,Row,T> func) {
+        public Query(final String sql, final T accumulator,
+                     final BiFunction<T, Row, T> func) {
             super(sql, accumulator);
             this.func = func;
         }
@@ -206,8 +206,8 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
     }
 
     public static <T> SimpleTask<T> query(final String sql, final T accumulator,
-                                             final BiFunction<T,Row,T> func) {
-        return new ForQuery<>(sql, accumulator, func);
+                                          final BiFunction<T,Row,T> func) {
+        return new Query<>(sql, accumulator, func);
     }
 
     public static <T> SimpleTask<List<T>> query(final String sql, final Function<Row,T> func) {
@@ -220,7 +220,7 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
     }
 
     public static SimpleTask<Integer> execute(final String sql) {
-        return new ForExecute(sql);
+        return new Execute(sql);
     }
 
     public static SimpleTask<List<Object>> multi(final List<QueryPart<?>> parts) {

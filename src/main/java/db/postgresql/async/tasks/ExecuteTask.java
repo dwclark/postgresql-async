@@ -219,7 +219,7 @@ public class ExecuteTask<T> extends BaseTask<T> {
         phase.onStart(feMessage, readBuffer);
     }
 
-    private static class BulkExecute extends ExecuteTask<List<Integer>> {
+    public static class BulkExecute extends ExecuteTask<List<Integer>> {
         
         public BulkExecute(final String sql, final List<Object[]> args) {
             super(sql, args, new ArrayList<>(), null);
@@ -232,7 +232,7 @@ public class ExecuteTask<T> extends BaseTask<T> {
         }
     }
 
-    private static class Execute extends ExecuteTask<Integer> {
+    public static class Execute extends ExecuteTask<Integer> {
         public Execute(final String sql, final Object[] args) {
             super(sql, Collections.singletonList(args), 0, null);
         }

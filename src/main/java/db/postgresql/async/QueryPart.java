@@ -1,14 +1,14 @@
-package db.postgresql.async.tasks;
+package db.postgresql.async;
 
-import db.postgresql.async.Row;
-import db.postgresql.async.messages.DataRow;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.Map;
+import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import db.postgresql.async.messages.DataRow;
 
 public class QueryPart<A> {
+
     public final String sql;
     public String getSql() { return sql; }
     
@@ -16,9 +16,9 @@ public class QueryPart<A> {
     public A getAccumulator() { return accumulator; }
     
     public final BiFunction<A,Row,A> func;
-    public BiFunction<A,Row,A> getFunc() { return func; }
+    public BiFunction<A,Row,A> getProcessor() { return func; }
     
-    public QueryPart(final String sql, final A accumulator, final BiFunction<A,Row,A> func) {
+    public QueryPart(final String sql, final A accumulator, final BiFunction<A, Row, A> func) {
         this.sql = sql;
         this.accumulator = accumulator;
         this.func = func;
