@@ -8,6 +8,7 @@ drop table if exists geometry_types;
 drop table if exists persons;
 drop table if exists my_arrays;
 drop table if exists numerals;
+drop table if exists network_types;
 drop type if exists person;
 drop type if exists address;
 
@@ -135,6 +136,18 @@ insert into numerals (arabic, roman) values(17, 'xvii');
 insert into numerals (arabic, roman) values(18, 'xviii');
 insert into numerals (arabic, roman) values(19, 'xix');
 insert into numerals (arabic, roman) values(20, 'xx');
+
+create table network_types (
+       id serial,
+       my_macaddr macaddr,
+       my_inet inet,
+       my_cidr cidr
+);
+
+insert into network_types (my_macaddr, my_inet, my_cidr) values ('08:00:2b:01:02:03', '10.10.23.1/32', '192.168.10.0/24');
+insert into network_types (my_macaddr, my_inet, my_cidr) values ('08:00:2b:01:02:03', '10.10.23.0/24', '192.168.10.0/24');
+insert into network_types (my_macaddr, my_inet, my_cidr) values
+('08:00:2b:01:02:17', '2001:4f8:3:ba:2e0:81ff:fe22:0/112', '2001:4f8:3:ba::/64');
 
 create or replace function select_numerals() returns refcursor as '
 declare
