@@ -45,7 +45,7 @@ public class CursorTask extends SimpleTask<Void> implements CompletableTask<Void
         complete();
     }
 
-    public void fetch(final Direction direction, final int count, final Consumer<Row> consumer) {
+    public void consume(final Direction direction, final int count, final Consumer<Row> consumer) {
         this.consumer = consumer;
         future = new CompletableFuture<>();
         command = direction.toCommand("fetch", count, name);

@@ -247,12 +247,13 @@ public class Session {
         return task.getFuture();
     }
 
-    public void withTransaction(final Concurrency concurrency, final Consumer<Transaction> consumer) {
+    public <T> T withTransaction(final Concurrency concurrency, final Function<Transaction,T> func) {
         final IO io = ioPool.guaranteed();
         io.onCompleteDoNothing();
         final InteractiveTransaction it = new InteractiveTransaction(io, concurrency);
+        T ret = null;
         try {
-            consumer.accept(it);
+            ret = func.apply(it);
             it.commit();
         }
         catch(Throwable t) {
@@ -266,5 +267,7 @@ public class Session {
                 ioPool.bad(io);
             }
         }
+
+        return ret;
     }
 }
