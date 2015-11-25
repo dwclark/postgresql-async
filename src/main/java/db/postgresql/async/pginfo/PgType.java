@@ -72,7 +72,9 @@ public class PgType {
     public int getRelId() { return relId; }
     public char getDelimiter() { return delimiter; }
     public boolean isComplex() { return relId != 0; }
-
+    public boolean array(final int id) { return arrayId == id; }
+    public boolean simple(final int id) { return oid == id; }
+    
     @Override
     public boolean equals(Object rhs) {
         if(!(rhs instanceof PgType)) {

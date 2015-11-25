@@ -2,6 +2,7 @@ package db.postgresql.async.messages;
 
 import db.postgresql.async.Row;
 import db.postgresql.async.pginfo.Registry;
+import db.postgresql.async.pginfo.PgType;
 import db.postgresql.async.serializers.*;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -76,17 +77,45 @@ public class DataRow extends Response implements Row {
     public String[] getNames() {
         return description.getNames();
     }
+
+    private Object extractByPgType(final int index) {
+        final FieldDescriptor field = description.field(index);
+        final PgType pgType = registry.pgType(field.getTypeOid());
+        if(pgType.simple(field.getTypeOid())) {
+            return registry.serializer(field.getTypeOid()).read(buffer, buffer.getInt());
+        }
+        else {
+            return registry.serializer(field.getTypeOid()).array(buffer, buffer.getInt(), pgType.getDelimiter());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T nextArray(final Class<T> type, final int index) {
+        final FieldDescriptor field = description.field(index);
+        final PgType pgType = registry.pgType(field.getTypeOid());
+        final Class<?> componentType = type.getComponentType();
+        final Serializer<?> serializer = registry.serializer(componentType);
+        return (T) serializer.array(buffer, buffer.getInt(), pgType.getDelimiter());
+    }
+
+    private <T> T extractByType(final Class<T> type, final int index) {
+        if(type.isArray()) {
+            return nextArray(type, index);
+        }
+        else {
+            return registry.serializer(type).read(buffer, buffer.getInt());
+        }
+    }
     
     private class Iterator implements Row.Iterator {
         private int index = 0;
-        private FieldDescriptor field;
 
-        private void advance() {
-            ++index;
-            field = description.field(index-1);
-            if(index > description.length()) {
+        private int advance() {
+            if(index == description.length()) {
                 throw new NoSuchElementException();
             }
+
+            return index++;
         }
 
         public int length() {
@@ -98,13 +127,11 @@ public class DataRow extends Response implements Row {
         }
         
         public Object next() {
-            advance();
-            return registry.serializer(field.getTypeOid()).read(buffer, buffer.getInt());
+            return extractByPgType(advance());
         }
 
         public <T> T next(final Class<T> type) {
-            advance();
-            return registry.serializer(type).read(buffer, buffer.getInt());
+            return extractByType(type, advance());
         }
 
         public String nextString() {
@@ -144,8 +171,6 @@ public class DataRow extends Response implements Row {
     }
 
     private class Extractor implements Row.Extractor {
-        private final RowDescription description = SerializationContext.description();
-        private final Registry registry = SerializationContext.registry();
 
         private void place(final int index) {
             if(index >= description.length()) {
@@ -170,7 +195,7 @@ public class DataRow extends Response implements Row {
         public Object getAt(final int index) {
             try {
                 place(index);
-                return registry.serializer(description.field(index).getTypeOid()).read(buffer, buffer.getInt());
+                return extractByPgType(index);
             }
             finally {
                 buffer.reset();
@@ -184,7 +209,7 @@ public class DataRow extends Response implements Row {
         public <T> T objectAt(final Class<T> type, final int index) {
             try {
                 place(index);
-                return registry.serializer(type).read(buffer, buffer.getInt());
+                return extractByType(type, index);
             }
             finally {
                 buffer.reset();
