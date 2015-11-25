@@ -205,6 +205,12 @@ public class SessionInfo {
             return this;
         }
 
+        @SuppressWarnings("unchecked")
+        public <E> Builder enumSerializer(final Class<E> enumType, final String pgName) {
+            this.serializers.add(new EnumSerializer(enumType, pgName));
+            return this;
+        }
+
         public SessionInfo build() {
             if(user == null) {
                 throw new IllegalStateException("You must specify a user");

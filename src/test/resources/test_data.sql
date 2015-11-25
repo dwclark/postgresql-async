@@ -9,8 +9,12 @@ drop table if exists persons;
 drop table if exists my_arrays;
 drop table if exists numerals;
 drop table if exists network_types;
+drop table if exists json_and_xml;
 drop type if exists person;
 drop type if exists address;
+drop table if exists my_moods;
+drop type if exists days_of_week;
+drop type if exists moods;
 
 create sequence items_seq;
 
@@ -149,6 +153,19 @@ insert into network_types (my_macaddr, my_inet, my_cidr) values ('08:00:2b:01:02
 insert into network_types (my_macaddr, my_inet, my_cidr) values
 ('08:00:2b:01:02:17', '2001:4f8:3:ba:2e0:81ff:fe22:0/112', '2001:4f8:3:ba::/64');
 
+create table json_and_xml (
+       id serial,
+       my_xml xml,
+       my_json json,
+       my_json_b jsonb
+);
+
+insert into json_and_xml (my_xml, my_json, my_json_b)
+values
+('<?xml version="1.0"?><book><title>Manual</title></book>',
+ '{"number": 1, "str": "some string", "array": [ 1, 2, 3, 4, 5 ]}',
+ '{"number": 2, "str": "another string", "array": [ 6, 7, 8, 9, 10 ]}');
+
 create or replace function select_numerals() returns refcursor as '
 declare
     ref refcursor;
@@ -175,6 +192,22 @@ begin
 end;
 ' language plpgsql;
 
+create type days_of_week as enum (
+       'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'
+);
+
+create type moods as enum (
+       'HAPPY', 'SAD', 'MAD', 'AFRAID'
+);
+
+create table my_moods (
+       id serial,
+       my_day_of_the_week days_of_week,
+       my_mood moods
+);
+
+insert into my_moods (my_day_of_the_week, my_mood) values ('MONDAY', 'MAD');
+insert into my_moods (my_day_of_the_week, my_mood) values ('FRIDAY', 'HAPPY');
 
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public to noauth;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public to clearauth;

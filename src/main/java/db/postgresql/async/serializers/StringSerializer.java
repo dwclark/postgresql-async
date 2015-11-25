@@ -13,7 +13,8 @@ public class StringSerializer extends Serializer<String> {
     public Class getArrayType() { return String.class; }
 
     public List<String> getPgNames() {
-        return Arrays.asList("pg_catalog.text", "pg_catalog.varchar");
+        return Arrays.asList("pg_catalog.text", "pg_catalog.varchar", "pg_catalog.xml",
+                             "pg_catalog.json", "pg_catalog.jsonb");
     }
 
     public String fromString(final String str) {
