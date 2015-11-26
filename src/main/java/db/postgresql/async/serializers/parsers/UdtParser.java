@@ -47,7 +47,8 @@ public class UdtParser<T extends CompositeMeta> implements UdtInput {
         return val == null || val.length() == 0;
     }
     
-    public boolean readBoolean(final String val) {
+    public boolean readBoolean() {
+        final String val = engine.getField();
         if(isNull(val)) {
             return false;
         }
@@ -56,23 +57,28 @@ public class UdtParser<T extends CompositeMeta> implements UdtInput {
         }
     }
 
-    public short readShort(final String val) {
+    public short readShort() {
+        final String val = engine.getField();
         return isNull(val) ? 0 : Short.parseShort(val);
     }
 
-    public int readInt(final String val) {
+    public int readInt() {
+        final String val = engine.getField();
         return isNull(val) ? 0 : Integer.parseInt(val);
     }
 
-    public long readLong(final String val) {
+    public long readLong() {
+        final String val = engine.getField();
         return isNull(val) ? 0L : Long.parseLong(val);
     }
 
-    public float readFloat(final String val) {
+    public float readFloat() {
+        final String val = engine.getField();
         return isNull(val) ? 0f : Float.parseFloat(val);
     }
 
-    public double readDouble(final String val) {
+    public double readDouble() {
+        final String val = engine.getField();
         return isNull(val) ? 0d : Double.parseDouble(val);
     }
     

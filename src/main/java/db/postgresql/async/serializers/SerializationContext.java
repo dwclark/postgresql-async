@@ -71,7 +71,9 @@ public class SerializationContext {
                 return new StringOps();
             } };
 
-    private static final ThreadLocal<RowDescription> description = new ThreadLocal<RowDescription>();    
+    private static final ThreadLocal<RowDescription> description = new ThreadLocal<RowDescription>();
+
+    private static final ThreadLocal<Registry> registry = new ThreadLocal<Registry>();
 
     public static void description(final RowDescription val) {
         description.set(val);
@@ -82,13 +84,18 @@ public class SerializationContext {
     }
     
     public static Registry registry() {
-        return io().getSessionInfo().getRegistry();
+        return registry.get();
+    }
+
+    public static void registry(final Registry val) {
+        registry.set(val);
     }
 
     private static final ThreadLocal<IO> currentIO = new ThreadLocal<IO>();
 
     public static void io(final IO io) {
         currentIO.set(io);
+        registry.set(io.getSessionInfo().getRegistry());
         stringOps().setEncoding(io.getSessionInfo().getEncoding());
     }
 
