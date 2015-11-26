@@ -96,8 +96,12 @@ public class UdtParser<T extends CompositeMeta> implements UdtInput {
         }
     }
 
-    public char getCurrentDelimiter() {
+    public char getBeginDelimiter() {
         return engine.getLevel().getBegin();
+    }
+
+    public char getEndDelimiter() {
+        return engine.getLevel().getEnd();
     }
 
     public boolean hasNext() {

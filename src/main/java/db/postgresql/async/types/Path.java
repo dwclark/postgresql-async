@@ -38,7 +38,7 @@ public class Path implements Udt {
     public boolean isClosed() { return !open; }
 
     public Path(final UdtInput input) {
-        this.open = input.getCurrentDelimiter() == OPEN_DELIMITERS[0];
+        this.open = input.getBeginDelimiter() == OPEN_DELIMITERS[0];
         List<Point> tmp = new ArrayList<>();
         while(input.hasNext()) {
             tmp.add(input.read(Point.class));
