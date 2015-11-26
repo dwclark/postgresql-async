@@ -11,42 +11,51 @@ class ArrayParserTest extends Specification {
     final StringSerializer sser = StringSerializer.instance;
     final IntegerSerializer iser = IntegerSerializer.instance;
     final char d = ',';
-    ByteBuffer intAryBuffer;
+
+    Charset utf8 = Charset.forName('UTF-8');
     CharSequence intAry = '{1,2,3}';
+    ByteBuffer intAryBuffer = ByteBuffer.wrap(intAry.getBytes(utf8));
+    
     CharSequence varcharAry = "{foo,bar,baz}";
+    ByteBuffer varcharAryBuffer = ByteBuffer.wrap(varcharAry.getBytes(utf8));
+                                              
     CharSequence varcharAryQuotes = '{"foo ","bar ","baz "}';
+    ByteBuffer varcharAryQuotesBuffer = ByteBuffer.wrap(varcharAryQuotes.getBytes(utf8));
+    
     CharSequence intAry2x2 = '{{1,2},{3,4}}';
+    
     CharSequence intAry3x3x3 = ('{{{1,2,3},{4,5,6},{7,8,9}},' +
                                 '{{11,12,13},{14,15,16},{17,18,19}},' +
                                 '{{21,22,23},{24,25,26},{27,28,29}}}');
+    ByteBuffer intAry3x3x3Buffer = ByteBuffer.wrap(intAry3x3x3.getBytes(utf8));
 
     CharSequence ary4x1 = '{{1},{2},{3},{4}}';
     CharSequence ary1x1x4x1 = '{{{{1},{2},{3},{4}}}}';
     CharSequence ary5x2 = '{{1,2},{3,4},{1,2},{3,4},{1,2}}';
 
     def setup() {
-        SerializationContext.stringOps().encoding = Charset.forName('UTF-8');
+        SerializationContext.stringOps().encoding = utf8
         intAryBuffer = ByteBuffer.wrap('{1,2,3}'.getBytes('UTF-8'));
     }
 
     def "Test To Array"() {
         when:
-        int[] ary1 = iser.array(intAryBuffer, intAry.size(), d);
+        int[] ary1 = iser.array(intAryBuffer, intAryBuffer.remaining(), d);
         then:
         ary1 == [ 1, 2, 3 ] as int[];
 
         when:
-        String[] ary2 = new ArrayParser(varcharAry, sser, d).toArray();
+        String[] ary2 = sser.array(varcharAryBuffer, varcharAryBuffer.remaining(), d);
         then:
         ary2 == [ 'foo', 'bar', 'baz' ] as String[];
 
         when:
-        String[] ary3 = new ArrayParser(varcharAryQuotes, sser, d).toArray();
+        String[] ary3 = sser.array(varcharAryQuotesBuffer, varcharAryQuotesBuffer.remaining(), d);
         then:
         ary3 == [ "foo ","bar ","baz " ] as String[];
 
         when:
-        int[][][] ary4 = new ArrayParser(intAry3x3x3, iser, d).toArray();
+        int[][][] ary4 = iser.array(intAry3x3x3Buffer, intAry3x3x3Buffer.remaining(), d);
         then:
         ary4[0][0][0] == 1;
         ary4[0][2][2] == 9;
@@ -56,7 +65,8 @@ class ArrayParserTest extends Specification {
 
     def "Test Arrays With Nulls"() {
         when:
-        String[] ary = new ArrayParser('{"one",null,"null"}', sser, d).toArray();
+        ByteBuffer buffer = ByteBuffer.wrap('{"one",null,"null"}'.getBytes(utf8));
+        String[] ary = sser.array(buffer, buffer.remaining(), d);
         then:
         ary == [ 'one', null, 'null' ] as String[];
     }
