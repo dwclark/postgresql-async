@@ -1,5 +1,6 @@
 begin transaction;
 
+drop table if exists fixed_numbers;
 drop table if exists items;
 drop sequence if exists items_seq;
 drop table if exists all_types;
@@ -15,6 +16,24 @@ drop type if exists address;
 drop table if exists my_moods;
 drop type if exists days_of_week;
 drop type if exists moods;
+
+create table fixed_numbers (
+       id serial,
+       my_boolean boolean,
+       my_smallint smallint,
+       my_int int,
+       my_long bigint,
+       my_real real,
+       my_double double precision
+);
+
+insert into fixed_numbers
+(my_boolean, my_smallint, my_int, my_long, my_real, my_double) values
+(true, 42, 420, 4200, 3.14, 3.14159265);
+
+insert into fixed_numbers
+(my_boolean, my_smallint, my_int, my_long, my_real, my_double) values
+(false, 43, 430, 4300, 2.71, 2.71828182);
 
 create sequence items_seq;
 

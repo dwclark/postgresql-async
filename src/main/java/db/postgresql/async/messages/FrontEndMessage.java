@@ -97,7 +97,7 @@ public class FrontEndMessage {
                 buffer.putShort((short) args.size());
 
                 for(int i = 0; i < args.size(); ++i) {
-                    buffer.putShort(Format.TEXT.getCode());
+                    buffer.putShort(Format.BINARY.getCode());
                 }
 
                 buffer.putShort((short) args.size());
@@ -117,7 +117,12 @@ public class FrontEndMessage {
                     }
                 }
 
-                buffer.putShort((short) 0);
+                final RowDescription rd = statement.getRowDescription();
+                buffer.putShort((short) rd.length());
+                for(int i = 0; i < rd.length(); ++i) {
+                    buffer.putShort(rd.field(i).getFormat().getCode());
+                }
+
                 return true; });
     }
     
@@ -136,7 +141,7 @@ public class FrontEndMessage {
     @SuppressWarnings("unchecked")
     private void writeArg(final Object arg) {
         final Serializer s = SerializationContext.registry().serializer(arg.getClass());
-        s.write(buffer, arg);
+        s.write(buffer, arg, Format.BINARY);
     }
 
     public boolean cancel(final int pid, final int secretKey) {

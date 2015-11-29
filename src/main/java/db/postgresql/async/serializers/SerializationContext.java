@@ -105,7 +105,12 @@ public class SerializationContext {
     
     public static StringOps stringOps() { return stringOps.get(); }
 
-    public static String bufferToString(final ByteBuffer buffer, final int size) {
+    public static String bufferToString(final ByteBuffer buffer) {
+        final int size = buffer.getInt();
+        if(size == -1) {
+            return null;
+        }
+        
         final StringOps ops = stringOps.get();
         final CharBuffer targetBuffer = ops.ensure(size);
         final int limit = buffer.limit();

@@ -3,6 +3,7 @@ package db.postgresql.async.messages;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Arrays;
+
 public class RowDescription extends Response {
 
     private final FieldDescriptor[] fields;
@@ -41,6 +42,11 @@ public class RowDescription extends Response {
     public Iterator<FieldDescriptor> iterator() {
         return Arrays.asList(fields).iterator();
     }
+
+    private RowDescription(final BackEnd backEnd, final int size, final FieldDescriptor[] fields) {
+        super(backEnd, size);
+        this.fields = fields;
+    }
     
     public RowDescription(final ByteBuffer buffer) {
         super(buffer);
@@ -48,5 +54,10 @@ public class RowDescription extends Response {
         for(int i = 0; i < fields.length; ++i) {
             fields[i] = new FieldDescriptor(buffer);
         }
+    }
+
+    public RowDescription toBinary() {
+        return new RowDescription(getBackEnd(), getSize(),
+                                  Arrays.stream(fields).map((f) -> f.toBinary()).toArray(FieldDescriptor[]::new));
     }
 }

@@ -5,6 +5,7 @@ import java.lang.reflect.Array;
 import java.util.List;
 import db.postgresql.async.serializers.parsers.ArrayParser;
 import static db.postgresql.async.serializers.SerializationContext.*;
+import db.postgresql.async.messages.Format;
 
 public abstract class Serializer<T> {
 
@@ -18,23 +19,19 @@ public abstract class Serializer<T> {
     public Class getArrayType() { return getType(); }
 
     //serialization for udt types
-    public abstract T fromString(String str);
-    public abstract String toString(T o);
+    public T fromString(String str) { throw new UnsupportedOperationException(); }
+    public String toString(T o) { throw new UnsupportedOperationException(); }
 
     //serialization for data row
-    public T read(final ByteBuffer buffer, final int size) {
-        return isNull(size) ? null : fromString(bufferToString(buffer, size));
-    }
-
-    public void write(final ByteBuffer buffer, final T o) {
-        stringToBuffer(buffer, toString(o));
-    }
+    public abstract T read(final ByteBuffer buffer, final Format format);
+    public abstract void write(final ByteBuffer buffer, final T o, final Format format);
 
     public void place(final Object ary, final int index, final String val) {
         Array.set(ary, index, fromString(val));
     }
     
     public Object array(final ByteBuffer buffer, final int size, final char delimiter) {
-        return new ArrayParser(bufferToString(buffer, size), this, delimiter).toArray();
+        //return new ArrayParser(bufferToString(buffer, size), this, delimiter).toArray();
+        throw new UnsupportedOperationException();
     }
 }

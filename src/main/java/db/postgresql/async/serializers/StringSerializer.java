@@ -1,7 +1,12 @@
 package db.postgresql.async.serializers;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
+import static db.postgresql.async.buffers.BufferOps.*;
+import static db.postgresql.async.serializers.SerializationContext.*;
+import db.postgresql.async.messages.Format;
+import static db.postgresql.async.messages.Format.*;
 
 public class StringSerializer extends Serializer<String> {
 
@@ -17,11 +22,11 @@ public class StringSerializer extends Serializer<String> {
                              "pg_catalog.json", "pg_catalog.jsonb");
     }
 
-    public String fromString(final String str) {
-        return str;
+    public String read(final ByteBuffer buffer, final Format format) {
+        return bufferToString(buffer);
     }
 
-    public String toString(final String str) {
-        return str;
+    public void write(final ByteBuffer buffer, final String s, final Format format) {
+        putWithSize(buffer, (b) -> stringToBuffer(b, s));
     }
 }

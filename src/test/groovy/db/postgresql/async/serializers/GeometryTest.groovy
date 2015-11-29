@@ -6,6 +6,7 @@ import db.postgresql.async.*;
 import db.postgresql.async.types.*;
 import db.postgresql.async.serializers.parsers.*;
 
+@Ignore
 class GeometryTest extends Specification {
 
     @Shared Session session;

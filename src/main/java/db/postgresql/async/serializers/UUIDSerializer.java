@@ -1,8 +1,11 @@
 package db.postgresql.async.serializers;
 
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import db.postgresql.async.messages.Format;
+import static db.postgresql.async.messages.Format.*;
 
 public class UUIDSerializer extends Serializer<UUID> {
 
@@ -20,5 +23,13 @@ public class UUIDSerializer extends Serializer<UUID> {
 
     public String toString(final UUID val) {
         return val == null ? null : val.toString();
+    }
+
+    public UUID read(final ByteBuffer buffer, final Format format) {
+        throw new UnsupportedOperationException();
+    }
+
+    public void write(final ByteBuffer buffer, final UUID u, final Format format) {
+        throw new UnsupportedOperationException();
     }
 }

@@ -6,6 +6,7 @@ import db.postgresql.async.tasks.*;
 import db.postgresql.async.enums.*;
 import java.net.*;
 
+@Ignore
 class TypeSerializersTest extends Specification {
 
     @Shared Session session;
@@ -18,6 +19,7 @@ class TypeSerializersTest extends Specification {
         session.shutdown();
     }
 
+    @Ignore
     def "Test Network Types"() {
         setup:
         def task = Task.simple('select * from network_types order by id asc;', { Row r -> r.toMap() }).toCompletable();
@@ -30,6 +32,7 @@ class TypeSerializersTest extends Specification {
         rows[2].my_inet.address instanceof Inet6Address;
     }
 
+    @Ignore
     def "Test Xml and Json Types"() {
         setup:
         def task = Task.simple('select * from json_and_xml;', { Row r -> r.toMap(); }).toCompletable();
@@ -42,6 +45,7 @@ class TypeSerializersTest extends Specification {
         rows[0].my_json_b instanceof String;
     }
 
+    @Ignore
     def "Test Enum Types"() {
         setup:
         def task = Task.simple('select * from my_moods order by id;', { Row r -> r.toMap(); }).toCompletable();

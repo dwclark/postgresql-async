@@ -4,8 +4,10 @@ import java.nio.ByteBuffer;
 import java.lang.reflect.Array;
 import java.util.Collections;
 import java.util.List;
-
+import static db.postgresql.async.buffers.BufferOps.*;
 import static db.postgresql.async.serializers.SerializationContext.*;
+import db.postgresql.async.messages.Format;
+import static db.postgresql.async.messages.Format.*;
 
 public class LongSerializer extends Serializer<Long> {
 
@@ -23,32 +25,53 @@ public class LongSerializer extends Serializer<Long> {
         Array.setLong(ary, index, Long.parseLong(val));
     }
 
-    public Long fromString(final String str) {
-        return Long.valueOf(str);
+    private long binary(final ByteBuffer buffer) {
+        return buffer.getInt() == -1 ? 0L : buffer.getLong();
     }
 
-    public String toString(final Long val) {
-        return val == null ? null : val.toString();
+    private long text(final ByteBuffer buffer) {
+        final String str = bufferToString(buffer);
+        return str == null ? 0L : Long.parseLong(str);
     }
     
-    public Long read(final ByteBuffer buffer, final int size) {
-        return isNull(size) ? null : readPrimitive(buffer, size);
-    }
-
-    public long readPrimitive(final ByteBuffer buffer, final int size) {
-        if(isNull(size)) {
-            return 0L;
+    public Long read(final ByteBuffer buffer, final Format format) {
+        final int size = buffer.getInt();
+        if(size == -1) {
+            return null;
         }
         else {
-            return Long.parseLong(bufferToString(buffer, size));
+            buffer.position(buffer.position() - 4);
+            return format == BINARY ? binary(buffer) : text(buffer);
         }
     }
 
-    public void writePrimitive(final ByteBuffer buffer, final long val) {
-        stringToBuffer(buffer, Long.toString(val));
+    public long readPrimitive(final ByteBuffer buffer, final Format format) {
+        return format == BINARY ? binary(buffer) : text(buffer);
     }
 
-    public void write(final ByteBuffer buffer, final Long val) {
-        writePrimitive(buffer, val);
+    private void binary(final ByteBuffer buffer, final long val) {
+        putWithSize(buffer, (b) -> b.putLong(val));
+    }
+
+    private void text(final ByteBuffer buffer, final long val) {
+        putWithSize(buffer, (b) -> stringToBuffer(b, Long.toString(val)));
+    }
+    
+    public void writePrimitive(final ByteBuffer buffer, final long val, final Format format) {
+        if(format == BINARY) {
+            binary(buffer, val);
+        }
+        else {
+            text(buffer, val);
+        }
+    }
+
+    public void write(final ByteBuffer buffer, final Long val, final Format format) {
+        if(val == null) {
+            putNull(buffer);
+        }
+        else {
+            writePrimitive(buffer, val, format);
+        }
     }
 }

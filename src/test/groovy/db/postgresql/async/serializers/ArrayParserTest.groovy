@@ -5,7 +5,6 @@ import java.nio.*;
 import java.nio.charset.*;
 import db.postgresql.async.serializers.parsers.*;
 
-//TODO: Finish converting this to use actual serializer classes.
 class ArrayParserTest extends Specification {
 
     final StringSerializer sser = StringSerializer.instance;
@@ -38,7 +37,6 @@ class ArrayParserTest extends Specification {
         intAryBuffer = ByteBuffer.wrap('{1,2,3}'.getBytes('UTF-8'));
     }
 
-    @Ignore
     def "Test To Array"() {
         when:
         int[] ary1 = iser.array(intAryBuffer, intAryBuffer.remaining(), d);
@@ -64,6 +62,7 @@ class ArrayParserTest extends Specification {
         ary4[2][2][2] == 29;
     }
 
+    //TODO: Re-enable parser to array and make this faster.
     def "Stress Array Parser"() {
         setup:
         iser.array(intAry3x3x3Buffer, intAry3x3x3Buffer.remaining(), d);
@@ -77,7 +76,6 @@ class ArrayParserTest extends Specification {
         println("Total execution time in millis: ${endAt - startAt}");
     }
 
-    @Ignore
     def "Test Arrays With Nulls"() {
         when:
         ByteBuffer buffer = ByteBuffer.wrap('{"one",null,"null"}'.getBytes(utf8));
@@ -95,7 +93,6 @@ class ArrayParserTest extends Specification {
     //     ary[1] == new Box(new Point(1,1), new Point(-1.1,-1.1));
     // }
 
-    @Ignore
     def "Test Dimension Parsing"() {
         setup:
         int[] dimsIntAry = new ArrayParser(intAry, iser, d).dimensions;
@@ -127,7 +124,6 @@ class ArrayParserTest extends Specification {
         dimsAry5x2[1] == 2;
     }
 
-    @Ignore
     def "Test Allocate Mods Single"() {
         when:
         int[] singleMod = ArrayParser.mods([ 1 ] as int[]);
@@ -153,7 +149,6 @@ class ArrayParserTest extends Specification {
         singleIndexes[0] == 7;
     }
 
-    @Ignore
     def "Test Allocate Mods 2x8"() {
         when:
         int[] mods = ArrayParser.mods([2,8] as int[]);
@@ -176,7 +171,6 @@ class ArrayParserTest extends Specification {
         indexes[1] == 7;
     }
 
-    @Ignore
     def "Test Allocate Mods 4x2x3"() {
         when:
         int[] mods = ArrayParser.mods([4,2,3] as int[]);

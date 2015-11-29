@@ -6,6 +6,7 @@ import db.postgresql.async.tasks.*;
 import db.postgresql.async.*;
 import db.postgresql.async.pginfo.*;
 
+@Ignore
 class ExecuteTaskTest extends Specification {
 
     @Shared Session session;
@@ -18,6 +19,7 @@ class ExecuteTaskTest extends Specification {
         session.shutdown();
     }
 
+    @Ignore
     def "Test Query Simple"() {
         setup:
         String sql = "select * from all_types;";
@@ -28,6 +30,7 @@ class ExecuteTaskTest extends Specification {
         List<Map> output2 = session.execute(ct).get();
     }
 
+    @Ignore
     def "Test Query With Args"() {
         setup:
         String sql = 'select * from items where id = $1;';
@@ -40,6 +43,7 @@ class ExecuteTaskTest extends Specification {
         output[0].description == 'two';
     }
 
+    @Ignore
     def "Test Multiple Executions"() {
         setup:
         (0..10).each { num ->

@@ -270,4 +270,8 @@ public class Session {
 
         return ret;
     }
+
+    public <T> T withTransaction(final Function<Transaction,T> func) {
+        return withTransaction(new Concurrency(), func);
+    }
 }

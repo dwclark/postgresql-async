@@ -4,6 +4,9 @@ import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
+import static db.postgresql.async.buffers.BufferOps.*;
+import db.postgresql.async.messages.Format;
+import static db.postgresql.async.messages.Format.*;
 
 public class BooleanSerializer extends Serializer<Boolean> {
 
@@ -26,36 +29,50 @@ public class BooleanSerializer extends Serializer<Boolean> {
         Array.setBoolean(ary, index, val.charAt(0) == T ? true : false);
     }
 
-    public Boolean fromString(final String str) {
-        return str.charAt(0) == T;
+    private boolean binary(final ByteBuffer buffer) {
+        final byte val = buffer.get();
+        return val == 1 ? true : false;
     }
 
-    public String toString(final Boolean val) {
-        return val ? "t" : "f";
+    private boolean text(final ByteBuffer buffer) {
+        final byte val = buffer.get();
+        return val == T ? true : false;
     }
     
-    public boolean readPrimitive(final ByteBuffer buffer, final int size) {
-        if(isNull(size)) {
+    public boolean readPrimitive(final ByteBuffer buffer, final Format format) {
+        final int size = buffer.getInt();
+        if(size == -1) {
             return false;
         }
-        
-        return (buffer.get() == T) ? true : false;
+        else {
+            return (format == BINARY) ? binary(buffer) : text(buffer);
+        }
     }
 
-    public Boolean read(final ByteBuffer buffer, final int size) {
-        return isNull(size) ? null : readPrimitive(buffer, size);
-    }
-
-    public void writePrimitive(final ByteBuffer buffer, final boolean val) {
-        if(val) {
-            buffer.put(T);
+    public Boolean read(final ByteBuffer buffer, final Format format) {
+        if(buffer.getInt() == -1) {
+            return null;
         }
         else {
-            buffer.put(F);
+            return (format == BINARY) ? binary(buffer) : text(buffer);
         }
     }
-    
-    public void write(final ByteBuffer buffer, final Boolean val) {
-        writePrimitive(buffer, val);
+
+    public void writePrimitive(final ByteBuffer buffer, final boolean val, final Format format) {
+        if(format == BINARY) {
+            putWithSize(buffer, (b) -> b.put((byte) (val ? 1 : 0)));
+        }
+        else {
+            putWithSize(buffer, (b) -> b.put(val ? T : F));
+        }
+    }
+
+    public void write(final ByteBuffer buffer, final Boolean val, final Format format) {
+        if(val == null) {
+            putNull(buffer);
+        }
+        else {
+            writePrimitive(buffer, val, format);
+        }
     }
 }

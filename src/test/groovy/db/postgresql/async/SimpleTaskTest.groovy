@@ -4,6 +4,7 @@ import spock.lang.*;
 import db.postgresql.async.QueryPart;
 import db.postgresql.async.tasks.*
 
+@Ignore
 class SimpleTaskTest extends Specification {
 
     @Shared Session session;
@@ -16,6 +17,7 @@ class SimpleTaskTest extends Specification {
         session.shutdown();
     }
 
+    @Ignore
     def "Test Insert/Update/Delete/Select"() {
         when:
         final Task insert = Task.simple("insert into items (id, description) values (3, 'three');");
@@ -61,6 +63,7 @@ class SimpleTaskTest extends Specification {
         return new MapEntry(task, expect);
     }
 
+    @Ignore
     def "Test Multi Select"() {
         setup:
         def entry = multiSelect(10);
@@ -86,6 +89,7 @@ class SimpleTaskTest extends Specification {
         return new MapEntry(task, expect);
     }
 
+    @Ignore
     def "Test Multi Phase"() {
         setup:
         def entry = multiPhase(20);
@@ -116,11 +120,13 @@ class SimpleTaskTest extends Specification {
         };
     }
 
+    @Ignore
     def "Test Simple Single Threaded Intermix"() {
         setup:
         simpleIntermix(25);
     }
 
+    @Ignore
     def "Test Simple Multi Threaded Intermix Max Pool"() {
         setup:
         println("*************Test Simple Multi Threaded Intermix Max Pool************");
@@ -130,6 +136,7 @@ class SimpleTaskTest extends Specification {
         println("Ending time: ${new Date()}");
     }
 
+    @Ignore
     def "Test Simple Multi Threaded Intermix Overmaxed Pool"() {
         setup:
         println("*************Test Simple Multi Threaded Intermix Overmaxed Pool************");

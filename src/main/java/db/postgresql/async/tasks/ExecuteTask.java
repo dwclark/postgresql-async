@@ -87,7 +87,7 @@ public class ExecuteTask<T> extends BaseTask<T> {
                     return true;
                 }
                 else {
-                    final Statement stmt = new Statement(id, parameterDescription, rowDescription);
+                    final Statement stmt = new Statement(id, parameterDescription, rowDescription.toBinary());
                     cache.store(sql, stmt);
                     return false;
                 }

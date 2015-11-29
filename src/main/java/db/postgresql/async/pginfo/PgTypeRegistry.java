@@ -1,5 +1,6 @@
 package db.postgresql.async.pginfo;
 
+import static java.util.Collections.emptyList;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -11,7 +12,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import db.postgresql.async.Session;
 import db.postgresql.async.Row;
-import db.postgresql.async.tasks.SimpleTask;
+import db.postgresql.async.Transaction;
 
 import db.postgresql.async.serializers.*;
 
@@ -81,13 +82,12 @@ public class PgTypeRegistry implements Registry {
         return map;
     }
 
-    private Map<Integer,SortedSet<PgAttribute>> loadAttributes(final Session session) throws InterruptedException, ExecutionException {
-        final Map<Integer,SortedSet<PgAttribute>> ret = new HashMap<>();
-        return session.execute(SimpleTask
-                               .query("select attrelid, attname, atttypid, attnum " +
-                                      "from pg_attribute where attnum >= 1 " +
-                                      "order by attrelid asc, atttypid asc",
-                                      ret, this::extractAttribute).toCompletable()).get();
+    private Map<Integer,SortedSet<PgAttribute>> loadAttributes(final Transaction t) {
+        return t.prepared("select attrelid, attname, atttypid, attnum " +
+                          "from pg_attribute where attnum >= 1 " +
+                          "order by attrelid asc, atttypid asc",
+                          emptyList(), new HashMap<>(),
+                          this::extractAttribute);
     }
 
     private Void extractPgType(final Map<Integer,SortedSet<PgAttribute>> attributes, final Row row) {
@@ -112,15 +112,10 @@ public class PgTypeRegistry implements Registry {
             "from pg_type typ " +
             "join pg_namespace ns on typ.typnamespace = ns.oid";
         
-        try {
-            final Map<Integer,SortedSet<PgAttribute>> attributes = loadAttributes(session);
-            SimpleTask<Void> task = SimpleTask
-                .query(sql, null, (none,row) -> extractPgType(attributes, row));
-            session.execute(task.toCompletable()).get();
-        }
-        catch(InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
+        session.withTransaction((t) -> {
+                final Map<Integer,SortedSet<PgAttribute>> attributes = loadAttributes(t);
+                return t.prepared(sql, emptyList(), null, (none, row) -> extractPgType(attributes, row));
+            });
 
         for(Serializer<?> s : session.getSessionInfo().getSerializers()) {
             add(s);

@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import static db.postgresql.async.serializers.SerializationContext.*;
+import db.postgresql.async.messages.Format;
 
 public class BitSetSerializer extends Serializer<BitSet> {
 
@@ -40,24 +41,11 @@ public class BitSetSerializer extends Serializer<BitSet> {
         return buffer.flip().toString();
     }
     
-    public BitSet read(final ByteBuffer buffer, final int size) {
-        if(isNull(size)) {
-            return null;
-        }
-
-        BitSet ret = new BitSet(size);
-        for(int i = 0; i < size; ++i) {
-            final byte b = buffer.get();
-            final boolean val = (b == (byte) '1') ? true : false;
-            ret.set(i, val);
-        }
-
-        return ret;
+    public BitSet read(final ByteBuffer buffer, final Format format) {
+        throw new UnsupportedOperationException();
     }
 
-    public void write(final ByteBuffer buffer, final BitSet bits) {
-        for(int i = 0; i < bits.length(); ++i) {
-            buffer.put(bits.get(i) ? (byte) '1' : (byte) '0');
-        }
+    public void write(final ByteBuffer buffer, final BitSet bits, final Format format) {
+        throw new UnsupportedOperationException();
     }
 }

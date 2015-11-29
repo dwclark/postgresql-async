@@ -6,6 +6,7 @@ import spock.lang.*
 import static db.postgresql.async.tasks.SimpleTask.*;
 import static db.postgresql.async.tasks.TransactionTask.*;
 
+@Ignore
 class TransactionTest extends Specification {
 
     @Shared Session session;
@@ -19,6 +20,7 @@ class TransactionTest extends Specification {
         session.shutdown();
     }
 
+    @Ignore
     def "Define Simple Transactions"() {
         setup:
         TransactionTask one = single(concurrency,
@@ -28,7 +30,8 @@ class TransactionTest extends Specification {
                                      execute("insert into items (id, description) values (44, 'fourty-four');"),
                                      execute("update items set description = 'forty-four' where id 44;"));
     }
-    
+
+    @Ignore
     def "Run Simple Transaction"() {
         setup:
         def list = session.execute(single(concurrency,

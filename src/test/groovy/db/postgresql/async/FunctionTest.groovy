@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.BiFunction;
 
+@Ignore
 class FunctionTest extends Specification {
 
     @Shared Session session;
@@ -28,6 +29,7 @@ class FunctionTest extends Specification {
     final static extractList = { it.toList(); };
     final static extractMap = { it.toMap(); };
 
+    @Ignore
     def "Simple Function With Cursor"() {
         setup:
         def contents = session.withTransaction(concurrency) {
@@ -40,6 +42,7 @@ class FunctionTest extends Specification {
         contents.size() == 20;
     }
 
+    @Ignore
     def "Simple Function With Multiple Cursors"() {
         setup:
         def (numerals, items, allTypes) = session.withTransaction(concurrency) {

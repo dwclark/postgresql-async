@@ -1,8 +1,11 @@
 package db.postgresql.async.serializers;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import db.postgresql.async.types.Inet;
+import db.postgresql.async.messages.Format;
+import static db.postgresql.async.messages.Format.*;
 
 public class InetSerializer extends Serializer<Inet> {
 
@@ -20,5 +23,13 @@ public class InetSerializer extends Serializer<Inet> {
 
     public String toString(final Inet val) {
         return val == null ? null : val.toString();
+    }
+    
+    public Inet read(final ByteBuffer buffer, final Format format) {
+        throw new UnsupportedOperationException();
+    }
+
+    public void write(final ByteBuffer buffer, final Inet inet, final Format format) {
+        throw new UnsupportedOperationException();
     }
 }

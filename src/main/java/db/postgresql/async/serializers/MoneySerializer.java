@@ -1,5 +1,6 @@
 package db.postgresql.async.serializers;
 
+import java.nio.ByteBuffer;
 import db.postgresql.async.types.Money;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
@@ -9,6 +10,8 @@ import java.text.ParsePosition;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import db.postgresql.async.messages.Format;
+import static db.postgresql.async.messages.Format.*;
 
 public class MoneySerializer extends Serializer<Money> {
 
@@ -38,5 +41,13 @@ public class MoneySerializer extends Serializer<Money> {
         DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(locale);
         formatter.setParseBigDecimal(true);
         return formatter;
+    }
+    
+    public Money read(final ByteBuffer buffer, final Format format) {
+        throw new UnsupportedOperationException();
+    }
+
+    public void write(final ByteBuffer buffer, final Money m, final Format format) {
+        throw new UnsupportedOperationException();
     }
 }

@@ -82,10 +82,10 @@ public class DataRow extends Response implements Row {
         final FieldDescriptor field = description.field(index);
         final PgType pgType = registry.pgType(field.getTypeOid());
         if(pgType.simple(field.getTypeOid())) {
-            return registry.serializer(field.getTypeOid()).read(buffer, buffer.getInt());
+            return registry.serializer(field.getTypeOid()).read(buffer, description.field(index).getFormat());
         }
         else {
-            return registry.serializer(field.getTypeOid()).array(buffer, buffer.getInt(), pgType.getDelimiter());
+            throw new UnsupportedOperationException();
         }
     }
 
@@ -103,18 +103,20 @@ public class DataRow extends Response implements Row {
             return nextArray(type, index);
         }
         else {
-            return registry.serializer(type).read(buffer, buffer.getInt());
+            return registry.serializer(type).read(buffer, description.field(index).getFormat());
         }
     }
     
     private class Iterator implements Row.Iterator {
         private int index = 0;
-
+        private FieldDescriptor field;
+        
         private int advance() {
             if(index == description.length()) {
                 throw new NoSuchElementException();
             }
 
+            field = description.field(index);
             return index++;
         }
 
@@ -136,37 +138,37 @@ public class DataRow extends Response implements Row {
 
         public String nextString() {
             advance();
-            return StringSerializer.instance.read(buffer, buffer.getInt());
+            return StringSerializer.instance.read(buffer, field.getFormat());
         }
 
         public boolean nextBoolean() {
             advance();
-            return BooleanSerializer.instance.readPrimitive(buffer, buffer.getInt());
+            return BooleanSerializer.instance.readPrimitive(buffer, field.getFormat());
         }
         
         public double nextDouble() {
             advance();
-            return DoubleSerializer.instance.readPrimitive(buffer, buffer.getInt());
+            return DoubleSerializer.instance.readPrimitive(buffer, field.getFormat());
         }
         
         public float nextFloat() {
             advance();
-            return FloatSerializer.instance.readPrimitive(buffer, buffer.getInt());
+            return FloatSerializer.instance.readPrimitive(buffer, field.getFormat());
         }
         
         public int nextInt() {
             advance();
-            return IntegerSerializer.instance.readPrimitive(buffer, buffer.getInt());
+            return IntegerSerializer.instance.readPrimitive(buffer, field.getFormat());
         }
 
         public long nextLong() {
             advance();
-            return LongSerializer.instance.readPrimitive(buffer, buffer.getInt());
+            return LongSerializer.instance.readPrimitive(buffer, field.getFormat());
         }
         
         public short nextShort() {
             advance();
-            return ShortSerializer.instance.readPrimitive(buffer, buffer.getInt());
+            return ShortSerializer.instance.readPrimitive(buffer, field.getFormat());
         }
     }
 
@@ -223,7 +225,7 @@ public class DataRow extends Response implements Row {
         public boolean booleanAt(final int index) {
             try {
                 place(index);
-                return BooleanSerializer.instance.readPrimitive(buffer, buffer.getInt());
+                return BooleanSerializer.instance.readPrimitive(buffer, description.field(index).getFormat());
             }
             finally {
                 buffer.reset();
@@ -237,7 +239,7 @@ public class DataRow extends Response implements Row {
         public double doubleAt(final int index) {
             try {
                 place(index);
-                return DoubleSerializer.instance.readPrimitive(buffer, buffer.getInt());
+                return DoubleSerializer.instance.readPrimitive(buffer, description.field(index).getFormat());
             }
             finally {
                 buffer.reset();
@@ -251,7 +253,7 @@ public class DataRow extends Response implements Row {
         public float floatAt(final int index) {
             try {
                 place(index);
-                return FloatSerializer.instance.readPrimitive(buffer, buffer.getInt());
+                return FloatSerializer.instance.readPrimitive(buffer, description.field(index).getFormat());
             }
             finally {
                 buffer.reset();
@@ -265,7 +267,7 @@ public class DataRow extends Response implements Row {
         public int intAt(final int index) {
             try {
                 place(index);
-                return IntegerSerializer.instance.readPrimitive(buffer, buffer.getInt());
+                return IntegerSerializer.instance.readPrimitive(buffer, description.field(index).getFormat());
             }
             finally {
                 buffer.reset();
@@ -279,7 +281,7 @@ public class DataRow extends Response implements Row {
         public long longAt(final int index) {
             try {
                 place(index);
-                return LongSerializer.instance.readPrimitive(buffer, buffer.getInt());
+                return LongSerializer.instance.readPrimitive(buffer, description.field(index).getFormat());
             }
             finally {
                 buffer.reset();
@@ -293,7 +295,7 @@ public class DataRow extends Response implements Row {
         public short shortAt(final int index) {
             try {
                 place(index);
-                return ShortSerializer.instance.readPrimitive(buffer, buffer.getInt());
+                return ShortSerializer.instance.readPrimitive(buffer, description.field(index).getFormat());
             }
             finally {
                 buffer.reset();

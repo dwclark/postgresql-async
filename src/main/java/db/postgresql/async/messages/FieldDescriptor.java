@@ -42,6 +42,11 @@ public class FieldDescriptor {
              Format.find(buffer.getShort() & 0xFFFF));
     }
 
+    public FieldDescriptor toBinary() {
+        return new FieldDescriptor(name, tableOid, columnOid,
+                                   typeOid, typeSize, typeModifier, Format.BINARY);
+    }
+
     @Override
     public int hashCode() {
         return (name.hashCode() + tableOid + columnOid + typeOid + typeSize + typeModifier + format.ordinal());

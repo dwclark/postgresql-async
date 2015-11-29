@@ -13,6 +13,17 @@ public class ArrayParser {
     private final int[] dimensions;
     private final int[] mods;
 
+    private static final CompositeMeta.Array COMMA_PERM = new CompositeMeta.Array(0, ',');
+    private static final CompositeMeta.Array SEMI_COLON_PERM = new CompositeMeta.Array(0, ';');
+
+    private static CompositeMeta.Array permLevel(final char c) {
+        switch(c) {
+        case ',': return COMMA_PERM;
+        case ';': return SEMI_COLON_PERM;
+        default: return new CompositeMeta.Array(0, c);
+        }
+    }
+    
     private static class ArrayEngine extends CompositeEngine<CompositeMeta.Array> {
         public ArrayEngine(final CharSequence buffer, final char delimiter) {
             super(buffer, CompositeMeta.array(delimiter));
@@ -31,7 +42,7 @@ public class ArrayParser {
     }
     
     public ArrayParser(final CharSequence buffer, final Serializer serializer, final char delimiter) {
-        this.permLevel = new CompositeMeta.Array(0, delimiter);
+        this.permLevel = permLevel(delimiter);
         this.engine = new ArrayEngine(buffer, delimiter);
         this.serializer = serializer;
         this.dimensions = allocateDimensions(permLevel, buffer);
