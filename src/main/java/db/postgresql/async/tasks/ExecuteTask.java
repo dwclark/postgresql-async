@@ -81,6 +81,9 @@ public class ExecuteTask<T> extends BaseTask<T> {
                 return true;
             case ParseComplete:
                 return true;
+            case NoData:
+                rowDescription = RowDescription.EMPTY;
+                return true;
             case ReadyForQuery:
                 ++rfqCount;
                 if(rfqCount == 1) {

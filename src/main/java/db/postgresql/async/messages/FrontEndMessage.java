@@ -102,19 +102,7 @@ public class FrontEndMessage {
 
                 buffer.putShort((short) args.size());
                 for(int i = 0; i < args.size(); ++i) {
-                    final Object arg = args.get(i);
-                    if(arg == null) {
-                        buffer.putInt(-1);
-                    }
-                    else {
-                        final int sizeAt = buffer.position();
-                        buffer.putInt(0);
-                        writeArg(arg);
-                        final int lastAt = buffer.position();
-                        buffer.position(sizeAt);
-                        buffer.putInt((lastAt - sizeAt) - 4);
-                        buffer.position(lastAt);
-                    }
+                    writeArg(args.get(i));
                 }
 
                 final RowDescription rd = statement.getRowDescription();

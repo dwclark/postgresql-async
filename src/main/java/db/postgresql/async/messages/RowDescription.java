@@ -6,6 +6,8 @@ import java.util.Arrays;
 
 public class RowDescription extends Response {
 
+    public static final RowDescription EMPTY = new RowDescription(BackEnd.RowDescription, 0, new FieldDescriptor[0]);
+    
     private final FieldDescriptor[] fields;
 
     public FieldDescriptor field(final int i) {
