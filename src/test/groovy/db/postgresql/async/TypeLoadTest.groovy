@@ -64,7 +64,6 @@ class TypeLoadTest extends Specification {
         deleted == 1;
     }
 
-    @Ignore
     def "Test Simple Automatic Serialization"() {
         setup:
         def sql = 'select * from items;';

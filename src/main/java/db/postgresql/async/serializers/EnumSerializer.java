@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.List;
 import db.postgresql.async.messages.Format;
 import static db.postgresql.async.messages.Format.*;
+import static db.postgresql.async.serializers.SerializationContext.*;
+import static db.postgresql.async.buffers.BufferOps.*;
 
 public class EnumSerializer<E extends Enum<E>> extends Serializer<E> {
     
@@ -31,10 +33,10 @@ public class EnumSerializer<E extends Enum<E>> extends Serializer<E> {
     }
 
     public E read(final ByteBuffer buffer, final Format format) {
-        throw new UnsupportedOperationException();
+        return Enum.valueOf(enumClass, bufferToString(buffer));
     }
 
     public void write(final ByteBuffer buffer, final E e, final Format format) {
-        throw new UnsupportedOperationException();
+        putWithSize(buffer, (b) -> stringToBuffer(b, e.name()));
     }
 }

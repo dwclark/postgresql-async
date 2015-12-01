@@ -6,7 +6,6 @@ import db.postgresql.async.tasks.*;
 import db.postgresql.async.enums.*;
 import java.net.*;
 
-@Ignore
 class TypeSerializersTest extends Specification {
 
     @Shared Session session;
@@ -45,17 +44,35 @@ class TypeSerializersTest extends Specification {
         rows[0].my_json_b instanceof String;
     }
 
-    @Ignore
     def "Test Enum Types"() {
-        setup:
-        def task = Task.simple('select * from my_moods order by id;', { Row r -> r.toMap(); }).toCompletable();
-        def rows = session.execute(task).get();
-
-        expect:
+        when:
+        def rows = session.withTransaction { t->
+            return t.prepared('select * from my_moods order by id;', [], { it.toMap(); }); };
+        
+        then:
         rows.size() == 2
         rows[0].my_day_of_the_week == DaysOfWeek.MONDAY;
         rows[0].my_mood == Moods.MAD;
         rows[1].my_day_of_the_week == DaysOfWeek.FRIDAY;
         rows[1].my_mood == Moods.HAPPY;
+
+        when:
+        int id = session.withTransaction { t ->
+            return t.prepared('insert into my_moods (my_day_of_the_week, my_mood) values ($1, $2) returning id;',
+                              [ DaysOfWeek.SUNDAY, Moods.AFRAID ], { it.single(); })[0]; };
+        then:
+        id > 2;
+
+        when:
+        Map map = session.withTransaction { t ->
+            return t.prepared('select * from my_moods where id = $1;', [ id ], { it.toMap(); })[0]; };
+
+        then:
+        map.my_day_of_the_week == DaysOfWeek.SUNDAY;
+        map.my_mood == Moods.AFRAID;
+
+        cleanup:
+        session.withTransaction { t -> t.simple("delete from my_moods where id > 2;"); };
+        
     }
 }

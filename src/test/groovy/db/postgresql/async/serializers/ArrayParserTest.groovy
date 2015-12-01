@@ -5,6 +5,7 @@ import java.nio.*;
 import java.nio.charset.*;
 import db.postgresql.async.serializers.parsers.*;
 
+@Ignore
 class ArrayParserTest extends Specification {
 
     final StringSerializer sser = StringSerializer.instance;
