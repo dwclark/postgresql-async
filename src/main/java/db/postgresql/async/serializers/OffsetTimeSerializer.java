@@ -11,6 +11,7 @@ import db.postgresql.async.messages.Format;
 import static db.postgresql.async.buffers.BufferOps.*;
 import static db.postgresql.async.messages.Format.*;
 import static db.postgresql.async.serializers.SerializationContext.*;
+import static db.postgresql.async.serializers.PostgresDateTime.*;
 
 public class OffsetTimeSerializer extends Serializer<OffsetTime> {
     
@@ -29,7 +30,7 @@ public class OffsetTimeSerializer extends Serializer<OffsetTime> {
         final int index = str.lastIndexOf('-');
         return OffsetTime.parse(str.substring(0, index) + "000" + str.substring(index), DATE);
     }
-g
+
     public String toString(final OffsetTime val) {
         return val == null ? null : val.format(DATE);
     }
@@ -40,9 +41,7 @@ g
         }
         else {
             if(format == BINARY) {
-                final LocalTime lt = LocalTime.ofNanoOfDay(buffer.getLong() * 1000L);
-                final ZoneOffset offset = ZoneOffset.ofTotalSeconds(buffer.getInt());
-                return OffsetTime.of(lt, offset);
+                return toOffsetTime(buffer.getLong(), buffer.getInt());
             }
             else {
                 buffer.position(buffer.position() - 4);
@@ -58,8 +57,8 @@ g
         else {
             if(format == BINARY) {
                 putWithSize(buffer, (b) -> {
-                        b.putLong(ot.toLocalTime().toNanoOfDay() / 1000L);
-                        b.putInt(ot.getOffset().getTotalSeconds()); });
+                        b.putLong(toTime(ot.toLocalTime()));
+                        b.putInt(toSeconds(ot.getOffset())); });
             }
             else {
                 putWithSize(buffer, (b) -> stringToBuffer(b, ot.format(DATE)));

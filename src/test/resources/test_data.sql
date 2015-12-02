@@ -1,6 +1,7 @@
 begin transaction;
 
 drop table if exists fixed_numbers;
+drop table if exists all_dates;
 drop table if exists items;
 drop sequence if exists items_seq;
 drop table if exists all_types;
@@ -34,6 +35,17 @@ insert into fixed_numbers
 insert into fixed_numbers
 (my_boolean, my_smallint, my_int, my_long, my_real, my_double) values
 (false, 43, 430, 4300, 2.71, 2.71828182);
+
+create table all_dates (
+       id serial,
+       my_date date,
+       my_time time,
+       my_time_tz time with time zone
+);
+
+-- Not postgresql uses posix, which is backwards from iso
+-- http://stackoverflow.com/questions/7117355/in-postgresql-how-to-un-invert-the-timezone-offsets-with-at-time-zone
+insert into all_dates (my_date, my_time, my_time_tz) values ('1999-01-08', '04:05:06.789000', '04:05:06.789000+6');
 
 create sequence items_seq;
 

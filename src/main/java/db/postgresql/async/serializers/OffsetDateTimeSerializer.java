@@ -9,6 +9,7 @@ import db.postgresql.async.messages.Format;
 import static db.postgresql.async.messages.Format.*;
 import static db.postgresql.async.buffers.BufferOps.*;
 import static db.postgresql.async.serializers.SerializationContext.*;
+import static db.postgresql.async.serializers.PostgresDateTime.*;
 
 public class OffsetDateTimeSerializer extends Serializer<OffsetDateTime> {
 
@@ -33,10 +34,33 @@ public class OffsetDateTimeSerializer extends Serializer<OffsetDateTime> {
     }
 
     public OffsetDateTime read(final ByteBuffer buffer, final Format format) {
-        throw new UnsupportedOperationException();
+        if(buffer.getInt() == -1) {
+            return null;
+        }
+
+        if(format == BINARY) {
+            return OffsetDateTime.of(toLocalDateTime(buffer.getLong()), toOffset(buffer.getInt()));
+        }
+        else {
+            buffer.position(buffer.position() - 4);
+            return fromString(bufferToString(buffer));
+        }
     }
 
-    public void write(final ByteBuffer buffer, final OffsetDateTime bits, final Format format) {
-        throw new UnsupportedOperationException();
+    public void write(final ByteBuffer buffer, final OffsetDateTime date, final Format format) {
+        if(date == null) {
+            putNull(buffer);
+            return;
+        }
+
+        if(format == BINARY) {
+            putWithSize(buffer, (b) -> {
+                    b.putLong(toTimestamp(date.toLocalDateTime()));
+                    b.putInt(toSeconds(date.getOffset())); });
+        }
+        else {
+            putWithSize(buffer, (b) -> stringToBuffer(b, toString(date)));
+        }
+        
     }
 }

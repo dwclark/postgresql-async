@@ -9,6 +9,7 @@ import java.util.List;
 import static db.postgresql.async.buffers.BufferOps.*;
 import static db.postgresql.async.messages.Format.*;
 import static db.postgresql.async.serializers.SerializationContext.*;
+import static db.postgresql.async.serializers.PostgresDateTime.*;
 
 public class LocalTimeSerializer extends Serializer<LocalTime> {
 
@@ -38,7 +39,7 @@ public class LocalTimeSerializer extends Serializer<LocalTime> {
         }
 
         if(format == BINARY) {
-            return LocalTime.ofNanoOfDay(buffer.getLong() * 1000L);
+            return toLocalTime(buffer.getLong());
         }
         else {
             buffer.position(buffer.position() - 4);
@@ -53,7 +54,7 @@ public class LocalTimeSerializer extends Serializer<LocalTime> {
         }
 
         if(format == BINARY) {
-            putWithSize(buffer, (b) -> b.putLong(time.toNanoOfDay() / 1000L));
+            putWithSize(buffer, (b) -> toTime(time));
         }
         else {
             putWithSize(buffer, (b) -> stringToBuffer(b, time.format(DATE)));

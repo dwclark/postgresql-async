@@ -4,6 +4,7 @@ import spock.lang.*;
 import db.postgresql.async.serializers.*;
 import db.postgresql.async.tasks.*;
 import db.postgresql.async.*;
+import java.time.*;
 
 class TypeLoadTest extends Specification {
 
@@ -25,7 +26,6 @@ class TypeLoadTest extends Specification {
         session.sessionInfo.registry.serializer(Integer) == IntegerSerializer.instance;
     }
 
-    @Ignore
     def "Test Fixed Numbers"() {
         setup:
         def list = session.withTransaction { t ->
@@ -62,6 +62,18 @@ class TypeLoadTest extends Specification {
 
         then:
         deleted == 1;
+    }
+
+    def "Test All Dates"() {
+        setup:
+        def list = session.withTransaction { t ->  
+            return t.prepared('select * from all_dates order by id asc;', [], { it.toList(); }); }[0];
+
+        expect:
+        list[0] == 1;
+        list[1] == LocalDate.of(1999, 1, 8);
+        list[2] == LocalTime.of(4, 5, 6, 789_000_000);
+        list[3] == OffsetTime.of(4, 5, 6, 789_000_000, ZoneOffset.of('-06:00:00'));
     }
 
     def "Test Simple Automatic Serialization"() {

@@ -7,14 +7,12 @@ import java.util.Collections;
 import java.util.List;
 import db.postgresql.async.messages.Format;
 import static db.postgresql.async.messages.Format.*;
-import java.time.temporal.JulianFields;
 import static db.postgresql.async.buffers.BufferOps.*;
 import static db.postgresql.async.serializers.SerializationContext.*;
+import static db.postgresql.async.serializers.PostgresDateTime.*;
 
 public class LocalDateSerializer extends Serializer<LocalDate> {
 
-    private static final int POSTGRES_EPOCH_JDATE = 2_451_545;
-    private static final LocalDate BASE = LocalDate.of(2000,1,1);
     private static final String STR = "uuuu-MM-dd";
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern(STR);
 
@@ -42,8 +40,7 @@ public class LocalDateSerializer extends Serializer<LocalDate> {
         }
         
         if(format == BINARY) {
-            final long val = (long) buffer.getInt();
-            return BASE.with(JulianFields.JULIAN_DAY, val);
+            return toLocalDate((long) buffer.getInt());
         }
         else {
             buffer.position(buffer.position() - 4);
@@ -58,7 +55,7 @@ public class LocalDateSerializer extends Serializer<LocalDate> {
         }
         
         if(format == BINARY) {
-            putWithSize(buffer, (b) -> b.putInt((int) date.getLong(JulianFields.JULIAN_DAY)));
+            putWithSize(buffer, (b) -> b.putInt((int) toDay(date)));
         }
         else {
             putWithSize(buffer, (b) -> stringToBuffer(b, date.format(DATE)));
