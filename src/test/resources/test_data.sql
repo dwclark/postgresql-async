@@ -25,27 +25,36 @@ create table fixed_numbers (
        my_int int,
        my_long bigint,
        my_real real,
-       my_double double precision
+       my_double double precision,
+       my_money money
 );
 
 insert into fixed_numbers
-(my_boolean, my_smallint, my_int, my_long, my_real, my_double) values
-(true, 42, 420, 4200, 3.14, 3.14159265);
+(my_boolean, my_smallint, my_int, my_long, my_real, my_double, my_money) values
+(true, 42, 420, 4200, 3.14, 3.14159265, 100);
 
 insert into fixed_numbers
-(my_boolean, my_smallint, my_int, my_long, my_real, my_double) values
-(false, 43, 430, 4300, 2.71, 2.71828182);
+(my_boolean, my_smallint, my_int, my_long, my_real, my_double, my_money) values
+(false, 43, 430, 4300, 2.71, 2.71828182, 37500);
 
 create table all_dates (
        id serial,
        my_date date,
        my_time time,
-       my_time_tz time with time zone
+       my_time_tz time with time zone,
+       my_timestamp timestamp,
+       my_timestamp_tz timestamp with time zone
 );
 
--- Not postgresql uses posix, which is backwards from iso
+--, my_timestamp, my_timestamp_tz
+-- , '1999-01-08 04:05:06', '1999-01-08 04:05:06+6'
+-- Note postgresql uses posix, which is backwards from iso
 -- http://stackoverflow.com/questions/7117355/in-postgresql-how-to-un-invert-the-timezone-offsets-with-at-time-zone
-insert into all_dates (my_date, my_time, my_time_tz) values ('1999-01-08', '04:05:06.789000', '04:05:06.789000+6');
+insert into all_dates (my_date, my_time, my_time_tz, my_timestamp, my_timestamp_tz) values
+--my_timestamp) values
+--my_timestamp_tz) values
+('1999-01-08', '04:05:06.789000', '04:05:06.789000-6', '1999-01-08 04:05:06.789000',
+'1999-01-08 04:05:06.789000-6');
 
 create sequence items_seq;
 

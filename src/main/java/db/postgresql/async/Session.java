@@ -258,6 +258,7 @@ public class Session {
         }
         catch(Throwable t) {
             it.rollback();
+            throw t;
         }
         finally {
             if(io.isOpen()) {

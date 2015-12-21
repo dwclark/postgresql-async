@@ -54,7 +54,7 @@ public class LocalTimeSerializer extends Serializer<LocalTime> {
         }
 
         if(format == BINARY) {
-            putWithSize(buffer, (b) -> toTime(time));
+            putWithSize(buffer, (b) -> b.putLong(toTime(time)));
         }
         else {
             putWithSize(buffer, (b) -> stringToBuffer(b, time.format(DATE)));

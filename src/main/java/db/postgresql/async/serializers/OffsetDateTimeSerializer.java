@@ -10,6 +10,7 @@ import static db.postgresql.async.messages.Format.*;
 import static db.postgresql.async.buffers.BufferOps.*;
 import static db.postgresql.async.serializers.SerializationContext.*;
 import static db.postgresql.async.serializers.PostgresDateTime.*;
+import java.time.ZoneOffset;
 
 public class OffsetDateTimeSerializer extends Serializer<OffsetDateTime> {
 
@@ -39,7 +40,7 @@ public class OffsetDateTimeSerializer extends Serializer<OffsetDateTime> {
         }
 
         if(format == BINARY) {
-            return OffsetDateTime.of(toLocalDateTime(buffer.getLong()), toOffset(buffer.getInt()));
+            return OffsetDateTime.of(toLocalDateTime(buffer.getLong()), ZoneOffset.UTC);
         }
         else {
             buffer.position(buffer.position() - 4);
@@ -54,13 +55,10 @@ public class OffsetDateTimeSerializer extends Serializer<OffsetDateTime> {
         }
 
         if(format == BINARY) {
-            putWithSize(buffer, (b) -> {
-                    b.putLong(toTimestamp(date.toLocalDateTime()));
-                    b.putInt(toSeconds(date.getOffset())); });
+            putWithSize(buffer, (b) -> b.putLong(toTimestamp(date)));
         }
         else {
             putWithSize(buffer, (b) -> stringToBuffer(b, toString(date)));
         }
-        
     }
 }

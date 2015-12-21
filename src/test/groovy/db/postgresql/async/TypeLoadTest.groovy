@@ -3,6 +3,7 @@ package db.postgresql.async;
 import spock.lang.*;
 import db.postgresql.async.serializers.*;
 import db.postgresql.async.tasks.*;
+import db.postgresql.async.types.*;
 import db.postgresql.async.*;
 import java.time.*;
 
@@ -32,17 +33,17 @@ class TypeLoadTest extends Specification {
             return t.prepared('select * from fixed_numbers order by id asc;', [], { it.toList(); }); };
 
         expect:
-        list[0] == [1, true, 42, 420, 4200, 3.14f, 3.14159265d];
-        list[1] == [2, false, 43, 430, 4300, 2.71f, 2.71828182d];
+        list[0] == [1, true, 42, 420, 4200, 3.14f, 3.14159265d, new Money(100_00)];
+        list[1] == [2, false, 43, 430, 4300, 2.71f, 2.71828182d, new Money(37_500_00)];
     }
 
     def "Test Fixed Numbers Write"() {
         when:
-        List toInsert = [ true, (short) 20, 200, 2_000_000_000_000L, Float.MAX_VALUE, Double.MAX_VALUE ];
+        List toInsert = [ true, (short) 20, 200, 2_000_000_000_000L, Float.MAX_VALUE, Double.MAX_VALUE, new Money(123456789) ];
         int inserted = session.withTransaction { t ->
             return t.prepared('insert into fixed_numbers ' +
-                              '(my_boolean, my_smallint, my_int, my_long, my_real, my_double) ' +
-                              'values ($1, $2, $3, $4, $5, $6);', toInsert); };
+                              '(my_boolean, my_smallint, my_int, my_long, my_real, my_double, my_money) ' +
+                              'values ($1, $2, $3, $4, $5, $6, $7);', toInsert); };
         then:
         inserted == 1;
 
@@ -74,8 +75,45 @@ class TypeLoadTest extends Specification {
         list[1] == LocalDate.of(1999, 1, 8);
         list[2] == LocalTime.of(4, 5, 6, 789_000_000);
         list[3] == OffsetTime.of(4, 5, 6, 789_000_000, ZoneOffset.of('-06:00:00'));
+        list[4] == LocalDateTime.of(1999, 1, 8, 4, 5, 6, 789_000_000);
+        list[5].isEqual(OffsetDateTime.of(1999, 1, 8, 4, 5, 6, 789_000_000, ZoneOffset.of('-06:00:00')));
     }
 
+    def "Test All Dates Write"() {
+        when:
+        List toInsert = [ LocalDate.of(2010, 10, 31),
+                          LocalTime.of(13, 25, 17, 900_000_000),
+                          OffsetTime.of(13, 25, 17, 900_000_000, ZoneOffset.of('-04:00:00')),
+                          LocalDateTime.of(2010, 10, 31, 13, 25, 17, 900_000_000),
+                          OffsetDateTime.of(2010, 10, 31, 13, 25, 17, 900_000_000, ZoneOffset.of('-04:00:00')) ];
+        int inserted = session.withTransaction { t ->
+            return t.prepared('insert into all_dates (my_date, my_time, my_time_tz, my_timestamp, my_timestamp_tz) ' +
+                              'values ($1, $2, $3, $4, $5);', toInsert); };
+        then:
+        inserted == 1;
+
+        when:
+        List list = session.withTransaction { t ->
+            t.prepared('select * from all_dates where id = (select max(id) from all_dates);',
+                       [], { it.toList(); }); }[0];
+        
+        then:
+        list.size() == 6;
+        toInsert[0] == list[1];
+        toInsert[1] == list[2];
+        toInsert[2] == list[3];
+        toInsert[3] == list[4];
+        toInsert[4].toInstant() == list[5].toInstant();
+
+        when:
+        int deleted = session.withTransaction { t ->
+            t.prepared('delete from all_dates where id = $1;', [ list[0] ]); };
+
+        then:
+        deleted == 1;
+    }
+
+    @Ignore
     def "Test Simple Automatic Serialization"() {
         setup:
         def sql = 'select * from items;';

@@ -58,7 +58,7 @@ public class OffsetTimeSerializer extends Serializer<OffsetTime> {
             if(format == BINARY) {
                 putWithSize(buffer, (b) -> {
                         b.putLong(toTime(ot.toLocalTime()));
-                        b.putInt(toSeconds(ot.getOffset())); });
+                        b.putInt(toPostgresOffset(ot.getOffset())); });
             }
             else {
                 putWithSize(buffer, (b) -> stringToBuffer(b, ot.format(DATE)));

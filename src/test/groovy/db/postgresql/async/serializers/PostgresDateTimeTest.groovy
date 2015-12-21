@@ -43,4 +43,16 @@ class PostgresDateTimeTest extends Specification {
         starTrek == toLocalDateTime(toTimestamp(starTrek));
         jesus == toLocalDateTime(toTimestamp(jesus));
     }
+
+    def "Test Reversible Epoch Conversion"() {
+        setup:
+        final long now = System.currentTimeMillis();
+        final long starTrek = OffsetDateTime.of(2350, 10, 10, 13, 17, 22, 3_450_000, ZoneOffset.UTC).toInstant().toEpochMilli();
+        final long jesus = OffsetDateTime.of(25, 4, 4, 7, 30, 21, 913_000_000, ZoneOffset.UTC).toInstant().toEpochMilli();
+        
+        expect:
+        now == p2j(j2p(now));
+        starTrek == p2j(j2p(starTrek));
+        jesus == p2j(j2p(jesus));
+    }
 }

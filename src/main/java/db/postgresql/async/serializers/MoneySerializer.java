@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Locale;
 import db.postgresql.async.messages.Format;
 import static db.postgresql.async.messages.Format.*;
+import static db.postgresql.async.buffers.BufferOps.*;
+import static db.postgresql.async.serializers.SerializationContext.*;
 
 public class MoneySerializer extends Serializer<Money> {
 
@@ -28,12 +30,12 @@ public class MoneySerializer extends Serializer<Money> {
     }
     
     public Money fromString(final String str) {
-        return Money.wrap((BigDecimal) getFormatter().parse(str, new ParsePosition(0)));
+        return new Money((BigDecimal) getFormatter().parse(str, new ParsePosition(0)));
     }
 
     public String toString(final Money val) {
         StringBuffer sb = new StringBuffer();
-        getFormatter().format(val.unwrap(), sb, new FieldPosition(0));
+        getFormatter().format(val.toBigDecimal(), sb, new FieldPosition(0));
         return sb.toString();
     }
     
@@ -44,10 +46,31 @@ public class MoneySerializer extends Serializer<Money> {
     }
     
     public Money read(final ByteBuffer buffer, final Format format) {
-        throw new UnsupportedOperationException();
+        final int size = buffer.getInt();
+        if(size == -1) {
+            return null;
+        }
+        
+        if(format == Format.BINARY) {
+            return new Money(buffer.getLong());
+        }
+        else {
+            buffer.position(buffer.position() - 4);
+            return fromString(bufferToString(buffer));
+        }
     }
 
     public void write(final ByteBuffer buffer, final Money m, final Format format) {
-        throw new UnsupportedOperationException();
+        if(m == null) {
+            putNull(buffer);
+            return;
+        }
+        
+        if(format == Format.BINARY) {
+            putWithSize(buffer, (b) -> b.putLong(m.longValue()));
+        }
+        else {
+            putWithSize(buffer, (b) -> stringToBuffer(b, toString(m)));
+        }
     }
 }
