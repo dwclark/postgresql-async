@@ -5,6 +5,7 @@ import db.postgresql.async.serializers.*;
 import db.postgresql.async.tasks.*;
 import db.postgresql.async.types.*;
 import db.postgresql.async.*;
+import db.postgresql.async.enums.*;
 import java.time.*;
 
 class TypeLoadTest extends Specification {
@@ -140,6 +141,47 @@ class TypeLoadTest extends Specification {
             t.prepared('delete from binary_fields where id = $1;', [inserted]); };
         then:
         deleted == 1;
+    }
+
+    def "Test Enum Types"() {
+        when:
+        def rows = session.withTransaction { t->
+            return t.prepared('select * from my_moods order by id;', [], { r -> r.toList(); }); };
+        
+        then:
+        rows.size() == 2
+        rows[0] == [ 1, DaysOfWeek.MONDAY, Moods.MAD ];
+        rows[1] == [ 2, DaysOfWeek.FRIDAY, Moods.HAPPY ];
+
+        when:
+        int id = session.withTransaction { t ->
+            return t.prepared('insert into my_moods (my_day_of_the_week, my_mood) values ($1, $2) returning id;',
+                              [ DaysOfWeek.SUNDAY, Moods.AFRAID ], { it.single(); })[0]; };
+        then:
+        id > 2;
+
+        when:
+        List list = session.withTransaction { t ->
+            return t.prepared('select * from my_moods where id = $1;', [ id ]) { r -> r.toList(); }[0]; };
+
+        then:
+        list == [id, DaysOfWeek.SUNDAY, Moods.AFRAID ]
+
+        cleanup:
+        session.withTransaction { t -> t.prepared('delete from my_moods where id = $1;', [id]); };
+    }
+
+    def "Test Xml and Json Types"() {
+        setup:
+        def list = session.withTransaction { t ->
+            t.prepared('select * from json_and_xml;', []) { r -> r.toList(); }; }[0];
+
+        expect:
+        list.size() == 4;
+        list[0] == 1
+        list[1] == '<book><title>Manual</title></book>';
+        list[2] == '{"number": 1, "str": "some string", "array": [ 1, 2, 3, 4, 5 ]}';
+        list[3].substring(1) == '{"str": "another string", "array": [6, 7, 8, 9, 10], "number": 2}';
     }
 
     @Ignore
