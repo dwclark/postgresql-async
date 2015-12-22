@@ -2,8 +2,8 @@ begin transaction;
 
 drop table if exists fixed_numbers;
 drop table if exists all_dates;
+drop table if exists binary_fields;
 drop table if exists items;
-drop sequence if exists items_seq;
 drop table if exists all_types;
 drop table if exists extended_types;
 drop table if exists geometry_types;
@@ -46,20 +46,18 @@ create table all_dates (
        my_timestamp_tz timestamp with time zone
 );
 
---, my_timestamp, my_timestamp_tz
--- , '1999-01-08 04:05:06', '1999-01-08 04:05:06+6'
--- Note postgresql uses posix, which is backwards from iso
--- http://stackoverflow.com/questions/7117355/in-postgresql-how-to-un-invert-the-timezone-offsets-with-at-time-zone
 insert into all_dates (my_date, my_time, my_time_tz, my_timestamp, my_timestamp_tz) values
---my_timestamp) values
---my_timestamp_tz) values
-('1999-01-08', '04:05:06.789000', '04:05:06.789000-6', '1999-01-08 04:05:06.789000',
-'1999-01-08 04:05:06.789000-6');
+('1999-01-08', '04:05:06.789000', '04:05:06.789000-6', '1999-01-08 04:05:06.789000', '1999-01-08 04:05:06.789000-6');
 
-create sequence items_seq;
+create table binary_fields (
+       id serial,
+       my_bytes bytea
+);
+
+insert into binary_fields (my_bytes) values (E'\\xDEADBEEF');
 
 create table items (
-       items_id INTEGER NOT NULL PRIMARY KEY DEFAULT nextval('items_seq'),
+       items_id serial,
        id int,
        description varchar(200)
 );

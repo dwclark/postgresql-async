@@ -113,6 +113,35 @@ class TypeLoadTest extends Specification {
         deleted == 1;
     }
 
+    def "Test Bytes"() {
+        when:
+        def list = session.withTransaction { t ->  
+            return t.prepared('select * from binary_fields order by id asc;', [], { it.toList(); }); }[0];
+        then:
+        list.size() == 2;
+        list[1] == [ 0xde, 0xad, 0xbe, 0xef ] as byte[];
+
+        when:
+        def toInsert = [ [ 1, 2, 3, 4, 5, 6, 7, 8 ] as byte[] ];
+        int inserted = session.withTransaction { t ->
+            return t.prepared('insert into binary_fields (my_bytes) values ($1) returning id;',
+                              toInsert, { r -> r.single(); } ); }[0];
+        then:
+        inserted > 1;
+
+        when:
+        List newList = session.withTransaction { t ->
+            t.prepared('select my_bytes from binary_fields where id = $1;', [inserted]) { r -> r.single(); }; };
+        then:
+        newList == toInsert;
+
+        when:
+        int deleted = session.withTransaction { t ->
+            t.prepared('delete from binary_fields where id = $1;', [inserted]); };
+        then:
+        deleted == 1;
+    }
+
     @Ignore
     def "Test Simple Automatic Serialization"() {
         setup:
