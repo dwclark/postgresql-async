@@ -143,6 +143,7 @@ class TypeLoadTest extends Specification {
         deleted == 1;
     }
 
+    @Ignore
     def "Test Enum Types"() {
         when:
         def rows = session.withTransaction { t->
@@ -182,6 +183,36 @@ class TypeLoadTest extends Specification {
         list[1] == '<book><title>Manual</title></book>';
         list[2] == '{"number": 1, "str": "some string", "array": [ 1, 2, 3, 4, 5 ]}';
         list[3].substring(1) == '{"str": "another string", "array": [6, 7, 8, 9, 10], "number": 2}';
+    }
+
+    def 'Test Numerics'() {
+        when:
+        def list = session.withTransaction { t ->
+            t.prepared('select * from numerics;', []) { r -> r.toList(); } }[0];
+
+        then:
+        list.size() == 3;
+        list[1] == 1234567890123.789000;
+        list[2] == 0.70;
+
+        when:
+        def toInsert = [ 175123.123456, 3.14 ];
+        def id = session.withTransaction { t ->
+            t.prepared('insert into numerics (my_numeric, my_money) values ($1, $2) returning id;',
+                       toInsert) { r -> r.single(); }; }[0];
+        
+        then:
+        id > 1;
+
+        when:
+        def inserted = session.withTransaction { t ->
+            t.prepared('select * from numerics where id = $1;', [id]) { r -> r.toList(); } }[0];
+        then:
+        inserted == [id] + toInsert;
+
+        cleanup:
+        session.withTransaction { t ->
+            t.prepared('delete from numerics where id = $1;', [id]); }; 
     }
 
     @Ignore

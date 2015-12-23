@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Locale;
 import db.postgresql.async.messages.Format;
 import static db.postgresql.async.messages.Format.*;
+import static db.postgresql.async.buffers.BufferOps.*;
+import static db.postgresql.async.serializers.SerializationContext.*;
 
 public class NumericSerializer extends Serializer<BigDecimal> {
 
@@ -43,10 +45,30 @@ public class NumericSerializer extends Serializer<BigDecimal> {
     }
 
     public BigDecimal read(final ByteBuffer buffer, final Format format) {
-        throw new UnsupportedOperationException();
+        final int size = buffer.getInt();
+        if(size == -1) {
+            return null;
+        }
+
+        if(format == Format.TEXT) {
+            buffer.position(buffer.position() - 4);
+            return fromString(bufferToString(buffer));
+        }
+        else {
+            return new PostgresNumeric(buffer).toBigDecimal();
+        }
     }
 
-    public void write(final ByteBuffer buffer, final BigDecimal b, final Format format) {
-        throw new UnsupportedOperationException();
+    public void write(final ByteBuffer buffer, final BigDecimal bd, final Format format) {
+        if(bd == null) {
+            putNull(buffer);
+        }
+
+        if(format == Format.TEXT) {
+            putWithSize(buffer, (b) -> stringToBuffer(b, toString(bd)));
+        }
+        else {
+            putWithSize(buffer, (b) -> new PostgresNumeric(bd).toBuffer(b));
+        }
     }
 }

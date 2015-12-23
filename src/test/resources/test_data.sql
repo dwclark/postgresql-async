@@ -3,6 +3,7 @@ begin transaction;
 drop table if exists fixed_numbers;
 drop table if exists all_dates;
 drop table if exists binary_fields;
+drop table if exists numerics;
 drop table if exists items;
 drop table if exists all_types;
 drop table if exists extended_types;
@@ -55,6 +56,14 @@ create table binary_fields (
 );
 
 insert into binary_fields (my_bytes) values (E'\\xDEADBEEF');
+
+create table numerics (
+       id serial,
+       my_numeric numeric(19,6),
+       my_money numeric(10,2)
+);
+
+insert into numerics (my_numeric, my_money) values (1234567890123.789, 0.7);
 
 create table items (
        items_id serial,
