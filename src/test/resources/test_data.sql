@@ -4,6 +4,8 @@ drop table if exists fixed_numbers;
 drop table if exists all_dates;
 drop table if exists binary_fields;
 drop table if exists numerics;
+drop table if exists character_types;
+drop table if exists intervals;
 drop table if exists items;
 drop table if exists all_types;
 drop table if exists extended_types;
@@ -64,6 +66,23 @@ create table numerics (
 );
 
 insert into numerics (my_numeric, my_money) values (1234567890123.789, 0.7);
+
+create table character_types (
+       id serial,
+       my_char char(15),
+       my_varchar varchar(200),
+       my_text text
+);
+
+insert into character_types (my_char, my_varchar, my_text) values
+('some chars', 'something that varies', 'en arche en ho logos, kai ho logos en pros ton theon...');
+
+create table intervals (
+       id serial,
+       my_interval interval
+);
+
+insert into intervals (my_interval) values ('1 year 2 months 3 days 4 hours 5 minutes 6 seconds');
 
 create table items (
        items_id serial,

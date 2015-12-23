@@ -130,6 +130,7 @@ public class SessionInfo {
                           FloatSerializer.instance,
                           InetSerializer.instance,
                           IntegerSerializer.instance,
+                          IntervalSerializer.instance,
                           LocalDateSerializer.instance,
                           LocalDateTimeSerializer.instance,
                           LocalTimeSerializer.instance,

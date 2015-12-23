@@ -20,7 +20,7 @@ class TypeLoadTest extends Specification {
         session.shutdown();
     }
 
-    def "Test Load Types"() {
+    def "Load Types"() {
         expect:
         session.sessionInfo.registry.pgType(23);
         session.sessionInfo.registry.pgType(1043);
@@ -28,7 +28,7 @@ class TypeLoadTest extends Specification {
         session.sessionInfo.registry.serializer(Integer) == IntegerSerializer.instance;
     }
 
-    def "Test Fixed Numbers"() {
+    def "Fixed Numbers"() {
         setup:
         def list = session.withTransaction { t ->
             return t.prepared('select * from fixed_numbers order by id asc;', [], { it.toList(); }); };
@@ -38,7 +38,7 @@ class TypeLoadTest extends Specification {
         list[1] == [2, false, 43, 430, 4300, 2.71f, 2.71828182d, new Money(37_500_00)];
     }
 
-    def "Test Fixed Numbers Write"() {
+    def "Fixed Numbers Write"() {
         when:
         List toInsert = [ true, (short) 20, 200, 2_000_000_000_000L, Float.MAX_VALUE, Double.MAX_VALUE, new Money(123456789) ];
         int inserted = session.withTransaction { t ->
@@ -66,7 +66,7 @@ class TypeLoadTest extends Specification {
         deleted == 1;
     }
 
-    def "Test All Dates"() {
+    def "All Dates"() {
         setup:
         def list = session.withTransaction { t ->  
             return t.prepared('select * from all_dates order by id asc;', [], { it.toList(); }); }[0];
@@ -80,7 +80,7 @@ class TypeLoadTest extends Specification {
         list[5].isEqual(OffsetDateTime.of(1999, 1, 8, 4, 5, 6, 789_000_000, ZoneOffset.of('-06:00:00')));
     }
 
-    def "Test All Dates Write"() {
+    def "All Dates Write"() {
         when:
         List toInsert = [ LocalDate.of(2010, 10, 31),
                           LocalTime.of(13, 25, 17, 900_000_000),
@@ -114,7 +114,7 @@ class TypeLoadTest extends Specification {
         deleted == 1;
     }
 
-    def "Test Bytes"() {
+    def "Bytes"() {
         when:
         def list = session.withTransaction { t ->  
             return t.prepared('select * from binary_fields order by id asc;', [], { it.toList(); }); }[0];
@@ -143,8 +143,7 @@ class TypeLoadTest extends Specification {
         deleted == 1;
     }
 
-    @Ignore
-    def "Test Enum Types"() {
+    def "Enum Types"() {
         when:
         def rows = session.withTransaction { t->
             return t.prepared('select * from my_moods order by id;', [], { r -> r.toList(); }); };
@@ -172,7 +171,7 @@ class TypeLoadTest extends Specification {
         session.withTransaction { t -> t.prepared('delete from my_moods where id = $1;', [id]); };
     }
 
-    def "Test Xml and Json Types"() {
+    def "Xml and Json Types"() {
         setup:
         def list = session.withTransaction { t ->
             t.prepared('select * from json_and_xml;', []) { r -> r.toList(); }; }[0];
@@ -185,7 +184,7 @@ class TypeLoadTest extends Specification {
         list[3].substring(1) == '{"str": "another string", "array": [6, 7, 8, 9, 10], "number": 2}';
     }
 
-    def 'Test Numerics'() {
+    def 'Numerics'() {
         when:
         def list = session.withTransaction { t ->
             t.prepared('select * from numerics;', []) { r -> r.toList(); } }[0];
@@ -215,8 +214,68 @@ class TypeLoadTest extends Specification {
             t.prepared('delete from numerics where id = $1;', [id]); }; 
     }
 
+    def "Character Types"() {
+        setup:
+        def shouldBe = [1, 'some chars     ', 'something that varies',
+                        'en arche en ho logos, kai ho logos en pros ton theon...']
+        when:
+        def list = session.withTransaction { t ->
+            t.prepared('select * from character_types;', []) { r -> r.toList(); } }[0];
+        then:
+        list.size() == 4;
+        list == shouldBe;
+
+        when:
+        def toInsert = [ '123456789012345', 'stuff', 'more stuff' ];
+        def id = session.withTransaction { t ->
+            t.prepared('insert into character_types (my_char, my_varchar, my_text) values ' +
+                       '($1, $2, $3) returning id', toInsert) { r -> r.single(); } }[0];
+        then:
+        id > 1;
+
+        when:
+        def found = session.withTransaction { t ->
+            t.prepared('select * from character_types where id = $1', [id]) { r -> r.toList(); } }[0];
+        then:
+        [ id ] + toInsert == found;
+
+        cleanup:
+        session.withTransaction { t ->
+            t.prepared('delete from character_types where id = $1', [id]); };
+    }
+
+    def "Interval Types"() {
+        setup:
+        Duration duration = Duration.ofHours(4) + Duration.ofMinutes(5) + Duration.ofSeconds(6);
+        def shouldBe = [ 1, new Interval(Period.of(1, 2, 3), duration) ];
+
+        when:
+        def list = session.withTransaction { t ->
+            t.prepared('select * from intervals;', []) { r -> r.toList(); } }[0];
+        then:
+        list.size() == 2;
+        list == shouldBe;
+
+        when:
+        def i = new Interval(Period.of(0, 7, 5), Duration.ofSeconds(100));
+        def id = session.withTransaction { t ->
+            t.prepared('insert into intervals (my_interval) values ($1) returning id;', [i]) { r -> r.single(); }; }[0];
+        then:
+        id > 1;
+
+        when:
+        def found = session.withTransaction { t ->
+            t.prepared('select * from intervals where id = $1', [id]) { r -> r.toList(); } }[0];
+        then:
+        found[1] == i;
+
+        cleanup:
+        session.withTransaction { t ->
+            t.prepared('delete from intervals where id = $1;', [id]); };
+    }
+
     @Ignore
-    def "Test Simple Automatic Serialization"() {
+    def "Simple Automatic Serialization"() {
         setup:
         def sql = 'select * from items;';
         def task = SimpleTask.query(sql, { Row row -> row.toArray(); }).toCompletable();
@@ -232,7 +291,7 @@ class TypeLoadTest extends Specification {
     }
 
     @Ignore
-    def "Test All Types Automatic Serialization"() {
+    def "All Types Automatic Serialization"() {
         setup:
         def sql = 'select * from all_types;';
         def task = SimpleTask.query(sql, { Row row -> row.toMap(); }).toCompletable();
