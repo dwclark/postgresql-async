@@ -122,12 +122,13 @@ values (true, 100, 1000, 10000, 175.1234, 1234567.89, 700.5, 700000.1, 250.67, '
        '2015-07-07 22:17:38.475474', '2015-07-07 22:17:38.475474-05');
 
 create table extended_types (
+       id serial,
        my_bits bit varying(128),
        my_uuid uuid
 );
 
 insert into extended_types (my_bits, my_uuid)
-values ('110011', 'aa81b166-c60f-4e4e-addb-17414a652733');
+values ('10101', 'aa81b166-c60f-4e4e-addb-17414a652733');
 
 create table geometry_types (
        id serial,

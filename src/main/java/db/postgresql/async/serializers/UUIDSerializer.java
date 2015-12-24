@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.UUID;
 import db.postgresql.async.messages.Format;
 import static db.postgresql.async.messages.Format.*;
+import static db.postgresql.async.buffers.BufferOps.*;
+import static db.postgresql.async.serializers.SerializationContext.*;
 
 public class UUIDSerializer extends Serializer<UUID> {
 
@@ -17,19 +19,32 @@ public class UUIDSerializer extends Serializer<UUID> {
         return Collections.singletonList("pg_catalog.uuid");
     }
 
-    public UUID fromString(final String str) {
-        return UUID.fromString(str);
-    }
-
-    public String toString(final UUID val) {
-        return val == null ? null : val.toString();
-    }
-
     public UUID read(final ByteBuffer buffer, final Format format) {
-        throw new UnsupportedOperationException();
+        final int size = buffer.getInt();
+        if(size == -1) {
+            return null;
+        }
+        
+        if(format == Format.TEXT) {
+            buffer.position(buffer.position() - 4);
+            return UUID.fromString(bufferToString(buffer));
+        }
+        else {
+            return new UUID(buffer.getLong(), buffer.getLong());
+        }
     }
 
     public void write(final ByteBuffer buffer, final UUID u, final Format format) {
-        throw new UnsupportedOperationException();
+        if(u == null) {
+            putNull(buffer);
+            return;
+        }
+
+        if(format == Format.TEXT) {
+            putWithSize(buffer, (b) -> stringToBuffer(b, u.toString()));
+        }
+        else {
+            putWithSize(buffer, (b) -> b.putLong(u.getMostSignificantBits()).putLong(u.getLeastSignificantBits()));
+        }
     }
 }

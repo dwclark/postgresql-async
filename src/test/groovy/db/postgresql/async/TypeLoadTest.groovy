@@ -314,6 +314,38 @@ class TypeLoadTest extends Specification {
         session.withTransaction { t -> t.prepared('delete from geometry_types where id = $1;', [id]); };
     }
 
+    def "UUID and BitSet"() {
+        setup:
+        BitSet bitSet = new BitSet(5);
+        bitSet.set(0); bitSet.set(2); bitSet.set(4);
+        def first = [ 1, bitSet, UUID.fromString('aa81b166-c60f-4e4e-addb-17414a652733') ];
+            
+        when:
+        def list = session.withTransaction { t ->
+            t.prepared('select * from extended_types;', []) { r -> r.toList(); }; }[0];
+        then:
+        list.size() == 3;
+        list == first;
+
+        when:
+        BitSet two = new BitSet(12);
+        two.set(1); two.set(3); two.set(5); two.set(7); two.set(9); two.set(11);
+        def toInsert = [ two, UUID.randomUUID() ];
+        def id = session.withTransaction { t ->
+            t.prepared('insert into extended_types (my_bits, my_uuid) values ($1, $2) returning id;', toInsert) { r -> r.single(); }; }[0];
+        then:
+        id > 1;
+
+        when:
+        def inserted = session.withTransaction { t ->
+            t.prepared('select my_bits, my_uuid from extended_types where id = $1;', [id]) { r -> r.toList() }; }[0];
+        then:
+        toInsert == inserted;
+
+        cleanup:
+        session.withTransaction { t -> t.prepared('delete from extended_types where id = $1;', [id]); };
+    }
+
     @Ignore
     def "Simple Automatic Serialization"() {
         setup:
