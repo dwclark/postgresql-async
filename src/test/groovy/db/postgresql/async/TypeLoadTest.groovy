@@ -274,6 +274,46 @@ class TypeLoadTest extends Specification {
             t.prepared('delete from intervals where id = $1;', [id]); };
     }
 
+    def "Geometry Types"() {
+        setup:
+        def first = [1, new Point(1.0,1.0),
+                     new Line(1.0,2.0,3.0), new LineSegment(new Point(1.0,2.0), new Point(3.0,4.0)),
+                     new Box(new Point(3.0,4.0), new Point(1.0,2.0)),
+                     new Path(true, new Point(0.0,0.0), new Point(1.0,1.0), new Point(1.0,0.0)),
+                     new Path(false, new Point(0.0,0.0), new Point(1.0,1.0), new Point(1.0,0.0)),
+                     new Polygon(new Point(0.0,0.0), new Point(1.0,1.0), new Point(1.0,0.0)),
+                     new Circle(new Point(1.0,1.0), 5.0) ];
+        when:
+        def list = session.withTransaction { t ->
+            t.prepared('select * from geometry_types;', []) { r -> r.toList(); }; }[0];
+        then:
+        list.size() == 9;
+        list == first;
+
+        when:
+        def toInsert = [ new Point(1.1,1.1),
+                         new Line(1.1,2.1,3.1), new LineSegment(new Point(1.1,2.1), new Point(3.1,4.1)),
+                         new Box(new Point(3.1,4.1), new Point(1.1,2.1)),
+                         new Path(true, new Point(0.1,0.1), new Point(1.1,1.1), new Point(1.1,0.1)),
+                         new Path(false, new Point(0.1,0.1), new Point(1.1,1.1), new Point(1.1,0.1)),
+                         new Polygon(new Point(0.1,0.1), new Point(1.1,1.1), new Point(1.1,0.1)),
+                         new Circle(new Point(1.1,1.1), 5.1) ];
+        def id = session.withTransaction { t ->
+            t.prepared('insert into geometry_types (my_point, my_line, my_lseg, my_box, my_closed_path, my_open_path, my_polygon, my_circle) ' +
+                       'values ($1,$2,$3,$4,$5,$6,$7,$8) returning id', toInsert) { r -> r.single(); } }[0];
+        then:
+        id > 1;
+
+        when:
+        def inserted = session.withTransaction { t ->
+            t.prepared('select * from geometry_types where id = $1;', [id]) { r -> r.toList(); } }[0];
+        then:
+        [id] + toInsert == inserted;
+
+        cleanup:
+        session.withTransaction { t -> t.prepared('delete from geometry_types where id = $1;', [id]); };
+    }
+
     @Ignore
     def "Simple Automatic Serialization"() {
         setup:

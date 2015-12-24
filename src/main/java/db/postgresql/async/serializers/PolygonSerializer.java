@@ -18,7 +18,7 @@ public class PolygonSerializer extends Serializer<Polygon> {
     public Class<Polygon> getType() { return Polygon.class; }
 
     public List<String> getPgNames() {
-        return Collections.singletonList("pg_catalog.box");
+        return Collections.singletonList("pg_catalog.polygon");
     }
 
     public Polygon read(final ByteBuffer buffer, final Format format) {
