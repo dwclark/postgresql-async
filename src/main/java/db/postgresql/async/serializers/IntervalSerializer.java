@@ -11,6 +11,8 @@ import static db.postgresql.async.serializers.SerializationContext.*;
 
 public class IntervalSerializer extends Serializer<Interval> {
 
+    private IntervalSerializer() { }
+    
     public static final IntervalSerializer instance = new IntervalSerializer();
 
     public Class<Interval> getType() { return Interval.class; }

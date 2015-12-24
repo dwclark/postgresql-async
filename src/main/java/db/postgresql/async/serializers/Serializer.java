@@ -3,7 +3,6 @@ package db.postgresql.async.serializers;
 import java.nio.ByteBuffer;
 import java.lang.reflect.Array;
 import java.util.List;
-import db.postgresql.async.serializers.parsers.ArrayParser;
 import static db.postgresql.async.serializers.SerializationContext.*;
 import db.postgresql.async.messages.Format;
 

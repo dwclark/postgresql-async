@@ -1,28 +1,18 @@
 package db.postgresql.async.types;
 
-import db.postgresql.async.pginfo.PgType;
-import static db.postgresql.async.pginfo.PgType.builder;
 import static db.postgresql.async.types.UdtHashing.*;
+import java.nio.ByteBuffer;
 
-public class Circle implements Udt {
-
-    public static final PgType PGTYPE = builder().name("circle").oid(718).arrayId(719).build();
-    
-    @Override
-    public char getLeftDelimiter() { return '<'; }
-
-    @Override
-    public char getRightDelimiter() { return '>'; }
+public class Circle {
     
     private final Point center;
     private final double radius;
 
     public Point getCenter() { return center; }
     public double getRadius() { return radius; }
-    public String getName() { return PGTYPE.getName(); }
     
-    public Circle(final UdtInput input) {
-        this(input.read(Point.class), input.readDouble());
+    public Circle(final ByteBuffer buffer) {
+        this(new Point(buffer), buffer.getDouble());
     }
 
     public Circle(final Point center, final double radius) {
@@ -30,23 +20,22 @@ public class Circle implements Udt {
         this.radius = radius;
     }
 
-    public void write(final UdtOutput output) {
-        output.writeUdt(center);
-        output.writeDouble(radius);
+    public void toBuffer(final ByteBuffer buffer) {
+        center.toBuffer(buffer);
+        buffer.putDouble(radius);
     }
 
     @Override
     public String toString() {
-        return String.format("%c%s,%f%c", getLeftDelimiter(), center.toString(), radius, getRightDelimiter());
+        return String.format("<%s,%f>", center.toString(), radius);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if(!(o instanceof Circle)) {
-            return false;
-        }
+    public boolean equals(final Object rhs) {
+        return (rhs instanceof Circle) ? equals((Circle) rhs) : false;
+    }
 
-        Circle rhs = (Circle) o;
+    public boolean equals(final Circle rhs) {
         return (center.equals(rhs.center) && radius == rhs.radius);
     }
 

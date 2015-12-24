@@ -1,12 +1,10 @@
 package db.postgresql.async.types;
 
 import db.postgresql.async.pginfo.PgType;
-import static db.postgresql.async.pginfo.PgType.builder;
 import static db.postgresql.async.types.UdtHashing.*;
+import java.nio.ByteBuffer;
 
-public class Point implements Udt {
-
-    public static final PgType PGTYPE = builder().name("point").oid(600).arrayId(1017).build();
+public class Point {
 
     private final double x;
     private final double y;
@@ -14,10 +12,12 @@ public class Point implements Udt {
     public double getX() { return x; }
     public double getY() { return y; }
     
-    public String getName() { return PGTYPE.getName(); }
+    public Point(final ByteBuffer buffer) {
+        this(buffer.getDouble(), buffer.getDouble());
+    }
 
-    public Point(final UdtInput input) {
-        this(input.readDouble(), input.readDouble());
+    public void toBuffer(final ByteBuffer buffer) {
+        buffer.putDouble(x).putDouble(y);
     }
 
     public Point(final double x, final double y) {
@@ -25,23 +25,17 @@ public class Point implements Udt {
         this.y = y;
     }
 
-    public void write(final UdtOutput output) {
-        output.writeDouble(x);
-        output.writeDouble(y);
-    }
-
     @Override
     public String toString() {
-        return String.format("%c%f,%f%c", getLeftDelimiter(), x, y, getRightDelimiter());
+        return String.format("(%f,%f)", x, y);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if(!(o instanceof Point)) {
-            return false;
-        }
+    public boolean equals(final Object rhs) {
+        return (rhs instanceof Point) ? equals((Point) rhs) : false;
+    }
 
-        Point rhs = (Point) o;
+    public boolean equals(final Point rhs) {
         return ((x == rhs.x) && (y == rhs.y));
     }
 

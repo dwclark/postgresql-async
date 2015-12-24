@@ -1,22 +1,18 @@
 package db.postgresql.async.types;
 
-import db.postgresql.async.pginfo.PgType;
-import static db.postgresql.async.pginfo.PgType.builder;
 import static db.postgresql.async.types.UdtHashing.*;
+import java.nio.ByteBuffer;
 
-public class LineSegment implements Udt {
-
-    public static final PgType PGTYPE = builder().name("lseg").oid(601).arrayId(1018).build();
+public class LineSegment {
 
     private final Point left;
     private final Point right;
 
     public Point getLeft() { return left; }
     public Point getRight() { return right; }
-    public String getName() { return PGTYPE.getName(); }
     
-    public LineSegment(final UdtInput input) {
-        this(input.read(Point.class), input.read(Point.class));
+    public LineSegment(final ByteBuffer buffer) {
+        this(new Point(buffer), new Point(buffer));
     }
 
     public LineSegment(final Point left, final Point right) {
@@ -24,24 +20,22 @@ public class LineSegment implements Udt {
         this.right = right;
     }
 
-    public void write(final UdtOutput output) {
-        output.writeUdt(left);
-        output.writeUdt(right);
+    public void toBuffer(final ByteBuffer buffer) {
+        left.toBuffer(buffer);
+        right.toBuffer(buffer);
     }
 
     @Override
     public String toString() {
-        return String.format("%c%s,%s%c", getLeftDelimiter(), left.toString(),
-                             right.toString(), getRightDelimiter());
+        return String.format("(%s,%s)", left.toString(), right.toString());
     }
     
     @Override
-    public boolean equals(Object o) {
-        if(!(o instanceof LineSegment)) {
-            return false;
-        }
+    public boolean equals(final Object rhs) {
+        return (rhs instanceof LineSegment) ? equals((LineSegment) rhs) : false;
+    }
 
-        LineSegment rhs = (LineSegment) o;
+    public boolean equals(final LineSegment rhs) {
         return left.equals(rhs.left) && right.equals(rhs.right);
     }
 

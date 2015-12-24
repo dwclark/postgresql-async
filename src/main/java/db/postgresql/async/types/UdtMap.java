@@ -9,10 +9,10 @@ import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.Iterator;
 
-public class UdtMap extends AbstractMap<String,Object> implements Udt {
+public class UdtMap extends AbstractMap<String,Object> {
 
     final private List<Map.Entry<String,Object>> entries;
-    final String name;
+    final private PgType pgType;
     
     private class EntrySet extends AbstractSet<Map.Entry<String,Object>> {
         
@@ -38,15 +38,11 @@ public class UdtMap extends AbstractMap<String,Object> implements Udt {
 
     public UdtMap(final List<Map.Entry<String,Object>> entries, final PgType pgType) {
         this.entries = Collections.unmodifiableList(entries);
-        this.name = pgType.getName();
+        this.pgType = pgType;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void write(UdtOutput output) {
-        throw new UnsupportedOperationException();
+    public PgType getPgType() {
+        return pgType;
     }
 
     public static Map.Entry<String,Object> entry(final String key, final Object value) {

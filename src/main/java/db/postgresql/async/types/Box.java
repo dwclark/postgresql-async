@@ -1,22 +1,18 @@
 package db.postgresql.async.types;
 
-import db.postgresql.async.pginfo.PgType;
-import static db.postgresql.async.pginfo.PgType.builder;
 import static db.postgresql.async.types.UdtHashing.*;
+import java.nio.ByteBuffer;
 
-public class Box implements Udt {
-
-    public static final PgType PGTYPE = builder().name("box").oid(603).arrayId(1020).delimiter(';').build();
+public class Box {
     
     private final Point upperRight;
     private final Point lowerLeft;
 
     public Point getUpperRight() { return upperRight; }
     public Point getLowerLeft() { return lowerLeft; }
-    public String getName() { return PGTYPE.getName(); }
     
-    public Box(final UdtInput input) {
-        this(input.read(Point.class), input.read(Point.class));
+    public Box(final ByteBuffer buffer) {
+        this(new Point(buffer), new Point(buffer));
     }
 
     public Box(final Point upperRight, final Point lowerLeft) {
@@ -24,23 +20,22 @@ public class Box implements Udt {
         this.lowerLeft = lowerLeft;
     }
 
-    public void write(final UdtOutput output) {
-        output.writeUdt(upperRight);
-        output.writeUdt(lowerLeft);
+    public void toBuffer(final ByteBuffer buffer) {
+        upperRight.toBuffer(buffer);
+        lowerLeft.toBuffer(buffer);
     }
-
+    
     @Override
     public String toString() {
         return String.format("%s,%s", upperRight.toString(), lowerLeft.toString());
     }
     
     @Override
-    public boolean equals(Object o) {
-        if(!(o instanceof Box)) {
-            return false;
-        }
+    public boolean equals(final Object rhs) {
+        return (rhs instanceof Box) ? equals((Box) rhs) : false;
+    }
 
-        Box rhs = (Box) o;
+    public boolean equals(final Box rhs) {
         return upperRight.equals(rhs.upperRight) && lowerLeft.equals(rhs.lowerLeft);
     }
 

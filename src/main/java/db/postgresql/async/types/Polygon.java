@@ -1,35 +1,41 @@
 package db.postgresql.async.types;
 
-import db.postgresql.async.pginfo.PgType;
-import static db.postgresql.async.pginfo.PgType.builder;
 import static db.postgresql.async.types.UdtHashing.*;
-import java.util.List;
+import java.util.Arrays;
+import java.nio.ByteBuffer;
 
-public class Polygon extends Path {
+public class Polygon {
 
-    public static final PgType PGTYPE = builder().name("polygon").oid(604).arrayId(1027).build();
+    final Point[] points;
     
-    public String getName() { return PGTYPE.getName(); }
-    
-    public Polygon(final UdtInput input) {
-        super(input);
+    public Polygon(final ByteBuffer buffer) {
+        this(Path.points(buffer));
     }
 
-    public Polygon(final List<Point> points) {
-        super(points, false);
+    public Polygon(final Point[] points) {
+        this.points = points;
+    }
+
+    public void toBuffer(final ByteBuffer buffer) {
+        Path.toBuffer(buffer, points);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if(o == null) {
-            return false;
-        }
-        
-        if(!o.getClass().equals(Polygon.class)) {
-            return false;
-        }
-        
-        Polygon rhs = (Polygon) o;
-        return pointsEqual(rhs.getPoints());
+    public int hashCode() {
+        return Arrays.hashCode(points);
+    }
+
+    @Override
+    public boolean equals(final Object rhs) {
+        return (rhs instanceof Polygon) ? equals((Polygon) rhs) : false;
+    }
+
+    public boolean equals(final Polygon rhs) {
+        return Arrays.equals(points, rhs.points);
+    }
+
+    @Override
+    public String toString() {
+        return Path.toString(points);
     }
 }

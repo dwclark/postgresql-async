@@ -1,19 +1,10 @@
 package db.postgresql.async.types;
 
-import db.postgresql.async.pginfo.PgType;
-import static db.postgresql.async.pginfo.PgType.builder;
 import static db.postgresql.async.types.UdtHashing.*;
+import java.nio.ByteBuffer;
 
-public class Line implements Udt {
+public class Line {
 
-    public static final PgType PGTYPE = builder().name("line").oid(628).arrayId(629).build();
-    
-    @Override
-    public char getLeftDelimiter() { return '{'; }
-
-    @Override
-    public char getRightDelimiter() { return '}'; }
-    
     private final double a;
     private final double b;
     private final double c;
@@ -22,10 +13,8 @@ public class Line implements Udt {
     public double getB() { return b; }
     public double getC() { return c; }
 
-    public String getName() { return PGTYPE.getName(); }
-    
-    public Line(final UdtInput input) {
-        this(input.readDouble(), input.readDouble(), input.readDouble());
+    public Line(final ByteBuffer buffer) {
+        this(buffer.getDouble(), buffer.getDouble(), buffer.getDouble());
     }
 
     public Line(final double a, final double b, final double c) {
@@ -34,24 +23,21 @@ public class Line implements Udt {
         this.c = c;
     }
 
-    public void write(final UdtOutput output) {
-        output.writeDouble(c);
-        output.writeDouble(b);
-        output.writeDouble(c);
+    public void toBuffer(final ByteBuffer buffer) {
+        buffer.putDouble(a).putDouble(b).putDouble(c);
     }
-
+    
     @Override
     public String toString() {
-        return String.format("%c%f,%f,%f%c", getLeftDelimiter(), a, b, c, getRightDelimiter());
+        return String.format("{%f,%f,%f}", a, b, c);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if(!(o instanceof Line)) {
-            return false;
-        }
+    public boolean equals(final Object rhs) {
+        return (rhs instanceof Line) ? equals((Line) rhs) : false;
+    }
 
-        Line rhs = (Line) o;
+    public boolean equals(final Line rhs) {
         return ((a == rhs.a) && (b == rhs.b) && (c == rhs.c));
     }
 
