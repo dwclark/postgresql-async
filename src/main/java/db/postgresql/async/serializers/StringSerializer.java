@@ -19,7 +19,7 @@ public class StringSerializer extends Serializer<String> {
 
     public List<String> getPgNames() {
         return Arrays.asList("pg_catalog.text", "pg_catalog.varchar", "pg_catalog.xml",
-                             "pg_catalog.json", "pg_catalog.jsonb", "pg_catalog.char", "pg_catalog.bpchar");
+                             "pg_catalog.json", "pg_catalog.char", "pg_catalog.bpchar");
     }
 
     public String read(final ByteBuffer buffer, final Format format) {

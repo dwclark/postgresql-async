@@ -181,7 +181,26 @@ class TypeLoadTest extends Specification {
         list[0] == 1
         list[1] == '<book><title>Manual</title></book>';
         list[2] == '{"number": 1, "str": "some string", "array": [ 1, 2, 3, 4, 5 ]}';
-        list[3].substring(1) == '{"str": "another string", "array": [6, 7, 8, 9, 10], "number": 2}';
+        list[3] == new Jsonb(1, '{"str": "another string", "array": [6, 7, 8, 9, 10], "number": 2}');
+
+        when:
+        def toInsert = [ '<book><title>Pride And Prejudice</title></book>',
+                         '{"number": 100, "str": "another string", "array": [ 6, 7, 8 ]}',
+                         new Jsonb('{"key": "value"}') ];
+        def id = session.withTransaction { t->
+            t.prepared('insert into json_and_xml (my_xml, my_json, my_json_b) ' +
+                       'values ($1, $2, $3) returning id;', toInsert) { r -> r.single(); }; }[0];
+        then:
+        id > 1;
+
+        when:
+        def inserted = session.withTransaction { t ->
+            t.prepared('select * from json_and_xml where id = $1;', [id]) { r -> r.toList(); } }[0];
+        then:
+        inserted == [id] + toInsert;
+
+        cleanup:
+        session.withTransaction { t -> t.prepared('delete from json_and_xml where id = $1', [id]); };
     }
 
     def 'Numerics'() {
@@ -344,6 +363,39 @@ class TypeLoadTest extends Specification {
 
         cleanup:
         session.withTransaction { t -> t.prepared('delete from extended_types where id = $1;', [id]); };
+    }
+
+    def "Network Types"() {
+        setup:
+        def original = [ 1, MacAddr.fromString('08:00:2b:01:02:03'),
+                         Inet.fromString('10.10.23.1/32'), Inet.fromString('192.168.10.0/24', true) ];
+
+        when:
+        def found = session.withTransaction { t ->
+            t.prepared('select * from network_types', []) { r -> r.toList(); }; }[0];
+        then:
+        found == original;
+
+        when:
+        def toInsert = [ MacAddr.fromString('18:10:3b:11:12:13'),
+                         Inet.fromString('2001:4f8:3:ba:2e0:81ff:fe22:0/112'),
+                         Inet.fromString('2001:4f8:3:ba::/64', true) ];
+        
+        def id = session.withTransaction { t ->
+            t.prepared('insert into network_types (my_macaddr, my_inet, my_cidr) ' +
+                       'values ($1, $2, $3) returning id;', toInsert) { r -> r.single(); }; }[0];
+        then:
+        id > 1;
+
+        when:
+        def inserted = session.withTransaction { t ->
+            t.prepared('select * from network_types where id = $1;', [id]) { r -> r.toList(); }; }[0];
+        then:
+        inserted == [id] + toInsert;
+
+        cleanup:
+        session.withTransaction { t ->
+        t.prepared('delete from network_types where id = $1;', [id]); };
     }
 
     @Ignore

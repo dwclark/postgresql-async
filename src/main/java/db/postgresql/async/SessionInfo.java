@@ -133,6 +133,7 @@ public class SessionInfo {
                           InetSerializer.instance,
                           IntegerSerializer.instance,
                           IntervalSerializer.instance,
+                          JsonbSerializer.instance,
                           LineSerializer.instance,
                           LineSegmentSerializer.instance,
                           LocalDateSerializer.instance,

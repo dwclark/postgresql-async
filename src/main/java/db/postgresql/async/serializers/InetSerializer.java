@@ -6,6 +6,8 @@ import java.util.List;
 import db.postgresql.async.types.Inet;
 import db.postgresql.async.messages.Format;
 import static db.postgresql.async.messages.Format.*;
+import static db.postgresql.async.buffers.BufferOps.*;
+import static db.postgresql.async.serializers.SerializationContext.*;
 
 public class InetSerializer extends Serializer<Inet> {
 
@@ -16,20 +18,33 @@ public class InetSerializer extends Serializer<Inet> {
     public List<String> getPgNames() {
         return Arrays.asList("pg_catalog.inet", "pg_catalog.cidr");
     }
-
-    public Inet fromString(final String str) {
-        return Inet.fromString(str);
-    }
-
-    public String toString(final Inet val) {
-        return val == null ? null : val.toString();
-    }
     
     public Inet read(final ByteBuffer buffer, final Format format) {
-        throw new UnsupportedOperationException();
+        final int size = buffer.getInt();
+        if(size == -1) {
+            return null;
+        }
+
+        if(format == Format.BINARY) {
+            return new Inet(buffer);
+        }
+        else {
+            buffer.position(buffer.position() - 4);
+            return Inet.fromString(bufferToString(buffer));
+        }
     }
 
     public void write(final ByteBuffer buffer, final Inet inet, final Format format) {
-        throw new UnsupportedOperationException();
+        if(inet == null) {
+            putNull(buffer);
+            return;
+        }
+
+        if(format == Format.BINARY) {
+            putWithSize(buffer, (b) -> inet.toBuffer(b));
+        }
+        else {
+            putWithSize(buffer, (b) -> stringToBuffer(b, inet.toString()));
+        }
     }
 }

@@ -2,6 +2,8 @@ package db.postgresql.async.types;
 
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.util.Arrays;
+import java.nio.ByteBuffer;
 
 public class MacAddr {
 
@@ -15,11 +17,17 @@ public class MacAddr {
     private MacAddr() {}
     
     public MacAddr(final byte[] mac) {
-        for(int i = 0; i < SIZE; ++i) {
-            bytes[i] = mac[i];
-        }
+        System.arraycopy(mac, 0, bytes, 0, SIZE);
     }
 
+    public MacAddr(final ByteBuffer buffer) {
+        buffer.get(bytes);
+    }
+
+    public void toBuffer(final ByteBuffer buffer) {
+        buffer.put(bytes);
+    }
+    
     public byte[] getBytes() {
         final byte[] ret = new byte[SIZE];
         System.arraycopy(bytes, 0, ret, 0, SIZE);
@@ -51,27 +59,15 @@ public class MacAddr {
 
     @Override
     public boolean equals(final Object rhs) {
-        if(!(rhs instanceof MacAddr)) {
-            return false;
-        }
+        return (rhs instanceof MacAddr) ? equals((MacAddr) rhs) : false;
+    }
 
-        final MacAddr addr = (MacAddr) rhs;
-        for(int i = 0; i < SIZE; ++i) {
-            if(bytes[i] != addr.bytes[i]) {
-                return false;
-            }
-        }
-
-        return true;
+    public boolean equals(final MacAddr rhs) {
+        return Arrays.equals(bytes, rhs.bytes);
     }
 
     @Override
     public int hashCode() {
-        int hash = 2137;
-        for(byte b : bytes) {
-            hash = hash + (0xFF & b) * 947;
-        }
-
-        return hash;
+        return Arrays.hashCode(bytes);
     }
 }

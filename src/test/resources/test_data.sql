@@ -216,9 +216,6 @@ create table network_types (
 );
 
 insert into network_types (my_macaddr, my_inet, my_cidr) values ('08:00:2b:01:02:03', '10.10.23.1/32', '192.168.10.0/24');
-insert into network_types (my_macaddr, my_inet, my_cidr) values ('08:00:2b:01:02:03', '10.10.23.0/24', '192.168.10.0/24');
-insert into network_types (my_macaddr, my_inet, my_cidr) values
-('08:00:2b:01:02:17', '2001:4f8:3:ba:2e0:81ff:fe22:0/112', '2001:4f8:3:ba::/64');
 
 create table json_and_xml (
        id serial,
