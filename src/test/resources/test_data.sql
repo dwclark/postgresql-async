@@ -173,13 +173,15 @@ insert into persons (the_person) values ('(11-01-1975,"David","Clark",23,"quote"
 
 create table my_arrays (
        id serial,
-       int_array int[],
-       string_array varchar[][]
+       int_array int ARRAY,
+       string_array varchar ARRAY
 );
 
 insert into my_arrays (int_array, string_array) values
-('{{{1,2,3},{4,5,6},{7,8,9}},{{11,12,13},{14,15,16},{17,18,19}},{{21,22,23},{24,25,26},{27,28,29}}}',
-'{{foo,bar},{baz,fuzz}}');
+(array[1, 2, 3, 4, 5], array['one', 'two', 'three', 'four', 'five']);
+--insert into my_arrays (int_array, string_array) values
+--('{{{1,2,3},{4,5,6},{7,8,9}},{{11,12,13},{14,15,16},{17,18,19}},{{21,22,23},{24,25,26},{27,28,29}}}',
+--'{{foo,bar},{baz,fuzz}}');
 
 create table numerals (
        id serial,

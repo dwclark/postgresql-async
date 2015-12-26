@@ -15,6 +15,7 @@ import db.postgresql.async.Row;
 import db.postgresql.async.Transaction;
 
 import db.postgresql.async.serializers.*;
+import db.postgresql.async.types.ArrayInfo;
 
 public class PgTypeRegistry implements Registry {
 
@@ -23,7 +24,9 @@ public class PgTypeRegistry implements Registry {
     private final ConcurrentMap<Object,PgType> pgTypeMap = new ConcurrentHashMap<>(200, 0.75f, 1);
     private final ConcurrentMap<Object,Serializer<?>> serializerMap = new ConcurrentHashMap<>(200, 0.75f, 1);
 
-    public PgTypeRegistry() { }
+    public PgTypeRegistry() {
+        serializerMap.put(ArrayInfo.class, ArrayInfoSerializer.instance);
+    }
 
     public PgTypeRegistry add(final PgType val) {
         pgTypeMap.put(val.getOid(), val);
@@ -39,6 +42,7 @@ public class PgTypeRegistry implements Registry {
             final PgType pgType = pgType(name);
             if(pgType != null) {
                 serializerMap.put(pgType.getOid(), serializer);
+                serializerMap.put(pgType.getArrayId(), ArrayInfoSerializer.instance);
             }
         }
 

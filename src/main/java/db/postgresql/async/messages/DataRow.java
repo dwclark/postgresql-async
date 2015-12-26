@@ -82,7 +82,7 @@ public class DataRow extends Response implements Row {
     private Object extractByPgType(final int index) {
         final FieldDescriptor field = description.field(index);
         final PgType pgType = registry.pgType(field.getTypeOid());
-        if(pgType.simple(field.getTypeOid())) {
+        if(pgType != null) {
             return registry.serializer(field.getTypeOid()).read(buffer, description.field(index).getFormat());
         }
         else {
@@ -158,10 +158,9 @@ public class DataRow extends Response implements Row {
             return ShortSerializer.instance.readPrimitive(buffer, field.getFormat());
         }
 
-        @SuppressWarnings("unchecked")
-        public <T> T[] nextArray(final Class<T> elementType) {
+        public Object nextArray(final Class elementType) {
             advance();
-            return (T[]) ArrayInfoSerializer.instance.read(buffer, elementType, field.getFormat()).getAry();
+            return ArrayInfoSerializer.instance.read(buffer, elementType, field.getFormat()).getAry();
         }
     }
 
@@ -295,13 +294,13 @@ public class DataRow extends Response implements Row {
             }
         }
 
-        public <T> T[] arrayAt(final String field, final Class<T> elementType) {
+        public Object arrayAt(final String field, final Class elementType) {
             return arrayAt(description.indexOf(field), elementType);
         }
 
-        @SuppressWarnings("unchecked")
-        public <T> T[] arrayAt(final int index, final Class<T> elementType) {
-            return (T[]) ArrayInfoSerializer.instance.read(buffer, elementType, description.field(index).getFormat()).getAry();
+        public Object arrayAt(final int index, final Class elementType) {
+            return ArrayInfoSerializer.instance.read(buffer, elementType, description.field(index).getFormat()).getAry();
         }
     }
 }
+

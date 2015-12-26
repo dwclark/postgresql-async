@@ -56,7 +56,7 @@ public class ArrayInfo {
 
     private Object lastAry(final int[] indexes) {
         Object ret = ary;
-        for(int i = 1; i < indexes.length - 1; ++i) {
+        for(int i = 0; i < indexes.length - 1; ++i) {
             ret = Array.get(ret, indexes[i]);
         }
 
@@ -75,7 +75,9 @@ public class ArrayInfo {
     public int getNumberElements() { return numberElements; }
     
     private Class elementType() {
-        final String id = lastAry(dimensions).getClass().getName().substring(0,2);
+        final String n = lastAry(initialIndexes()).getClass().getName();
+        final int lastIndex = n.lastIndexOf('[');
+        final String id = n.substring(lastIndex, lastIndex + 2);
         switch(id) {
         case "[L": return Object.class;
         case "[Z": return boolean.class;
@@ -110,7 +112,7 @@ public class ArrayInfo {
         }
 
         this.numberElements = numberElements();
-        this.elementType = elementType.isPrimitive() ? elementType : registry().serializer(oid).getType();
+        this.elementType = elementType.isPrimitive() ? elementType : registry().serializer(pgType.getOid()).getType();
         this.ary = Array.newInstance(this.elementType, dimensions);
 
         read(buffer);
@@ -159,7 +161,7 @@ public class ArrayInfo {
     public void toBuffer(final ByteBuffer buffer) {
         buffer.putInt(dimensions.length);
         buffer.putInt(0); //we don't send arrays with offsets
-        buffer.putInt(pgType.getArrayId());
+        buffer.putInt(pgType.getOid());
         for(int i = 0; i < dimensions.length; ++i) {
             buffer.putInt(dimensions[i]);
             buffer.putInt(0); //lower bound is always zero
@@ -172,22 +174,25 @@ public class ArrayInfo {
             write((ary, i) -> BooleanSerializer.instance.writePrimitive(buffer, Array.getBoolean(ary, i), Format.BINARY));
         }
         else if(elementType == byte.class) {
-            write((ary, i) -> buffer.put(Array.getByte(ary, i)));
+            write((ary, i) -> {
+                    buffer.putInt(1);
+                    buffer.put(Array.getByte(ary, i));
+                });
         }
         else if(elementType == short.class) {
-            write((ary, i) -> buffer.putShort(Array.getShort(ary, i)));
+            write((ary, i) -> ShortSerializer.instance.writePrimitive(buffer, Array.getShort(ary, i), Format.BINARY));
         }
         else if(elementType == int.class) {
-            write((ary, i) -> buffer.putInt(Array.getInt(ary, i)));
+            write((ary, i) -> IntegerSerializer.instance.writePrimitive(buffer, Array.getInt(ary, i), Format.BINARY));
         }
         else if(elementType == long.class) {
-            write((ary, i) -> buffer.putLong(Array.getLong(ary, i)));
+            write((ary, i) -> LongSerializer.instance.writePrimitive(buffer, Array.getLong(ary, i), Format.BINARY));
         }
         else if(elementType == float.class) {
-            write((ary, i) -> buffer.putFloat(Array.getFloat(ary, i)));
+            write((ary, i) -> FloatSerializer.instance.writePrimitive(buffer, Array.getFloat(ary, i), Format.BINARY));
         }
         else if(elementType == double.class) {
-            write((ary, i) -> buffer.putDouble(Array.getDouble(ary, i)));
+            write((ary, i) -> DoubleSerializer.instance.writePrimitive(buffer, Array.getDouble(ary, i), Format.BINARY));
         }
         else {
             throw new UnsupportedOperationException("Unsupported array type");

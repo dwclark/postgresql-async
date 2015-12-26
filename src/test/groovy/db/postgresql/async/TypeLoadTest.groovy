@@ -397,4 +397,39 @@ class TypeLoadTest extends Specification {
         session.withTransaction { t ->
         t.prepared('delete from network_types where id = $1;', [id]); };
     }
+
+    def "Array Test"() {
+        setup:
+        def original = [ 1, [ 1, 2, 3, 4, 5] as int[], ['one', 'two', 'three', 'four', 'five'] as String[] ];
+        
+        when:
+        def found = session.withTransaction { t ->
+            t.prepared('select * from my_arrays', []) { r ->
+                def iter = r.iterator();
+                [ iter.nextInt(), iter.nextArray(int.class), iter.next() ]; }; }[0];
+        then:
+        found[0] == original[0];
+        found[1] == original[1];
+        found[2].ary == original[2]
+
+        when:
+        def multiInt = [ [ 1, 2, 3 ], [ 4, 5, 6 ] ] as int[][];
+        def multiString = [ [ '1', '2', '3' ], [ '4', '5', '6' ] ] as String[][];
+        def toInsert = [ new ArrayInfo('pg_catalog.int4', multiInt), new ArrayInfo('pg_catalog.varchar', multiString) ];
+        def id = session.withTransaction { t ->
+            t.prepared('insert into my_arrays (int_array, string_array) values ($1, $2) returning id;', toInsert) { r -> r.single(); } }[0];
+
+        then:
+        id > 0;
+
+        when:
+        def inserted = session.withTransaction { t ->
+            t.prepared('select * from my_arrays where id = $1;', [id]) { r -> r.toList(); } }[0];
+        then:
+        inserted[1].ary == multiInt;
+        inserted[2].ary == multiString;
+
+        cleanup:
+        session.withTransaction { t -> t.prepared('delete from my_arrays where id = $1', [id]); };
+    }
 }
