@@ -397,36 +397,4 @@ class TypeLoadTest extends Specification {
         session.withTransaction { t ->
         t.prepared('delete from network_types where id = $1;', [id]); };
     }
-
-    @Ignore
-    def "Simple Automatic Serialization"() {
-        setup:
-        def sql = 'select * from items;';
-        def task = SimpleTask.query(sql, { Row row -> row.toArray(); }).toCompletable();
-        def list = session.execute(task).get();
-        println(list);
-        
-        expect:
-        list.size() == 2;
-        list[0][1] instanceof Integer;
-        list[0][1] == 1;
-        list[0][2] instanceof String;
-        list[0][2] == 'one';
-    }
-
-    @Ignore
-    def "All Types Automatic Serialization"() {
-        setup:
-        def sql = 'select * from all_types;';
-        def task = SimpleTask.query(sql, { Row row -> row.toMap(); }).toCompletable();
-        def map = session.execute(task).get()[0];
-        println(map);
-
-        expect:
-        map.size() == 18;
-        map.my_bytes[0] == (byte) 0xde;
-        map.my_bytes[1] == (byte) 0xad;
-        map.my_bytes[2] == (byte) 0xbe;
-        map.my_bytes[3] == (byte) 0xef;
-    }
 }

@@ -15,7 +15,6 @@ public class StringSerializer extends Serializer<String> {
     public static final StringSerializer instance = new StringSerializer();
 
     public Class<String> getType() { return String.class; }
-    public Class getArrayType() { return String.class; }
 
     public List<String> getPgNames() {
         return Arrays.asList("pg_catalog.text", "pg_catalog.varchar", "pg_catalog.xml",

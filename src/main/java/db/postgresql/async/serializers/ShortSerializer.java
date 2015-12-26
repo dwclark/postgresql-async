@@ -14,17 +14,11 @@ public class ShortSerializer extends Serializer<Short> {
     public static final ShortSerializer instance = new ShortSerializer();
 
     public Class<Short> getType() { return Short.class; }
-    public Class getArrayType() { return short.class; }
 
     public List<String> getPgNames() {
         return Collections.singletonList("pg_catalog.int2");
     }
     
-    @Override
-    public void place(final Object ary, final int index, final String val) {
-        Array.setShort(ary, index, Short.parseShort(val));
-    }
-
     private short binary(final ByteBuffer buffer) {
         return buffer.getInt() == -1 ? (short) 0 : buffer.getShort();
     }

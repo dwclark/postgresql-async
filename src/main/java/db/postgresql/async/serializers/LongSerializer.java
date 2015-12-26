@@ -14,15 +14,9 @@ public class LongSerializer extends Serializer<Long> {
     public static final LongSerializer instance = new LongSerializer();
 
     public Class<Long> getType() { return Long.class; }
-    public Class getArrayType() { return long.class; }
 
     public List<String> getPgNames() {
         return Collections.singletonList("pg_catalog.int8");
-    }
-
-    @Override
-    public void place(final Object ary, final int index, final String val) {
-        Array.setLong(ary, index, Long.parseLong(val));
     }
 
     private long binary(final ByteBuffer buffer) {

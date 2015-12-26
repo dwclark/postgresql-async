@@ -15,20 +15,12 @@ public class BooleanSerializer extends Serializer<Boolean> {
 
     public static final BooleanSerializer instance = new BooleanSerializer();
 
-    @Override
-    public Class getArrayType() { return boolean.class; }
-
     public Class<Boolean> getType() { return Boolean.class; }
 
     public List<String> getPgNames() {
         return Collections.singletonList("pg_catalog.bool");
     }
     
-    @Override
-    public void place(final Object ary, final int index, final String val) {
-        Array.setBoolean(ary, index, val.charAt(0) == T ? true : false);
-    }
-
     private boolean binary(final ByteBuffer buffer) {
         final byte val = buffer.get();
         return val == 1 ? true : false;

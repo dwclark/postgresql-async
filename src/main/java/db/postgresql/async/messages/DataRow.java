@@ -1,5 +1,6 @@
 package db.postgresql.async.messages;
 
+import db.postgresql.async.types.ArrayInfo;
 import db.postgresql.async.Row;
 import db.postgresql.async.pginfo.Registry;
 import db.postgresql.async.pginfo.PgType;
@@ -89,22 +90,8 @@ public class DataRow extends Response implements Row {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> T nextArray(final Class<T> type, final int index) {
-        final FieldDescriptor field = description.field(index);
-        final PgType pgType = registry.pgType(field.getTypeOid());
-        final Class<?> componentType = type.getComponentType();
-        final Serializer<?> serializer = registry.serializer(componentType);
-        return (T) serializer.array(buffer, buffer.getInt(), pgType.getDelimiter());
-    }
-
     private <T> T extractByType(final Class<T> type, final int index) {
-        if(type.isArray()) {
-            return nextArray(type, index);
-        }
-        else {
-            return registry.serializer(type).read(buffer, description.field(index).getFormat());
-        }
+        return registry.serializer(type).read(buffer, description.field(index).getFormat());
     }
     
     private class Iterator implements Row.Iterator {
@@ -169,6 +156,12 @@ public class DataRow extends Response implements Row {
         public short nextShort() {
             advance();
             return ShortSerializer.instance.readPrimitive(buffer, field.getFormat());
+        }
+
+        @SuppressWarnings("unchecked")
+        public <T> T[] nextArray(final Class<T> elementType) {
+            advance();
+            return (T[]) ArrayInfoSerializer.instance.read(buffer, elementType, field.getFormat()).getAry();
         }
     }
 
@@ -300,6 +293,15 @@ public class DataRow extends Response implements Row {
             finally {
                 buffer.reset();
             }
+        }
+
+        public <T> T[] arrayAt(final String field, final Class<T> elementType) {
+            return arrayAt(description.indexOf(field), elementType);
+        }
+
+        @SuppressWarnings("unchecked")
+        public <T> T[] arrayAt(final int index, final Class<T> elementType) {
+            return (T[]) ArrayInfoSerializer.instance.read(buffer, elementType, description.field(index).getFormat()).getAry();
         }
     }
 }

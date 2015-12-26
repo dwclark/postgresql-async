@@ -15,16 +15,8 @@ public class DoubleSerializer extends Serializer<Double> {
 
     public Class<Double> getType() { return Double.class; }
 
-    @Override
-    public Class getArrayType() { return double.class; }
-
     public List<String> getPgNames() {
         return Collections.singletonList("pg_catalog.float8");
-    }
-
-    @Override
-    public void place(final Object ary, final int index, final String val) {
-        Array.setDouble(ary, index, Double.parseDouble(val));
     }
 
     private double binary(final ByteBuffer buffer) {

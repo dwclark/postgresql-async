@@ -16,7 +16,6 @@ public class JsonbSerializer extends Serializer<Jsonb> {
     public static final JsonbSerializer instance = new JsonbSerializer();
 
     public Class<Jsonb> getType() { return Jsonb.class; }
-    public Class getArrayType() { return Jsonb.class; }
 
     public List<String> getPgNames() {
         return Collections.singletonList("pg_catalog.jsonb");

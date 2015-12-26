@@ -17,16 +17,8 @@ public class IntegerSerializer extends Serializer<Integer> {
 
     public Class<Integer> getType() { return Integer.class; }
 
-    @Override
-    public Class getArrayType() { return int.class; }
-
     public List<String> getPgNames() {
         return Collections.singletonList("pg_catalog.int4");
-    }
-
-    @Override
-    public void place(final Object ary, final int index, final String val) {
-        Array.setInt(ary, index, Integer.parseInt(val));
     }
 
     private int binary(final ByteBuffer buffer) {

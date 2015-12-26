@@ -36,7 +36,6 @@ public class PgTypeRegistry implements Registry {
         for(String name : serializer.getPgNames()) {
             serializerMap.put(name, serializer);
             serializerMap.put(serializer.getType(), serializer);
-            serializerMap.put(serializer.getArrayType(), serializer);
             final PgType pgType = pgType(name);
             if(pgType != null) {
                 serializerMap.put(pgType.getOid(), serializer);

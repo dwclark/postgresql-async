@@ -15,16 +15,8 @@ public class FloatSerializer extends Serializer<Float> {
 
     public Class<Float> getType() { return Float.class; }
 
-    @Override
-    public Class getArrayType() { return float.class; }
-
     public List<String> getPgNames() {
         return Collections.singletonList("pg_catalog.float4");
-    }
-
-    @Override
-    public void place(final Object ary, final int index, final String val) {
-        Array.setFloat(ary, index, Float.parseFloat(val));
     }
 
     private float binary(final ByteBuffer buffer) {
