@@ -1,7 +1,7 @@
 package db.postgresql.async.types;
 
 import db.postgresql.async.pginfo.PgType;
-import static db.postgresql.async.types.UdtHashing.*;
+import static db.postgresql.async.types.Hashing.*;
 import java.nio.ByteBuffer;
 
 public class Point {

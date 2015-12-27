@@ -7,7 +7,7 @@ public class Money {
     private static final int DEFAULT_SCALE = 2;
     
     private final long value;
-
+    
     public Money(final long value) {
         this.value = value;
     }
@@ -77,5 +77,10 @@ public class Money {
     @Override
     public int hashCode() {
         return ((int) value) ^ (int) (value >>> 32);
+    }
+
+    @Override
+    public String toString() {
+        return Long.toString(value);
     }
 }

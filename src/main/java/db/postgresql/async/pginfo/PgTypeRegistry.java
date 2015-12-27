@@ -64,11 +64,31 @@ public class PgTypeRegistry implements Registry {
     }
 
     public Serializer serializer(final Integer oid) {
-        return serializerMap.get(oid);
+        final Serializer s = serializerMap.get(oid);
+        if(s != null) {
+            return s;
+        }
+
+        final PgType pgType = pgTypeMap.get(oid);
+        if(pgType.isComplex()) {
+            return new RecordSerializer(pgType);
+        }
+
+        throw new IllegalArgumentException("Can't deserialize type with oid: " + oid);
     }
 
     public Serializer serializer(final String name) {
-        return serializerMap.get(name);
+        final Serializer s = serializerMap.get(name);
+        if(s != null) {
+            return s;
+        }
+
+        final PgType pgType = pgTypeMap.get(name);
+        if(pgType.isComplex()) {
+            return new RecordSerializer(pgType);
+        }
+
+        throw new IllegalArgumentException("Can't deserialize type with name: " + name);
     }
 
     private Map<Integer,SortedSet<PgAttribute>> extractAttribute(final Map<Integer,SortedSet<PgAttribute>> map, final Row row) {

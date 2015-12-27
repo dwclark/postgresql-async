@@ -1,5 +1,7 @@
 package db.postgresql.async.pginfo;
 
+import static db.postgresql.async.types.Hashing.*;
+
 public class PgAttribute implements Comparable<PgAttribute> {
 
     private final int relId;
@@ -41,5 +43,22 @@ public class PgAttribute implements Comparable<PgAttribute> {
 
     public PgType getPgType() {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int hashCode() {
+        return hash(hash(hash(hash(START, relId), name), typeId), num);
+    }
+
+    @Override
+    public boolean equals(final Object rhs) {
+        return (rhs instanceof PgAttribute) ? equals((PgAttribute) rhs) : false;
+    }
+
+    public boolean equals(final PgAttribute rhs) {
+        return ((relId == rhs.relId) &&
+                (typeId == rhs.typeId) &&
+                (num == rhs.num) &&
+                name.equals(rhs.name));
     }
 }

@@ -1,6 +1,6 @@
 package db.postgresql.async.types;
 
-public class UdtHashing {
+public class Hashing {
 
     public static final int START = 11317;
     private static final int CONT = 37;

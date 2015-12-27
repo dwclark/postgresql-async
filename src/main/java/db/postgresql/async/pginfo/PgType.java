@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.SortedSet;
-import static db.postgresql.async.types.UdtHashing.*;
     
 public class PgType {
 

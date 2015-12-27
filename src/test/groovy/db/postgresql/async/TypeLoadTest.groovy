@@ -432,4 +432,21 @@ class TypeLoadTest extends Specification {
         cleanup:
         session.withTransaction { t -> t.prepared('delete from my_arrays where id = $1', [id]); };
     }
+
+    def "Test Record"() {
+        when:
+        def list = session.withTransaction { t ->
+            return t.prepared('select fixed_numbers from fixed_numbers order by id asc;', [], { r -> r.single(); }); };
+        then:
+        list.size() == 2;
+        list[0] instanceof Record;
+        println(list[0]);
+
+        when:
+        def person = session.withTransaction { t ->
+            return t.prepared('select the_person from persons;', []) { r-> r.single(); }; }[0];
+        then:
+        person instanceof Record;
+        println(person);
+    }
 }
