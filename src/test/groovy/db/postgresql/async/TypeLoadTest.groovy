@@ -440,13 +440,35 @@ class TypeLoadTest extends Specification {
         then:
         list.size() == 2;
         list[0] instanceof Record;
-        println(list[0]);
 
         when:
         def person = session.withTransaction { t ->
             return t.prepared('select the_person from persons;', []) { r-> r.single(); }; }[0];
         then:
         person instanceof Record;
-        println(person);
+    }
+
+    def "Test Ranges"() {
+        setup:
+        def original = [ 1, new Range.Int4(Range.Bound.INCLUSIVE, 2, 21, Range.Bound.EXCLUSIVE) ];
+        
+        when:
+        def list = session.withTransaction { t ->
+            t.prepared('select * from ranges', []) { r -> r.toList(); }; }[0];
+        then:
+        list == original;
+        
+        when:
+        def toInsert = [ new Range.Int4(Range.Bound.EXCLUSIVE, -100, 201, Range.Bound.EXCLUSIVE) ];
+        def id = session.withTransaction { t ->
+            t.prepared('insert into ranges (int_range) values ($1) returning id;', toInsert) { r -> r.single(); }; }[0];
+        then:
+        id > 1;
+
+        when:
+        def inserted = session.withTransaction { t ->
+            t.prepared('select * from ranges where id = $1;', [id]) { r -> r.toList(); }; }[0];
+        then:
+        [id] + toInsert == inserted;
     }
 }

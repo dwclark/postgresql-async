@@ -36,6 +36,14 @@ public class Interval {
         buffer.putInt(toMonths(period));
     }
 
+    public static Interval read(final int size, final ByteBuffer buffer, final int oid) {
+        return new Interval(buffer);
+    }
+
+    public static void write(final ByteBuffer buffer, final Object o) {
+        ((Interval) o).toBuffer(buffer);
+    }
+
     @Override
     public boolean equals(final Object rhs) {
         return (rhs instanceof Interval) ? equals((Interval) rhs) : false;

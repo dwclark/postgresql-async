@@ -23,9 +23,6 @@ public interface Row {
         Object getAt(String field);
         Object getAt(int index);
         
-        <T> T objectAt(Class<T> type, String field);
-        <T> T objectAt(Class<T> type, int index);
-        
         boolean booleanAt(String field);
         boolean booleanAt(int field);
         
@@ -43,10 +40,12 @@ public interface Row {
         
         short shortAt(String field);
         short shortAt(int field);
+
+        Object arrayAt(String field, Class elementType);
+        Object arrayAt(int field, Class elementType);
     }
 
     public interface Iterator extends java.util.Iterator<Object> {
-        <T> T next(Class<T> type);
         String nextString();
         boolean nextBoolean();
         double nextDouble();
@@ -54,6 +53,7 @@ public interface Row {
         int nextInt();
         long nextLong();
         short nextShort();
+        Object nextArray(Class elementType);
     }
 
     Extractor extractor();
@@ -70,10 +70,6 @@ public interface Row {
         finally {
             finish();
         }
-    }
-
-    default <T> T single(Class<T> type) {
-        return iterator().next(type);
     }
 
     default Object single() {

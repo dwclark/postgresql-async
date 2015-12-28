@@ -7,7 +7,7 @@ import java.math.RoundingMode;
 import java.math.MathContext;
 import java.util.Arrays;
 
-class PostgresNumeric {
+public class PostgresNumeric {
     private static final BigInteger MOD = BigInteger.valueOf(10_000);
     private static final short POSITIVE = 0x0000;
     private static final short NEGATIVE = 0x4000;

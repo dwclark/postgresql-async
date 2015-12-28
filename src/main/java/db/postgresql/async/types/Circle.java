@@ -25,6 +25,14 @@ public class Circle {
         buffer.putDouble(radius);
     }
 
+    public static Circle read(final int size, final ByteBuffer buffer, final int oid) {
+        return new Circle(buffer);
+    }
+
+    public static void write(final ByteBuffer buffer, final Object o) {
+        ((Circle) o).toBuffer(buffer);
+    }
+
     @Override
     public String toString() {
         return String.format("<%s,%f>", center.toString(), radius);

@@ -26,6 +26,14 @@ public class Line {
     public void toBuffer(final ByteBuffer buffer) {
         buffer.putDouble(a).putDouble(b).putDouble(c);
     }
+
+    public static Line read(final int size, final ByteBuffer buffer, final int oid) {
+        return new Line(buffer);
+    }
+
+    public static void write(final ByteBuffer buffer, final Object o) {
+        ((Line) o).toBuffer(buffer);
+    }
     
     @Override
     public String toString() {

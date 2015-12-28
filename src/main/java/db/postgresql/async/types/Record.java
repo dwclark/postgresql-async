@@ -13,7 +13,6 @@ import java.util.TreeMap;
 import java.util.Iterator;
 import java.nio.ByteBuffer;
 import db.postgresql.async.messages.Format;
-import db.postgresql.async.serializers.Serializer;
 import static db.postgresql.async.serializers.SerializationContext.registry;
 
 public class Record implements SortedMap<PgAttribute,Object> {
@@ -153,19 +152,26 @@ public class Record implements SortedMap<PgAttribute,Object> {
         for(int i = 0; i < columns; ++i) {
             PgAttribute attr = iter.next();
             final int oid = buffer.getInt();
-            final Serializer s = registry().serializer(oid);
-            map.put(attr, s.read(buffer, Format.BINARY));
+            final PgType colPgType = registry().pgType(oid);
+            map.put(attr, colPgType.read(buffer, oid));
         }
     }
 
-    @SuppressWarnings("unchecked")
     public void toBuffer(final ByteBuffer buffer) {
         buffer.putInt(size());
         for(Map.Entry<PgAttribute,Object> entry : entrySet()) {
             final PgAttribute attr = entry.getKey();
             buffer.putInt(attr.getTypeId());
-            final Serializer s = registry().serializer(attr.getTypeId());
-            s.write(buffer, entry.getValue(), Format.BINARY);
+            final PgType colPgType = registry().pgType(attr.getTypeId());
+            colPgType.write(buffer, entry.getValue());
         }
+    }
+
+    public static Record read(final int size, final ByteBuffer buffer, final int oid) {
+        return new Record(registry().pgType(oid), buffer);
+    }
+
+    public static void write(final ByteBuffer buffer, final Object o) {
+        ((Record) o).toBuffer(buffer);
     }
 }

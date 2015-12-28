@@ -1,6 +1,7 @@
 package db.postgresql.async.pginfo;
 
 import static java.util.Collections.emptyList;
+import java.util.Optional;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -10,45 +11,25 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
+import db.postgresql.async.Mapping;
 import db.postgresql.async.Session;
 import db.postgresql.async.Row;
 import db.postgresql.async.Transaction;
-
-import db.postgresql.async.serializers.*;
-import db.postgresql.async.types.ArrayInfo;
+import db.postgresql.async.types.Record;
 
 public class PgTypeRegistry implements Registry {
 
     private static final AtomicInteger counter = new AtomicInteger(1);
     
-    private final ConcurrentMap<Object,PgType> pgTypeMap = new ConcurrentHashMap<>(200, 0.75f, 1);
-    private final ConcurrentMap<Object,Serializer<?>> serializerMap = new ConcurrentHashMap<>(200, 0.75f, 1);
-
-    public PgTypeRegistry() {
-        serializerMap.put(ArrayInfo.class, ArrayInfoSerializer.instance);
-    }
+    private final ConcurrentMap<Object,PgType> pgTypeMap = new ConcurrentHashMap<>(1_000, 0.75f, 1);
 
     public PgTypeRegistry add(final PgType val) {
         pgTypeMap.put(val.getOid(), val);
         pgTypeMap.put(val.getArrayId(), val);
         pgTypeMap.put(val.getName(), val);
+        pgTypeMap.put(val.getType(), val);
         return this;
     }
-
-    public PgTypeRegistry add(final Serializer<?> serializer) {
-        for(String name : serializer.getPgNames()) {
-            serializerMap.put(name, serializer);
-            serializerMap.put(serializer.getType(), serializer);
-            final PgType pgType = pgType(name);
-            if(pgType != null) {
-                serializerMap.put(pgType.getOid(), serializer);
-                serializerMap.put(pgType.getArrayId(), ArrayInfoSerializer.instance);
-            }
-        }
-
-        return this;
-    }
-
 
     public PgType pgType(final Integer oid) {
         return pgTypeMap.get(oid);
@@ -58,39 +39,65 @@ public class PgTypeRegistry implements Registry {
         return pgTypeMap.get(name);
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> Serializer<T> serializer(final Class<T> type) {
-        return (Serializer<T>) serializerMap.get(type);
+    public PgType pgType(final Class type) {
+        PgType pgType = pgTypeMap.get(type);
+        if(pgType != null) {
+            return pgType;
+        }
+
+        if(type.isArray()) {
+            return populateArrayType(type);
+        }
+
+        return null;
     }
 
-    public Serializer serializer(final Integer oid) {
-        final Serializer s = serializerMap.get(oid);
-        if(s != null) {
-            return s;
+    private PgType populateArrayType(final Class type) {
+        try {
+            final String name = type.getName();
+            final int index = name.lastIndexOf("[");
+            final String className = name.substring(index + 2, name.length() - 1);
+            final Class baseClass = Class.forName(className);
+            if(baseClass.isPrimitive()) {
+                final Class wrapper = findWrapper(baseClass);
+                pgTypeMap.put(type, pgType(wrapper));
+            }
+            else {
+                pgTypeMap.put(type, pgTypeMap.get(baseClass));
+            }
+            
+            return pgTypeMap.get(type);
         }
-
-        final PgType pgType = pgTypeMap.get(oid);
-        if(pgType.isComplex()) {
-            return new RecordSerializer(pgType);
+        catch(ClassNotFoundException ex) {
+            throw new RuntimeException(ex);
         }
-
-        throw new IllegalArgumentException("Can't deserialize type with oid: " + oid);
     }
 
-    public Serializer serializer(final String name) {
-        final Serializer s = serializerMap.get(name);
-        if(s != null) {
-            return s;
+    private static Class findWrapper(final Class c) {
+        //char, byte, void not needed
+        if(c == boolean.class) {
+            return Boolean.class;
         }
-
-        final PgType pgType = pgTypeMap.get(name);
-        if(pgType.isComplex()) {
-            return new RecordSerializer(pgType);
+        else if(c == double.class) {
+            return Double.class;
         }
-
-        throw new IllegalArgumentException("Can't deserialize type with name: " + name);
+        else if(c == float.class) {
+            return Float.class;
+        }
+        else if(c == int.class) {
+            return Integer.class;
+        }
+        else if(c == long.class) {
+            return Long.class;
+        }
+        else if(c == short.class) {
+            return Short.class;
+        }
+        else {
+            return null;
+        }
     }
-
+    
     private Map<Integer,SortedSet<PgAttribute>> extractAttribute(final Map<Integer,SortedSet<PgAttribute>> map, final Row row) {
         row.with(() -> {
                 Row.Iterator iter = row.iterator();
@@ -113,35 +120,45 @@ public class PgTypeRegistry implements Registry {
                           this::extractAttribute);
     }
 
-    private Void extractPgType(final Map<Integer,SortedSet<PgAttribute>> attributes, final Row row) {
+    private Void extractPgType(final Map<Integer,SortedSet<PgAttribute>> attributes, final Row row, final List<Mapping> mappings) {
         row.with(() -> {
                 Row.Iterator iter = row.iterator();
-                PgType.Builder builder = new PgType.Builder()
-                    .oid(iter.nextInt())
-                    .name(iter.nextString() + "." + iter.nextString())
-                    .arrayId(iter.nextInt());
+                final int oid = iter.nextInt();
+                final String name = iter.nextString() + "." + iter.nextString();
+                final int arrayId = iter.nextInt();
                 final int relId = iter.nextInt();
-                PgType pgType = builder
-                    .relId(relId)
-                    .delimiter(iter.nextString().charAt(0))
-                    .attributes(attributes.get(relId)).build();
-                add(pgType); });
+                final SortedSet<PgAttribute> myAttributes = attributes.get(relId);
+
+                Mapping mapping = null;
+                final Optional<Mapping> opt = mappings.stream().filter((m) -> m.name.equals(name)).findFirst();
+                if(opt.isPresent()) {
+                    mapping = opt.get();
+                }
+                else if(myAttributes != null) {
+                    mapping = new Mapping(Record.class, name, Record::write, Record::read);
+                }
+
+                if(mapping != null) {
+                    add(new PgType.Builder()
+                        .oid(oid)
+                        .mapping(mapping)
+                        .arrayId(arrayId)
+                        .relId(relId)
+                        .attributes(myAttributes).build());
+                } });
         
         return null;
     }
     
     public void loadTypes(final Session session) {
-        final String sql = "select typ.oid, ns.nspname, typ.typname, typ.typarray, typ.typrelid, typ.typdelim " +
+        final String sql = "select typ.oid, ns.nspname, typ.typname, typ.typarray, typ.typrelid " +
             "from pg_type typ " +
             "join pg_namespace ns on typ.typnamespace = ns.oid";
-        
+
+        final List<Mapping> mappings = session.getSessionInfo().getMappings();
         session.withTransaction((t) -> {
                 final Map<Integer,SortedSet<PgAttribute>> attributes = loadAttributes(t);
-                return t.prepared(sql, emptyList(), null, (none, row) -> extractPgType(attributes, row));
+                return t.prepared(sql, emptyList(), null, (none, row) -> extractPgType(attributes, row, mappings));
             });
-
-        for(Serializer<?> s : session.getSessionInfo().getSerializers()) {
-            add(s);
-        }
     }
 }

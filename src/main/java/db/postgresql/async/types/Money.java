@@ -1,6 +1,7 @@
 package db.postgresql.async.types;
 
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 
 public class Money {
 
@@ -14,6 +15,22 @@ public class Money {
 
     public Money(final BigDecimal bd) {
         this.value = bd.movePointRight(bd.scale()).longValueExact();
+    }
+
+    public Money(final ByteBuffer buffer) {
+        value = buffer.getLong();
+    }
+
+    public void toBuffer(final ByteBuffer buffer) {
+        buffer.putLong(value);
+    }
+
+    public static Money read(final int size, final ByteBuffer buffer, final int oid) {
+        return new Money(buffer);
+    }
+
+    public static void write(final ByteBuffer buffer, final Object o) {
+        ((Money) o).toBuffer(buffer);
     }
 
     public long longValue() {

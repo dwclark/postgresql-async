@@ -18,4 +18,8 @@ public class Hashing {
     public static int hash(final int soFar, final int val) {
         return CONT * soFar + val;
     }
+
+    public static int hash(final int soFar, final byte b) {
+        return CONT * soFar + ((int) b);
+    }
 }

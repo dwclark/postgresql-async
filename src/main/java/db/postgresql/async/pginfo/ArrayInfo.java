@@ -1,11 +1,9 @@
-package db.postgresql.async.types;
+package db.postgresql.async.pginfo;
 
-import db.postgresql.async.messages.Format;
-import db.postgresql.async.pginfo.PgType;
-import db.postgresql.async.serializers.*;
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import static db.postgresql.async.serializers.SerializationContext.registry;
+import static db.postgresql.async.serializers.Primitives.*;
 
 public class ArrayInfo {
 
@@ -81,7 +79,6 @@ public class ArrayInfo {
         switch(id) {
         case "[L": return Object.class;
         case "[Z": return boolean.class;
-        case "[B": return byte.class;
         case "[S": return short.class;
         case "[I": return int.class;
         case "[J": return long.class;
@@ -91,30 +88,27 @@ public class ArrayInfo {
         }
     }
     
-    public ArrayInfo(final String name, final Object ary) {
-        assert(ary.getClass().isArray());
-        
-        this.pgType = registry().pgType(name);
+    public ArrayInfo(final PgType pgType, final Object ary) {
+        this.pgType = pgType;
         this.ary = ary;
         this.dimensions = dimensions();
         this.numberElements = numberElements();
         this.elementType = elementType();
     }
 
-    public ArrayInfo(final ByteBuffer buffer, final Class elementType) {
+    public ArrayInfo(final PgType pgType, final ByteBuffer buffer, final Class elementType) {
+        this.pgType = pgType;
+        this.elementType = elementType;
         this.dimensions = new int[buffer.getInt()];
         buffer.getInt(); //ignore offset information;
-        final int oid = buffer.getInt();
-        this.pgType = registry().pgType(oid);
+        final int oid = buffer.getInt(); //ignore oid information
         for(int i = 0; i < dimensions.length; ++i) {
             dimensions[i] = buffer.getInt();
             buffer.getInt(); //ignore lower bound information
         }
 
         this.numberElements = numberElements();
-        this.elementType = elementType.isPrimitive() ? elementType : registry().serializer(pgType.getOid()).getType();
         this.ary = Array.newInstance(this.elementType, dimensions);
-
         read(buffer);
     }
 
@@ -128,36 +122,6 @@ public class ArrayInfo {
         public void readFromIndex(Object ary, int index);
     }
 
-    private static class ObjectWriter implements ArrayWriter {
-        final Serializer s;
-        final ByteBuffer buffer;
-        
-        public ObjectWriter(final Serializer s, final ByteBuffer buffer) {
-            this.s = s;
-            this.buffer = buffer;
-        }
-
-        @SuppressWarnings("unchecked")
-        public void writeFromIndex(final Object ary, final int i) {
-            s.write(buffer, Array.get(ary, i), Format.BINARY);
-        }
-    }
-
-    private static class ObjectReader implements ArrayReader {
-        final Serializer s;
-        final ByteBuffer buffer;
-
-        public ObjectReader(final Serializer s, final ByteBuffer buffer) {
-            this.s = s;
-            this.buffer = buffer;
-        }
-
-        @SuppressWarnings("unchecked")
-        public void readFromIndex(final Object ary, final int i) {
-            Array.set(ary, i, s.read(buffer, Format.BINARY));
-        }
-    }
-
     public void toBuffer(final ByteBuffer buffer) {
         buffer.putInt(dimensions.length);
         buffer.putInt(0); //we don't send arrays with offsets
@@ -167,35 +131,26 @@ public class ArrayInfo {
             buffer.putInt(0); //lower bound is always zero
         }
               
-        if(elementType == Object.class) {
-            write(new ObjectWriter(registry().serializer(pgType.getOid()), buffer));
-        }
-        else if(elementType == boolean.class) {
-            write((ary, i) -> BooleanSerializer.instance.writePrimitive(buffer, Array.getBoolean(ary, i), Format.BINARY));
-        }
-        else if(elementType == byte.class) {
-            write((ary, i) -> {
-                    buffer.putInt(1);
-                    buffer.put(Array.getByte(ary, i));
-                });
+        if(elementType == boolean.class) {
+            write((ary, i) -> writeBoolean(buffer, Array.getBoolean(ary, i)));
         }
         else if(elementType == short.class) {
-            write((ary, i) -> ShortSerializer.instance.writePrimitive(buffer, Array.getShort(ary, i), Format.BINARY));
+            write((ary, i) -> writeShort(buffer, Array.getShort(ary, i)));
         }
         else if(elementType == int.class) {
-            write((ary, i) -> IntegerSerializer.instance.writePrimitive(buffer, Array.getInt(ary, i), Format.BINARY));
+            write((ary, i) -> writeInt(buffer, Array.getInt(ary, i)));
         }
         else if(elementType == long.class) {
-            write((ary, i) -> LongSerializer.instance.writePrimitive(buffer, Array.getLong(ary, i), Format.BINARY));
+            write((ary, i) -> writeLong(buffer, Array.getLong(ary, i)));
         }
         else if(elementType == float.class) {
-            write((ary, i) -> FloatSerializer.instance.writePrimitive(buffer, Array.getFloat(ary, i), Format.BINARY));
+            write((ary, i) -> writeFloat(buffer, Array.getFloat(ary, i)));
         }
         else if(elementType == double.class) {
-            write((ary, i) -> DoubleSerializer.instance.writePrimitive(buffer, Array.getDouble(ary, i), Format.BINARY));
+            write((ary, i) -> writeDouble(buffer, Array.getDouble(ary, i)));
         }
         else {
-            throw new UnsupportedOperationException("Unsupported array type");
+            write((ary, i) -> pgType.write(buffer, Array.get(ary, i)));
         }
     }
 
@@ -209,39 +164,26 @@ public class ArrayInfo {
     }
 
     private void read(final ByteBuffer buffer) {
-        if(!elementType.isPrimitive()) {
-            read(new ObjectReader(registry().serializer(pgType.getOid()), buffer));
-        }
-        else if(elementType == boolean.class) {
-            read((ary, i) -> Array.setBoolean(ary, i, BooleanSerializer.instance.readPrimitive(buffer, Format.BINARY)));
-        }
-        else if(elementType == byte.class) {
-            read((ary, i) -> {
-                    final int size = buffer.getInt();
-                    if(size == -1) {
-                        Array.setByte(ary, i, (byte) 0);
-                    }
-                    else {
-                        Array.setByte(ary, i, buffer.get());
-                    } });
+        if(elementType == boolean.class) {
+            read((ary, i) -> Array.setBoolean(ary, i, readBoolean(buffer)));
         }
         else if(elementType == short.class) {
-            read((ary, i) -> Array.setShort(ary, i, ShortSerializer.instance.readPrimitive(buffer, Format.BINARY)));
+            read((ary, i) -> Array.setShort(ary, i, readShort(buffer)));
         }
         else if(elementType == int.class) {
-            read((ary, i) -> Array.setInt(ary, i, IntegerSerializer.instance.readPrimitive(buffer, Format.BINARY)));
+            read((ary, i) -> Array.setInt(ary, i, readInt(buffer)));
         }
         else if(elementType == long.class) {
-            read((ary, i) -> Array.setLong(ary, i, LongSerializer.instance.readPrimitive(buffer, Format.BINARY)));
+            read((ary, i) -> Array.setLong(ary, i, readLong(buffer)));
         }
         else if(elementType == float.class) {
-            read((ary, i) -> Array.setFloat(ary, i, FloatSerializer.instance.readPrimitive(buffer, Format.BINARY)));
+            read((ary, i) -> Array.setFloat(ary, i, readFloat(buffer)));
         }
         else if(elementType == double.class) {
-            read((ary, i) -> Array.setDouble(ary, i, DoubleSerializer.instance.readPrimitive(buffer, Format.BINARY)));
+            read((ary, i) -> Array.setDouble(ary, i, readDouble(buffer)));
         }
         else {
-            throw new UnsupportedOperationException("Unsupported array type");
+            read((ary, i) -> Array.set(ary, i, pgType.read(buffer, pgType.getOid())));
         }
     }
 
