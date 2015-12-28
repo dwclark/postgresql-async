@@ -71,20 +71,31 @@ public class ArrayInfo {
     public Object getAry() { return ary; }
     public int[] getDimensions() { return dimensions; }
     public int getNumberElements() { return numberElements; }
-    
+
     private Class elementType() {
-        final String n = lastAry(initialIndexes()).getClass().getName();
-        final int lastIndex = n.lastIndexOf('[');
-        final String id = n.substring(lastIndex, lastIndex + 2);
-        switch(id) {
-        case "[L": return Object.class;
-        case "[Z": return boolean.class;
-        case "[S": return short.class;
-        case "[I": return int.class;
-        case "[J": return long.class;
-        case "[F": return float.class;
-        case "[D": return double.class;
-        default: throw new UnsupportedOperationException("Can't handle serialization of array type: " + id);
+        return elementType(lastAry(initialIndexes()).getClass());
+    }
+    
+    public static Class elementType(final Class type) {
+        try {
+            final String n = type.getName();
+            final int lastIndex = n.lastIndexOf('[');
+            final String id = n.substring(lastIndex + 1);
+            switch(id) {
+            case "Z": return boolean.class;
+            case "S": return short.class;
+            case "I": return int.class;
+            case "J": return long.class;
+            case "F": return float.class;
+            case "D": return double.class;
+            case "C": throw new UnsupportedOperationException("char arrays are not supported");
+            case "B": throw new UnsupportedOperationException("Can't serialize multi-dimensional byte arrays");
+            default:
+                return Class.forName(id.substring(1, id.length() - 1));
+            }
+        }
+        catch(ClassNotFoundException ex) {
+            throw new RuntimeException(ex);
         }
     }
     
@@ -93,7 +104,7 @@ public class ArrayInfo {
         this.ary = ary;
         this.dimensions = dimensions();
         this.numberElements = numberElements();
-        this.elementType = elementType();
+        this.elementType = pgType.getType();
     }
 
     public ArrayInfo(final PgType pgType, final ByteBuffer buffer, final Class elementType) {

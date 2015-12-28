@@ -116,8 +116,15 @@ public class DataRow extends Response implements Row {
             return extractByPgType(advance());
         }
 
+        //handle separately to allow bootstrap to use this
         public String nextString() {
-            return next().toString();
+            final int size = buffer.getInt();
+            if(size == -1) {
+                return null;
+            }
+            else {
+                return SerializationContext.bufferToString(size, buffer);
+            }
         }
 
         public boolean nextBoolean() {

@@ -53,24 +53,16 @@ public class PgTypeRegistry implements Registry {
     }
 
     private PgType populateArrayType(final Class type) {
-        try {
-            final String name = type.getName();
-            final int index = name.lastIndexOf("[");
-            final String className = name.substring(index + 2, name.length() - 1);
-            final Class baseClass = Class.forName(className);
-            if(baseClass.isPrimitive()) {
-                final Class wrapper = findWrapper(baseClass);
-                pgTypeMap.put(type, pgType(wrapper));
-            }
-            else {
-                pgTypeMap.put(type, pgTypeMap.get(baseClass));
-            }
-            
-            return pgTypeMap.get(type);
+        final Class elementType = ArrayInfo.elementType(type);
+        if(elementType.isPrimitive()) {
+            final Class wrapper = findWrapper(elementType);
+            pgTypeMap.put(type, pgType(wrapper));
         }
-        catch(ClassNotFoundException ex) {
-            throw new RuntimeException(ex);
+        else {
+            pgTypeMap.put(type, pgTypeMap.get(elementType));
         }
+        
+        return pgTypeMap.get(type);
     }
 
     private static Class findWrapper(final Class c) {

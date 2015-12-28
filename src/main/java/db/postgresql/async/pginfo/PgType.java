@@ -55,7 +55,7 @@ public class PgType {
 
         putWithSize(buffer, (b) -> {
                 final Class objectType = o.getClass();
-                if(objectType.isArray()) {
+                if(objectType.isArray() && objectType != byte[].class) {
                     arrayWrite(b, o);
                 }
                 else {

@@ -163,7 +163,7 @@ public class SessionInfo {
             
             mapping(Double.class, "pg_catalog.float8",
                     (buffer,obj) -> buffer.putDouble((Double) obj),
-                    (size,buffer,oid) -> buffer.getFloat());
+                    (size,buffer,oid) -> buffer.getDouble());
             
             mapping(Float.class, "pg_catalog.float4",
                     (buffer,obj) -> buffer.putFloat((Float) obj),
@@ -229,8 +229,10 @@ public class SessionInfo {
 
             final Mapping.Writer swriter = (buffer,obj) -> stringToBuffer(buffer, (String) obj);
             final Mapping.Reader sreader = (size,buffer,obj) -> bufferToString(size, buffer);
-            for(String s : Arrays.asList("pg_catalog.text", "pg_catalog.varchar", "pg_catalog.xml",
-                                         "pg_catalog.json", "pg_catalog.char", "pg_catalog.bpchar")) {
+            for(String s : Arrays.asList("pg_catalog.text", "pg_catalog.varchar",
+                                         "pg_catalog.xml", "pg_catalog.json",
+                                         "pg_catalog.char", "pg_catalog.bpchar",
+                                         "pg_catalog.name")) {
                 mapping(String.class, s, swriter, sreader);
             }
             
