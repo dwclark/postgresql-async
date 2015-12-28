@@ -11,8 +11,8 @@ class Helper {
     static final enumMap = [ (DaysOfWeek): 'public.days_of_week', (Moods): 'public.moods' ];
     
     static addEnums(builder) {
-        builder.enumSerializer(DaysOfWeek, 'public.days_of_week');
-        builder.enumSerializer(Moods, 'public.moods');
+        builder.enumMapping(DaysOfWeek, 'public.days_of_week');
+        builder.enumMapping(Moods, 'public.moods');
     }
 
     public static Session noAuth() {

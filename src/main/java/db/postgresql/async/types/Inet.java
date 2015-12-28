@@ -72,6 +72,14 @@ public class Inet {
         buffer.put(address.getAddress());
     }
 
+    public static Inet read(final int size, final ByteBuffer buffer, final int oid) {
+        return new Inet(buffer);
+    }
+
+    public static void write(final ByteBuffer buffer, final Object o) {
+        ((Inet) o).toBuffer(buffer);
+    }
+
     public static boolean legalNetmask(final InetAddress address, final short netmask) {
         if(netmask < 0) {
             return false;

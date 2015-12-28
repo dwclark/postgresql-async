@@ -1,16 +1,16 @@
 package db.postgresql.async.messages;
 
-import db.postgresql.async.types.ArrayInfo;
 import db.postgresql.async.Row;
 import db.postgresql.async.pginfo.Registry;
 import db.postgresql.async.pginfo.PgType;
-import db.postgresql.async.serializers.*;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import static db.postgresql.async.serializers.Primitives.*;
+import db.postgresql.async.serializers.SerializationContext;
 
 public class DataRow extends Response implements Row {
 
@@ -81,19 +81,16 @@ public class DataRow extends Response implements Row {
 
     private Object extractByPgType(final int index) {
         final FieldDescriptor field = description.field(index);
-        final PgType pgType = registry.pgType(field.getTypeOid());
+        final int oid = field.getTypeOid();
+        final PgType pgType = registry.pgType(oid);
         if(pgType != null) {
-            return registry.serializer(field.getTypeOid()).read(buffer, description.field(index).getFormat());
+            return pgType.read(buffer, oid);
         }
         else {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("Can't deserialize type with oid " + oid);
         }
     }
 
-    private <T> T extractByType(final Class<T> type, final int index) {
-        return registry.serializer(type).read(buffer, description.field(index).getFormat());
-    }
-    
     private class Iterator implements Row.Iterator {
         private int index = 0;
         private FieldDescriptor field;
@@ -119,53 +116,57 @@ public class DataRow extends Response implements Row {
             return extractByPgType(advance());
         }
 
-        public <T> T next(final Class<T> type) {
-            return extractByType(type, advance());
-        }
-
+        //handle separately to allow bootstrap to use this
         public String nextString() {
-            advance();
-            return StringSerializer.instance.read(buffer, field.getFormat());
+            final int size = buffer.getInt();
+            if(size == -1) {
+                return null;
+            }
+            else {
+                return SerializationContext.bufferToString(size, buffer);
+            }
         }
 
         public boolean nextBoolean() {
             advance();
-            return BooleanSerializer.instance.readPrimitive(buffer, field.getFormat());
+            return readBoolean(buffer);
         }
         
         public double nextDouble() {
             advance();
-            return DoubleSerializer.instance.readPrimitive(buffer, field.getFormat());
+            return readDouble(buffer);
         }
         
         public float nextFloat() {
             advance();
-            return FloatSerializer.instance.readPrimitive(buffer, field.getFormat());
+            return readFloat(buffer);
         }
         
         public int nextInt() {
             advance();
-            return IntegerSerializer.instance.readPrimitive(buffer, field.getFormat());
+            return readInt(buffer);
         }
 
         public long nextLong() {
             advance();
-            return LongSerializer.instance.readPrimitive(buffer, field.getFormat());
+            return readLong(buffer);
         }
         
         public short nextShort() {
             advance();
-            return ShortSerializer.instance.readPrimitive(buffer, field.getFormat());
+            return readShort(buffer);
         }
 
         public Object nextArray(final Class elementType) {
             advance();
-            return ArrayInfoSerializer.instance.read(buffer, elementType, field.getFormat()).getAry();
+            final int oid = field.getTypeOid();
+            final PgType pgType = registry.pgType(oid);
+            return pgType.read(buffer, field.getTypeOid(), elementType);
         }
     }
 
     private class Extractor implements Row.Extractor {
-
+        
         private void place(final int index) {
             if(index >= description.length()) {
                 throw new ArrayIndexOutOfBoundsException();
@@ -196,20 +197,6 @@ public class DataRow extends Response implements Row {
             }
         }
         
-        public <T> T objectAt(final Class<T> type, final String field) {
-            return objectAt(type, description.indexOf(field));
-        }
-        
-        public <T> T objectAt(final Class<T> type, final int index) {
-            try {
-                place(index);
-                return extractByType(type, index);
-            }
-            finally {
-                buffer.reset();
-            }
-        }
-        
         public boolean booleanAt(final String field) {
             return booleanAt(description.indexOf(field));
         }
@@ -217,7 +204,7 @@ public class DataRow extends Response implements Row {
         public boolean booleanAt(final int index) {
             try {
                 place(index);
-                return BooleanSerializer.instance.readPrimitive(buffer, description.field(index).getFormat());
+                return readBoolean(buffer);
             }
             finally {
                 buffer.reset();
@@ -231,7 +218,7 @@ public class DataRow extends Response implements Row {
         public double doubleAt(final int index) {
             try {
                 place(index);
-                return DoubleSerializer.instance.readPrimitive(buffer, description.field(index).getFormat());
+                return readDouble(buffer);
             }
             finally {
                 buffer.reset();
@@ -245,7 +232,7 @@ public class DataRow extends Response implements Row {
         public float floatAt(final int index) {
             try {
                 place(index);
-                return FloatSerializer.instance.readPrimitive(buffer, description.field(index).getFormat());
+                return readFloat(buffer);
             }
             finally {
                 buffer.reset();
@@ -259,7 +246,7 @@ public class DataRow extends Response implements Row {
         public int intAt(final int index) {
             try {
                 place(index);
-                return IntegerSerializer.instance.readPrimitive(buffer, description.field(index).getFormat());
+                return readInt(buffer);
             }
             finally {
                 buffer.reset();
@@ -273,7 +260,7 @@ public class DataRow extends Response implements Row {
         public long longAt(final int index) {
             try {
                 place(index);
-                return LongSerializer.instance.readPrimitive(buffer, description.field(index).getFormat());
+                return readLong(buffer);
             }
             finally {
                 buffer.reset();
@@ -287,7 +274,7 @@ public class DataRow extends Response implements Row {
         public short shortAt(final int index) {
             try {
                 place(index);
-                return ShortSerializer.instance.readPrimitive(buffer, description.field(index).getFormat());
+                return readShort(buffer);
             }
             finally {
                 buffer.reset();
@@ -299,8 +286,11 @@ public class DataRow extends Response implements Row {
         }
 
         public Object arrayAt(final int index, final Class elementType) {
-            return ArrayInfoSerializer.instance.read(buffer, elementType, description.field(index).getFormat()).getAry();
+            place(index);
+            final FieldDescriptor field = description.field(index);
+            final int oid = field.getTypeOid();
+            final PgType pgType = registry.pgType(oid);
+            return pgType.read(buffer, field.getTypeOid(), elementType);
         }
     }
 }
-

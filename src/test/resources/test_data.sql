@@ -15,6 +15,7 @@ drop table if exists my_arrays;
 drop table if exists numerals;
 drop table if exists network_types;
 drop table if exists json_and_xml;
+drop table if exists ranges;
 drop type if exists person;
 drop type if exists address;
 drop table if exists my_moods;
@@ -231,6 +232,13 @@ values
 ('<?xml version="1.0"?><book><title>Manual</title></book>',
  '{"number": 1, "str": "some string", "array": [ 1, 2, 3, 4, 5 ]}',
  '{"number": 2, "str": "another string", "array": [ 6, 7, 8, 9, 10 ]}');
+
+create table ranges (
+       id serial,
+       int_range int4range
+);
+
+insert into ranges (int_range) values ('[2,20]'::int4range);
 
 create or replace function select_numerals() returns refcursor as '
 declare

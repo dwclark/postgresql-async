@@ -20,6 +20,14 @@ public class Polygon {
         Path.toBuffer(buffer, points);
     }
 
+    public static Polygon read(final int size, final ByteBuffer buffer, final int oid) {
+        return new Polygon(buffer);
+    }
+
+    public static void write(final ByteBuffer buffer, final Object o) {
+        ((Polygon) o).toBuffer(buffer);
+    }
+
     @Override
     public int hashCode() {
         return Arrays.hashCode(points);

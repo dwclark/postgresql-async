@@ -20,6 +20,14 @@ public class Point {
         buffer.putDouble(x).putDouble(y);
     }
 
+    public static Point read(final int size, final ByteBuffer buffer, final int oid) {
+        return new Point(buffer);
+    }
+
+    public static void write(final ByteBuffer buffer, final Object o) {
+        ((Point) o).toBuffer(buffer);
+    }
+
     public Point(final double x, final double y) {
         this.x = x;
         this.y = y;

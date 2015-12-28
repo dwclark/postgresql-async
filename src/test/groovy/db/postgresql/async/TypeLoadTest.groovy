@@ -19,13 +19,11 @@ class TypeLoadTest extends Specification {
     def cleanupSpec() {
         session.shutdown();
     }
-
+    
     def "Load Types"() {
         expect:
         session.sessionInfo.registry.pgType(23);
         session.sessionInfo.registry.pgType(1043);
-        session.sessionInfo.registry.serializer(23) == IntegerSerializer.instance;
-        session.sessionInfo.registry.serializer(Integer) == IntegerSerializer.instance;
     }
 
     def "Fixed Numbers"() {
@@ -65,8 +63,8 @@ class TypeLoadTest extends Specification {
         then:
         deleted == 1;
     }
-
-    def "All Dates"() {
+    
+    def "Dates"() {
         setup:
         def list = session.withTransaction { t ->  
             return t.prepared('select * from all_dates order by id asc;', [], { it.toList(); }); }[0];
@@ -80,7 +78,7 @@ class TypeLoadTest extends Specification {
         list[5].isEqual(OffsetDateTime.of(1999, 1, 8, 4, 5, 6, 789_000_000, ZoneOffset.of('-06:00:00')));
     }
 
-    def "All Dates Write"() {
+    def "Dates Write"() {
         when:
         List toInsert = [ LocalDate.of(2010, 10, 31),
                           LocalTime.of(13, 25, 17, 900_000_000),
@@ -203,7 +201,7 @@ class TypeLoadTest extends Specification {
         session.withTransaction { t -> t.prepared('delete from json_and_xml where id = $1', [id]); };
     }
 
-    def 'Numerics'() {
+    def "Numerics"() {
         when:
         def list = session.withTransaction { t ->
             t.prepared('select * from numerics;', []) { r -> r.toList(); } }[0];
@@ -398,7 +396,7 @@ class TypeLoadTest extends Specification {
         t.prepared('delete from network_types where id = $1;', [id]); };
     }
 
-    def "Array Test"() {
+    def "Arrays"() {
         setup:
         def original = [ 1, [ 1, 2, 3, 4, 5] as int[], ['one', 'two', 'three', 'four', 'five'] as String[] ];
         
@@ -410,12 +408,12 @@ class TypeLoadTest extends Specification {
         then:
         found[0] == original[0];
         found[1] == original[1];
-        found[2].ary == original[2]
+        found[2] == original[2]
 
         when:
         def multiInt = [ [ 1, 2, 3 ], [ 4, 5, 6 ] ] as int[][];
         def multiString = [ [ '1', '2', '3' ], [ '4', '5', '6' ] ] as String[][];
-        def toInsert = [ new ArrayInfo('pg_catalog.int4', multiInt), new ArrayInfo('pg_catalog.varchar', multiString) ];
+        def toInsert = [ multiInt, multiString ];
         def id = session.withTransaction { t ->
             t.prepared('insert into my_arrays (int_array, string_array) values ($1, $2) returning id;', toInsert) { r -> r.single(); } }[0];
 
@@ -424,29 +422,56 @@ class TypeLoadTest extends Specification {
 
         when:
         def inserted = session.withTransaction { t ->
-            t.prepared('select * from my_arrays where id = $1;', [id]) { r -> r.toList(); } }[0];
+            t.prepared('select * from my_arrays where id = $1;', [id]) { r ->
+                def iter = r.iterator();
+                [ iter.next(), iter.nextArray(int.class), iter.next() ] } }[0];
         then:
-        inserted[1].ary == multiInt;
-        inserted[2].ary == multiString;
+        inserted[1] == multiInt;
+        inserted[2] == multiString;
 
         cleanup:
         session.withTransaction { t -> t.prepared('delete from my_arrays where id = $1', [id]); };
     }
 
-    def "Test Record"() {
+    def "Record"() {
         when:
         def list = session.withTransaction { t ->
             return t.prepared('select fixed_numbers from fixed_numbers order by id asc;', [], { r -> r.single(); }); };
         then:
         list.size() == 2;
         list[0] instanceof Record;
-        println(list[0]);
 
         when:
         def person = session.withTransaction { t ->
             return t.prepared('select the_person from persons;', []) { r-> r.single(); }; }[0];
         then:
         person instanceof Record;
-        println(person);
+    }
+
+    def "Ranges"() {
+        setup:
+        def original = [ 1, new Range.Int4(Range.Bound.INCLUSIVE, 2, 21, Range.Bound.EXCLUSIVE) ];
+        
+        when:
+        def list = session.withTransaction { t ->
+            t.prepared('select * from ranges', []) { r -> r.toList(); }; }[0];
+        then:
+        list == original;
+        
+        when:
+        def toInsert = [ new Range.Int4(Range.Bound.INCLUSIVE, -99, 201, Range.Bound.EXCLUSIVE) ];
+        def id = session.withTransaction { t ->
+            t.prepared('insert into ranges (int_range) values ($1) returning id;', toInsert) { r -> r.single(); }; }[0];
+        then:
+        id > 1;
+
+        when:
+        def inserted = session.withTransaction { t ->
+            t.prepared('select * from ranges where id = $1;', [id]) { r -> r.toList(); }; }[0];
+        then:
+        [id] + toInsert == inserted;
+
+        cleanup:
+        session.withTransaction { t -> t.prepared('delete from ranges where id = $1;', [id]); };
     }
 }

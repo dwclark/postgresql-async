@@ -13,7 +13,7 @@ import static java.nio.ByteBuffer.wrap;
 import db.postgresql.async.pginfo.Statement;
 import db.postgresql.async.pginfo.Registry;
 import db.postgresql.async.serializers.SerializationContext;
-import db.postgresql.async.serializers.Serializer;
+import db.postgresql.async.pginfo.PgType;
 
 //Not thread safe
 public class FrontEndMessage {
@@ -126,10 +126,9 @@ public class FrontEndMessage {
     }
 
 
-    @SuppressWarnings("unchecked")
     private void writeArg(final Object arg) {
-        final Serializer s = SerializationContext.registry().serializer(arg.getClass());
-        s.write(buffer, arg, Format.BINARY);
+        final PgType pgType = SerializationContext.registry().pgType(arg.getClass());
+        pgType.write(buffer, arg);
     }
 
     public boolean cancel(final int pid, final int secretKey) {

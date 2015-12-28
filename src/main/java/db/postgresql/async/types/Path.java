@@ -41,6 +41,14 @@ public class Path {
         this(buffer.get() == 1 ? true : false, points(buffer));
     }
 
+    public static Path read(final int size, final ByteBuffer buffer, final int oid) {
+        return new Path(buffer);
+    }
+
+    public static void write(final ByteBuffer buffer, final Object o) {
+        ((Path) o).toBuffer(buffer);
+    }
+
     public Path(final boolean closed, final Point[] points) {
         this.closed = closed;
         this.points = points;

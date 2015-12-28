@@ -1,5 +1,8 @@
 package db.postgresql.async.types;
 
+import java.nio.ByteBuffer;
+import static db.postgresql.async.serializers.SerializationContext.*;
+
 public class Jsonb {
 
     private static final int DEFAULT_VERSION = 1;
@@ -17,6 +20,24 @@ public class Jsonb {
 
     public Jsonb(final String json) {
         this(DEFAULT_VERSION, json);
+    }
+
+    public Jsonb(final int size, final ByteBuffer buffer) {
+        this.version = (int) buffer.get();
+        this.json = bufferToString(size - 1, buffer);
+    }
+
+    public void toBuffer(final ByteBuffer buffer) {
+        buffer.put((byte) version);
+        stringToBuffer(buffer, json);
+    }
+
+    public static Jsonb read(final int size, final ByteBuffer buffer, final int oid) {
+        return new Jsonb(size, buffer);
+    }
+
+    public static void write(final ByteBuffer buffer, final Object o) {
+        ((Jsonb) o).toBuffer(buffer);
     }
 
     @Override

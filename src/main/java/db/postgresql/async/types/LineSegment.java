@@ -25,6 +25,14 @@ public class LineSegment {
         right.toBuffer(buffer);
     }
 
+    public static LineSegment read(final int size, final ByteBuffer buffer, final int oid) {
+        return new LineSegment(buffer);
+    }
+
+    public static void write(final ByteBuffer buffer, final Object o) {
+        ((LineSegment) o).toBuffer(buffer);
+    }
+
     @Override
     public String toString() {
         return String.format("(%s,%s)", left.toString(), right.toString());

@@ -27,6 +27,14 @@ public class MacAddr {
     public void toBuffer(final ByteBuffer buffer) {
         buffer.put(bytes);
     }
+
+    public static MacAddr read(final int size, final ByteBuffer buffer, final int oid) {
+        return new MacAddr(buffer);
+    }
+
+    public static void write(final ByteBuffer buffer, final Object o) {
+        ((MacAddr) o).toBuffer(buffer);
+    }
     
     public byte[] getBytes() {
         final byte[] ret = new byte[SIZE];

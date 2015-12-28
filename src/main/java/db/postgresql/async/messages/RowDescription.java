@@ -4,8 +4,9 @@ import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Arrays;
 
+//TODO: Augment this to populate PgType serializers on creation
 public class RowDescription extends Response {
-
+    
     public static final RowDescription EMPTY = new RowDescription(BackEnd.RowDescription, 0, new FieldDescriptor[0]);
     
     private final FieldDescriptor[] fields;

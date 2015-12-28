@@ -24,6 +24,14 @@ public class Box {
         upperRight.toBuffer(buffer);
         lowerLeft.toBuffer(buffer);
     }
+
+    public static void write(final ByteBuffer buffer, final Object o) {
+        ((Box) o).toBuffer(buffer);
+    }
+
+    public static Box read(final int size, final ByteBuffer buffer, final int oid) {
+        return new Box(buffer);
+    }
     
     @Override
     public String toString() {
