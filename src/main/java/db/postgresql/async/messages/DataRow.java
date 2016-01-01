@@ -60,11 +60,21 @@ public class DataRow extends Response implements Row {
     }
 
     public Iterator iterator() {
-        return new Iterator();
+        if(description.field(0).getFormat() == Format.BINARY) {
+            return new BinaryIterator();
+        }
+        else {
+            return new TextIterator();
+        }
     }
 
     public Extractor extractor() {
-        return new Extractor();
+        if(description.field(0).getFormat() == Format.BINARY) {
+            return new BinaryExtractor();
+        }
+        else {
+            return new TextExtractor();
+        }
     }
 
     public int length() {
@@ -91,11 +101,11 @@ public class DataRow extends Response implements Row {
         }
     }
 
-    private class Iterator implements Row.Iterator {
-        private int index = 0;
-        private FieldDescriptor field;
+    private class CommonIterator {
+        protected int index = 0;
+        protected FieldDescriptor field;
         
-        private int advance() {
+        protected int advance() {
             if(index == description.length()) {
                 throw new NoSuchElementException();
             }
@@ -111,10 +121,6 @@ public class DataRow extends Response implements Row {
         public boolean hasNext() {
             return index < description.length();
         }
-        
-        public Object next() {
-            return extractByPgType(advance());
-        }
 
         //handle separately to allow bootstrap to use this
         public String nextString() {
@@ -125,6 +131,13 @@ public class DataRow extends Response implements Row {
             else {
                 return SerializationContext.bufferToString(size, buffer);
             }
+        }
+    }
+
+    private class BinaryIterator extends CommonIterator implements Row.Iterator {
+        
+        public Object next() {
+            return extractByPgType(advance());
         }
 
         public boolean nextBoolean() {
@@ -165,9 +178,50 @@ public class DataRow extends Response implements Row {
         }
     }
 
-    private class Extractor implements Row.Extractor {
+    private class TextIterator extends CommonIterator implements Row.Iterator {
         
-        private void place(final int index) {
+        public Object next() {
+            return nextString();
+        }
+
+        public boolean nextBoolean() {
+            final String str = nextString();
+            return "t".equals(str);
+        }
+        
+        public double nextDouble() {
+            final String str = nextString();
+            return str == null ? 0d : Double.parseDouble(str);
+        }
+        
+        public float nextFloat() {
+            final String str = nextString();
+            return str == null ? 0f : Float.parseFloat(str);
+        }
+        
+        public int nextInt() {
+            final String str = nextString();
+            return str == null ? 0 : Integer.parseInt(str);
+        }
+
+        public long nextLong() {
+            final String str = nextString();
+            return str == null ? 0L : Long.parseLong(str);
+        }
+        
+        public short nextShort() {
+            final String str = nextString();
+            return str == null ? (short) 0 : Short.parseShort(str);
+        }
+
+        public Object nextArray(final Class elementType) {
+            //just ignore the request for the element type, they are going to get a string
+            return nextString();
+        }
+    }
+
+    private abstract class CommonExtractor {
+        protected void place(final int index) {
             if(index >= description.length()) {
                 throw new ArrayIndexOutOfBoundsException();
             }
@@ -182,6 +236,29 @@ public class DataRow extends Response implements Row {
         public int length() {
             return description.length();
         }
+
+        public String stringAt(final String field) {
+            return stringAt(description.indexOf(field));
+        }
+
+        public String stringAt(final int index) {
+            try {
+                place(index);
+                final int size = buffer.getInt();
+                if(size == -1) {
+                    return null;
+                }
+                else {
+                    return SerializationContext.bufferToString(size, buffer);
+                }
+            }
+            finally {
+                buffer.reset();
+            }
+        }
+    }
+    
+    private class BinaryExtractor extends CommonExtractor implements Row.Extractor {
 
         public Object getAt(final String field) {
             return getAt(description.indexOf(field));
@@ -291,6 +368,79 @@ public class DataRow extends Response implements Row {
             final int oid = field.getTypeOid();
             final PgType pgType = registry.pgType(oid);
             return pgType.read(buffer, field.getTypeOid(), elementType);
+        }
+    }
+
+    private class TextExtractor extends CommonExtractor implements Row.Extractor {
+            
+        public Object getAt(final String field) {
+            return getAt(description.indexOf(field));
+        }
+        
+        public Object getAt(final int index) {
+            return stringAt(index);
+        }
+        
+        public boolean booleanAt(final String field) {
+            return booleanAt(description.indexOf(field));
+        }
+        
+        public boolean booleanAt(final int index) {
+            final String str = stringAt(index);
+            return "t".equals(str);
+        }
+        
+        public double doubleAt(final String field) {
+            return doubleAt(description.indexOf(field));
+        }
+        
+        public double doubleAt(final int index) {
+            final String str = stringAt(index);
+            return str == null ? 0d : Double.parseDouble(str);
+        }
+        
+        public float floatAt(final String field) {
+            return floatAt(description.indexOf(field));
+        }
+        
+        public float floatAt(final int index) {
+            final String str = stringAt(index);
+            return str == null ? 0f : Float.parseFloat(str);
+        }
+        
+        public int intAt(final String field) {
+            return intAt(description.indexOf(field));
+        }
+        
+        public int intAt(final int index) {
+            final String str = stringAt(index);
+            return str == null ? 0 : Integer.parseInt(str);
+        }
+        
+        public long longAt(final String field) {
+            return longAt(description.indexOf(field));
+        }
+        
+        public long longAt(final int index) {
+            final String str = stringAt(index);
+            return str == null ? 0L : Long.parseLong(str);
+        }
+        
+        public short shortAt(final String field) {
+            return shortAt(description.indexOf(field));
+        }
+        
+        public short shortAt(final int index) {
+            final String str = stringAt(index);
+            return str == null ? (short) 0 : Short.parseShort(str);
+        }
+
+        public Object arrayAt(final String field, final Class elementType) {
+            return arrayAt(description.indexOf(field), elementType);
+        }
+
+        public Object arrayAt(final int index, final Class elementType) {
+            return stringAt(index);
         }
     }
 }
