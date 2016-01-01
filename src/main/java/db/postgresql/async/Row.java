@@ -22,6 +22,9 @@ public interface Row {
     public interface Extractor {
         Object getAt(String field);
         Object getAt(int index);
+
+        String stringAt(String field);
+        String stringAt(int index);
         
         boolean booleanAt(String field);
         boolean booleanAt(int field);
