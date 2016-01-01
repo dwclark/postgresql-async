@@ -1,6 +1,7 @@
 package db.postgresql.async.messages;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Arrays;
 
@@ -8,6 +9,9 @@ import java.util.Arrays;
 public class RowDescription extends Response {
     
     public static final RowDescription EMPTY = new RowDescription(BackEnd.RowDescription, 0, new FieldDescriptor[0]);
+
+    public static final RowDescription SINGLE_BINARY =
+        new RowDescription(BackEnd.RowDescription, 0, new FieldDescriptor[] { FieldDescriptor.ANONYMOUS_BINARY });
     
     private final FieldDescriptor[] fields;
 

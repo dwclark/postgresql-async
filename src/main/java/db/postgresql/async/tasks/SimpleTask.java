@@ -35,7 +35,7 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         this.accumulator = accumulator;
     }
     
-    private boolean readProcessor(final Response resp) {
+    protected boolean readProcessor(final Response resp) {
         switch(resp.getBackEnd()) {
         case RowDescription:
             SerializationContext.description((RowDescription) resp);
