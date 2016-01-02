@@ -4,6 +4,10 @@ import java.nio.ByteBuffer;
 import static db.postgresql.async.messages.Response.ascii;
 
 public class FieldDescriptor {
+
+    public static final FieldDescriptor ANONYMOUS_BINARY =
+        new FieldDescriptor("", 0, (short) 0, 0, (short) 0, 0, Format.BINARY);
+    
     private final String name;
     public String getName() { return name; }
     

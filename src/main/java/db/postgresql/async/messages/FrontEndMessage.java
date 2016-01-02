@@ -1,21 +1,22 @@
 package db.postgresql.async.messages;
 
+import db.postgresql.async.pginfo.PgType;
+import db.postgresql.async.pginfo.Registry;
+import db.postgresql.async.pginfo.Statement;
+import db.postgresql.async.serializers.SerializationContext;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.BufferOverflowException;
-import java.util.List;
-import java.util.Map;
-import java.nio.charset.Charset;
+import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
+import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
+import java.util.Map;
 import static java.nio.ByteBuffer.wrap;
-import db.postgresql.async.pginfo.Statement;
-import db.postgresql.async.pginfo.Registry;
-import db.postgresql.async.serializers.SerializationContext;
-import db.postgresql.async.pginfo.PgType;
 
 //Not thread safe
+//Need to add buffer ops size up at that right places???
 public class FrontEndMessage {
 
     private static final Guarded TRUE = () -> true;
@@ -80,9 +81,9 @@ public class FrontEndMessage {
 
     public static final Object[] EMPTY_ARGS = new Object[0];
 
-    public boolean bindExecuteSync(final Statement statement, final List<Object> args) {
+    public boolean bindExecuteSync(final Statement statement, final List<Object> args, final Format outputFormat) {
         final int startAt = buffer.position();
-        final boolean success = bind(statement, args) && execute(statement) && sync();
+        final boolean success = bind(statement, args, outputFormat) && execute(statement) && sync();
         if(!success) {
             buffer.position(startAt);
         }
@@ -90,7 +91,7 @@ public class FrontEndMessage {
         return success;
     }
     
-    public boolean bind(final Statement statement, final List<Object> args) {
+    public boolean bind(final Statement statement, final List<Object> args, final Format outputFormat) {
         return guard(FrontEnd.Bind, () -> {
                 putNullString(statement.getPortalValue());
                 putNullString(statement.getValue());
@@ -105,11 +106,13 @@ public class FrontEndMessage {
                     writeArg(args.get(i));
                 }
 
-                final RowDescription rd = statement.getRowDescription();
+                buffer.putShort((short) 1);
+                buffer.putShort(outputFormat.getCode());
+                /*final RowDescription rd = statement.getRowDescription();
                 buffer.putShort((short) rd.length());
                 for(int i = 0; i < rd.length(); ++i) {
                     buffer.putShort(rd.field(i).getFormat().getCode());
-                }
+                    }*/
 
                 return true; });
     }

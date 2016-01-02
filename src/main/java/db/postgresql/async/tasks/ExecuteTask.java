@@ -6,6 +6,7 @@ import db.postgresql.async.TaskState;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.CommandComplete;
 import db.postgresql.async.messages.DataRow;
+import db.postgresql.async.messages.Format;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.ParameterDescription;
 import db.postgresql.async.messages.ReadyForQuery;
@@ -83,6 +84,7 @@ public class ExecuteTask<T> extends BaseTask<T> {
                 return true;
             case NoData:
                 rowDescription = RowDescription.EMPTY;
+                SerializationContext.description(rowDescription);
                 return true;
             case ReadyForQuery:
                 ++rfqCount;
@@ -159,7 +161,7 @@ public class ExecuteTask<T> extends BaseTask<T> {
             final Statement statement = cache.statement(sql);
             boolean wrote = false;
             while(executionCount < args.size()) {
-                final boolean success = feMessage.bindExecuteSync(statement, args.get(executionCount));
+                final boolean success = feMessage.bindExecuteSync(statement, args.get(executionCount), Format.BINARY);
                 if(success) {
                     ++executionCount;
                     wrote = true;

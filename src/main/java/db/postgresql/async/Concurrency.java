@@ -1,6 +1,6 @@
 package db.postgresql.async;
 
-import db.postgresql.async.tasks.SimpleTask;
+import db.postgresql.async.tasks.AnonymousTask;
 
 public class Concurrency {
     
@@ -25,8 +25,7 @@ public class Concurrency {
         this.mode = mode;
         this.deferrable = deferrable;
     }
-
-    public SimpleTask<NullOutput> begin() {
-        return SimpleTask.begin(isolation, mode, deferrable);
+    public AnonymousTask<NullOutput> begin() {
+        return AnonymousTask.begin(isolation, mode, deferrable);
     }
 }

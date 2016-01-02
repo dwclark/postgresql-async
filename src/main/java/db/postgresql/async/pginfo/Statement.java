@@ -6,6 +6,8 @@ import db.postgresql.async.messages.ParameterDescription;
 
 public class Statement extends Portal {
 
+    public static final Statement ANONYMOUS = new Statement();
+    
     private static final AtomicInteger counter = new AtomicInteger(0);
     
     private final ParameterDescription parameterDescription;
@@ -20,6 +22,12 @@ public class Statement extends Portal {
         super(id, rowDescription);
         this.parameterDescription = parameterDescription;
         this.portalValue = String.format("%s_portal", id);
+    }
+
+    private Statement() {
+        super("", RowDescription.SINGLE_BINARY);
+        this.parameterDescription = null;
+        this.portalValue = "";
     }
 
     public static String nextId() {
