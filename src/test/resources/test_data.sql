@@ -12,6 +12,7 @@ drop table if exists extended_types;
 drop table if exists geometry_types;
 drop table if exists persons;
 drop table if exists my_arrays;
+drop function select_numerals();
 drop table if exists numerals;
 drop table if exists network_types;
 drop table if exists json_and_xml;
@@ -240,21 +241,24 @@ create table ranges (
 
 insert into ranges (int_range) values ('[2,20]'::int4range);
 
-create or replace function select_numerals() returns refcursor as '
-declare
-    ref refcursor;
+create or replace function select_numerals()
+returns table(total int, the_numerals numerals[]) as
+$func$
 begin
-    open ref for select * from numerals;
-    return ref;
-end;
-' language plpgsql;
+    --total := 26;
+    --the_numerals := array(select numerals from numerals);
+    return query execute 'select 26, array(select numerals from numerals)';
+end
+$func$ language plpgsql;
 
-create or replace function multiple_cursors() returns setof refcursor as '
+create or replace function multiple_cursors() returns setof refcursor as
+$$
 declare
     one refcursor;
     two refcursor;
     three refcursor;
 begin
+
     open one for select * from numerals;
     return next one;
 
@@ -263,8 +267,9 @@ begin
 
     open three for select * from all_types;
     return next three;
+
 end;
-' language plpgsql;
+$$ language plpgsql;
 
 create type days_of_week as enum (
        'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'

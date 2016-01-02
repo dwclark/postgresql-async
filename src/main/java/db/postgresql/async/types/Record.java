@@ -1,19 +1,20 @@
 package db.postgresql.async.types;
 
-import static db.postgresql.async.types.Hashing.*;
+import db.postgresql.async.messages.Format;
 import db.postgresql.async.pginfo.PgAttribute;
 import db.postgresql.async.pginfo.PgType;
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.Iterator;
-import java.nio.ByteBuffer;
-import db.postgresql.async.messages.Format;
 import static db.postgresql.async.serializers.SerializationContext.registry;
+import static db.postgresql.async.types.Hashing.*;
 
 public class Record implements SortedMap<PgAttribute,Object> {
 
@@ -155,6 +156,15 @@ public class Record implements SortedMap<PgAttribute,Object> {
             final PgType colPgType = registry().pgType(oid);
             map.put(attr, colPgType.read(buffer, oid));
         }
+    }
+
+    public Map<String,Object> keysValues() {
+        final Map<String,Object> ret = new LinkedHashMap<>();
+        for(Map.Entry<PgAttribute,Object> entry : entrySet()) {
+            ret.put(entry.getKey().getName(), entry.getValue());
+        }
+
+        return ret;
     }
 
     public void toBuffer(final ByteBuffer buffer) {

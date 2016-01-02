@@ -8,6 +8,7 @@ import db.postgresql.async.Row;
 import db.postgresql.async.TaskState;
 import db.postgresql.async.messages.CommandComplete;
 import db.postgresql.async.messages.DataRow;
+import db.postgresql.async.messages.Format;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.Response;
 import db.postgresql.async.messages.ReadyForQuery;
@@ -38,6 +39,11 @@ public abstract class AnonymousTask<T> extends SimpleTask<T> {
             return true;
         case BindComplete:
             return true;
+        case ParameterDescription:
+            return true;
+        case RowDescription:
+            SerializationContext.description(((RowDescription) resp).toBinary());
+            return true;
         default:
             return super.readProcessor(resp);
         }
@@ -46,7 +52,7 @@ public abstract class AnonymousTask<T> extends SimpleTask<T> {
     @Override
     public void onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         fe.parse("", getSql(), FrontEndMessage.EMPTY_OIDS);
-        fe.bind(Statement.ANONYMOUS, args);
+        fe.bind(Statement.ANONYMOUS, args, Format.BINARY);
         fe.describeStatement("");
         fe.execute(Statement.ANONYMOUS);
         fe.sync();
@@ -119,5 +125,19 @@ public abstract class AnonymousTask<T> extends SimpleTask<T> {
 
     public static AnonymousTask<NullOutput> noOutput(final String sql, final List<Object> args) {
         return new NoOutput(sql, args);
+    }
+
+    public static AnonymousTask<NullOutput> begin(final Isolation isolation, final RwMode mode, final boolean deferrable) {
+        final String sql = String.format("BEGIN ISOLATION LEVEL %s %s %s;", isolation, mode,
+                                         deferrable ? "DEFERRABLE" : "NOT DEFERRABLE");
+        return noOutput(sql, Collections.emptyList());
+    }
+
+    public static AnonymousTask<NullOutput> commit() {
+        return noOutput("commit;", Collections.emptyList());
+    }
+
+    public static AnonymousTask<NullOutput> rollback() {
+        return noOutput("rollback;", Collections.emptyList());
     }
 }

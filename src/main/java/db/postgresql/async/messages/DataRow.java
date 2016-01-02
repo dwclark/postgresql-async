@@ -124,6 +124,7 @@ public class DataRow extends Response implements Row {
 
         //handle separately to allow bootstrap to use this
         public String nextString() {
+            advance();
             final int size = buffer.getInt();
             if(size == -1) {
                 return null;

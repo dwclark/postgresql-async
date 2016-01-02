@@ -48,6 +48,9 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
             return true;
         case ReadyForQuery:
             return onReadyForQuery((ReadyForQuery) resp);
+        case NoData:
+            SerializationContext.description(RowDescription.EMPTY);
+            return true;
         default:
             throw new UnsupportedOperationException(resp.getBackEnd() + " is not supported by simple task");
         }

@@ -56,6 +56,7 @@ public class Cursor {
             ++totalCalls;
             lastRowsProcessed = 0;
             complete(query(op.toCommand(name), accumulator, Collections.emptyList(), wrapped));
+            this.op = findNextOp.apply(this);
         }
 
         complete(query(op.toCommand(name), accumulator, Collections.emptyList(), wrapped));
