@@ -1,15 +1,14 @@
 package db.postgresql.async
 
-import db.postgresql.async.tasks.TransactionTask;
-import spock.lang.*
-
-import static db.postgresql.async.Task.*
-import static db.postgresql.async.Transaction.*;
 import db.postgresql.async.*;
-import static db.postgresql.async.Direction.*;
+import db.postgresql.async.tasks.TransactionTask;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.BiFunction;
+import spock.lang.*
+import static db.postgresql.async.Direction.*;
+import static db.postgresql.async.Task.*
+import static db.postgresql.async.Transaction.*;
 
 @Ignore
 class FunctionTest extends Specification {

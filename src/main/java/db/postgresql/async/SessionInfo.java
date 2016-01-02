@@ -159,7 +159,7 @@ public class SessionInfo {
             
             mapping(Circle.class, "pg_catalog.circle", Circle::write, Circle::read);
             
-            //mapping(Cursor.class, "pg_catalog.refcursor", Cursor::write, Cursor::read);
+            mapping(Cursor.class, "pg_catalog.refcursor", Cursor::write, Cursor::read);
             
             mapping(Double.class, "pg_catalog.float8",
                     (buffer,obj) -> buffer.putDouble((Double) obj),
