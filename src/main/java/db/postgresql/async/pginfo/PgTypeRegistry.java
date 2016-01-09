@@ -16,6 +16,9 @@ import db.postgresql.async.Session;
 import db.postgresql.async.Row;
 import db.postgresql.async.Transaction;
 import db.postgresql.async.types.Record;
+import db.postgresql.async.CompletableTask;
+import db.postgresql.async.Task;
+import static db.postgresql.async.Task.Prepared.*;
 
 public class PgTypeRegistry implements Registry {
 
@@ -90,7 +93,7 @@ public class PgTypeRegistry implements Registry {
         }
     }
     
-    private Map<Integer,SortedSet<PgAttribute>> extractAttribute(final Map<Integer,SortedSet<PgAttribute>> map, final Row row) {
+    private Void extractAttribute(final Map<Integer,SortedSet<PgAttribute>> map, final Row row) {
         row.with(() -> {
                 Row.Iterator iter = row.iterator();
                 final PgAttribute attr = new PgAttribute(iter.nextInt(), iter.nextString(),
@@ -100,19 +103,11 @@ public class PgTypeRegistry implements Registry {
                 }
 
                 map.get(attr.getRelId()).add(attr); });
-        
-        return map;
+        return null;
     }
 
-    private Map<Integer,SortedSet<PgAttribute>> loadAttributes(final Transaction t) {
-        return t.prepared("select attrelid, attname, atttypid, attnum " +
-                          "from pg_attribute where attnum >= 1 " +
-                          "order by attrelid asc, atttypid asc",
-                          emptyList(), new HashMap<>(),
-                          this::extractAttribute);
-    }
-
-    private Void extractPgType(final Map<Integer,SortedSet<PgAttribute>> attributes, final Row row, final List<Mapping> mappings) {
+    private Void extractPgType(final Map<Integer,SortedSet<PgAttribute>> attributes,
+                               final Row row, final List<Mapping> mappings) {
         row.with(() -> {
                 Row.Iterator iter = row.iterator();
                 final int oid = iter.nextInt();
@@ -143,14 +138,26 @@ public class PgTypeRegistry implements Registry {
     }
     
     public void loadTypes(final Session session) {
-        final String sql = "select typ.oid, ns.nspname, typ.typname, typ.typarray, typ.typrelid " +
+        final String sqlAttributes = "select attrelid, attname, atttypid, attnum " +
+            "from pg_attribute where attnum >= 1 " +
+            "order by attrelid asc, atttypid asc";
+
+        final String sqlTypes = "select typ.oid, ns.nspname, typ.typname, typ.typarray, typ.typrelid " +
             "from pg_type typ " +
             "join pg_namespace ns on typ.typnamespace = ns.oid";
 
         final List<Mapping> mappings = session.getSessionInfo().getMappings();
-        session.withTransaction((t) -> {
-                final Map<Integer,SortedSet<PgAttribute>> attributes = loadAttributes(t);
-                return t.prepared(sql, emptyList(), null, (none, row) -> extractPgType(attributes, row, mappings));
-            });
+        final Map<Integer,SortedSet<PgAttribute>> attributes = new HashMap<>();
+        final CompletableTask<Void> task = Task.<Void>transaction(null)
+            .then((none) -> query(sqlAttributes, NO_ARGS, null, (n,row) -> extractAttribute(attributes, row)))
+            .then((none) -> query(sqlTypes, NO_ARGS, null, (n,row) -> extractPgType(attributes, row, mappings)))
+            .build();
+
+        try {
+            session.execute(task).get();
+        }
+        catch(ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -1,9 +1,7 @@
 package db.postgresql.async.tasks;
 
 import db.postgresql.async.Row;
-import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;
-import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.CommandComplete;
 import db.postgresql.async.messages.DataRow;
 import db.postgresql.async.messages.Format;
@@ -12,15 +10,15 @@ import db.postgresql.async.messages.ParameterDescription;
 import db.postgresql.async.messages.ReadyForQuery;
 import db.postgresql.async.messages.Response;
 import db.postgresql.async.messages.RowDescription;
-import db.postgresql.async.pginfo.PgSessionCache;
+import db.postgresql.async.pginfo.StatementCache;
 import db.postgresql.async.pginfo.Statement;
 import db.postgresql.async.serializers.SerializationContext;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
+import java.util.function.Consumer;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public class ExecuteTask<T> extends BaseTask<T> {
 
@@ -29,7 +27,7 @@ public class ExecuteTask<T> extends BaseTask<T> {
     private final BiFunction<T,Row,T> func;
     protected T accumulator;
 
-    private PgSessionCache cache;
+    private StatementCache cache;
     private int executionCount = 0;
     private TaskPhase phase;
     
@@ -194,7 +192,7 @@ public class ExecuteTask<T> extends BaseTask<T> {
     }
 
     @Override
-    public void setStatementCache(final PgSessionCache cache) {
+    public void setStatementCache(final StatementCache cache) {
         this.cache = cache;
     }
 
@@ -237,14 +235,25 @@ public class ExecuteTask<T> extends BaseTask<T> {
     }
 
     public static class Execute extends ExecuteTask<Integer> {
+
+        private final Consumer<Integer> consumer;
+        
         public Execute(final String sql, final List<Object> args) {
+            this(sql, args, null);
+        }
+
+        public Execute(final String sql, final List<Object> args, final Consumer<Integer> consumer) {
             super(sql, Collections.singletonList(args), 0, null);
+            this.consumer = consumer;
         }
 
         @Override
         public void onCommandComplete(final CommandComplete val) {
             super.onCommandComplete(val);
             accumulator = val.getRows();
+            if(consumer != null) {
+                consumer.accept(val.getRows());
+            }
         }
     }
 }

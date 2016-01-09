@@ -1,10 +1,8 @@
 package db.postgresql.async;
 
-import db.postgresql.async.pginfo.PgSessionCache;
-import db.postgresql.async.Concurrency;
+import db.postgresql.async.pginfo.StatementCache;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
-import db.postgresql.async.messages.Notice;
 import db.postgresql.async.messages.Response;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -32,7 +30,7 @@ public interface Task<T> {
     long getTimeout();
     TimeUnit getUnits();
     void setOobHandlers(final Map<BackEnd,Consumer<Response>> oobHandlers);
-    void setStatementCache(PgSessionCache cache);
+    void setStatementCache(StatementCache cache);
  
     default boolean isTerminal() {
         return false;
@@ -47,47 +45,65 @@ public interface Task<T> {
         }
     }
 
-    static Task<Integer> simple(final String sql) {
-        return new SimpleTask.Execute(sql);
+    public interface Simple {
+
+        public static final List<Object> NO_ARGS = Collections.emptyList();
+        
+        static Task<Integer> execute(final String sql) {
+            return new SimpleTask.Execute(sql);
+        }
+
+        static <T> Task<List<T>> query(final String sql, final Function<Row,T> processor) {
+            return query(sql, new ArrayList<>(), (list, row) -> {
+                    list.add(processor.apply(row));
+                    return list;
+                });
+        }
+
+        static <T> Task<T> query(final String sql, final T accumulator, final BiFunction<T,Row,T> processor) {
+            return new SimpleTask.Query<>(sql, accumulator, processor);
+        }
+
+        static Task<List<Object>> bulkExecute(final List<QueryPart<?>> parts) {
+            return new SimpleTask.Multi(parts);
+        }
+
+        static Task<NullOutput> noOutput(final String sql) {
+            return SimpleTask.noOutput(sql);
+        }
     }
 
-    static <T> Task<List<T>> simple(final String sql, final Function<Row,T> processor) {
-        return simple(sql, new ArrayList<>(), (list, row) -> {
-                list.add(processor.apply(row));
-                return list;
-            });
-    }
+    public interface Prepared {
 
-    static <T> Task<T> simple(final String sql, final T accumulator, final BiFunction<T,Row,T> processor) {
-        return new SimpleTask.Query<>(sql, accumulator, processor);
-    }
+        public static final List<Object> NO_ARGS = Collections.emptyList();
+        
+        static Task<Integer> execute(final String sql, final List<Object> args) {
+            return new ExecuteTask.Execute(sql, args);
+        }
+        
+        static Task<Integer> execute(final String sql, final List<Object> args, final Consumer<Integer> consumer) {
+            return new ExecuteTask.Execute(sql, args, consumer);
+        }
 
-    static Task<List<Object>> simple(final List<QueryPart<?>> parts) {
-        return new SimpleTask.Multi(parts);
-    }
+        static Task<List<Integer>> bulkExecute(final String sql, final List<List<Object>> args) {
+            return new ExecuteTask.BulkExecute(sql, args);
+        }
 
-    static Task<NullOutput> noOutput(final String sql) {
-        return SimpleTask.noOutput(sql);
-    }
-
-    static Task<Integer> prepared(final String sql, final List<Object> args) {
-        return new ExecuteTask.Execute(sql, args);
-    }
-
-    static Task<List<Integer>> bulkPrepared(final String sql, final List<List<Object>> args) {
-        return new ExecuteTask.BulkExecute(sql, args);
-    }
-
-    static <T> Task<List<T>> prepared(final String sql, List<Object> args, final Function<Row,T> processor) {
-        final BiFunction<List<T>,Row,List<T>> biFunc = (list,row) -> { list.add(processor.apply(row)); return list; };
-        return prepared(sql, args, new ArrayList<>(), biFunc);
-    }
-
-    static <T> Task<T> prepared(final String sql, List<Object> args, T accumulator, final BiFunction<T,Row,T> processor) {
-        return new ExecuteTask<>(sql, Collections.singletonList(args), accumulator, processor);
+        static <T> Task<List<T>> query(final String sql, List<Object> args, final Function<Row,T> processor) {
+            final BiFunction<List<T>,Row,List<T>> biFunc = (list,row) -> { list.add(processor.apply(row)); return list; };
+            return query(sql, args, new ArrayList<>(), biFunc);
+        }
+        
+        static <T> Task<T> query(final String sql, List<Object> args, T accumulator, final BiFunction<T,Row,T> processor) {
+            return new ExecuteTask<>(sql, Collections.singletonList(args), accumulator, processor);
+        }
     }
 
     static <T> TransactionTask.Builder<T> transaction() {
         return new TransactionTask.Builder<>();
+    }
+
+    static <T> TransactionTask.Builder<T> transaction(final T a) {
+        return new TransactionTask.Builder<T>().accumulator(a);
     }
 }

@@ -1,25 +1,26 @@
 package db.postgresql.async.pginfo;
 
 import db.postgresql.async.messages.RowDescription;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Portal {
 
-    private final RowDescription rowDescription;
-    public RowDescription getRowDescription() { return rowDescription; }
-
-    private final String value;
-    public String getValue() { return value; }
-
-    public Portal(final String value, final RowDescription rowDescription) {
-        this.value = value;
-        this.rowDescription = rowDescription;
+    final static AtomicInteger counter = new AtomicInteger(0);
+    
+    private final Statement statement;
+    
+    public Statement getStatement() {
+        return statement;
     }
 
-    public String id(final Statement statement) {
-        return String.format("%s_portal", statement.getValue());
+    private final String id;
+    
+    public String getId() {
+        return id;
     }
 
-    public String id(final Statement statement, final int index) {
-        return String.format("%s_portal_%d", statement.getValue(), index);
+    public Portal(final Statement statement) {
+        this.statement = statement;
+        this.id = String.format("%s_portal_%d", statement.getId(), counter.getAndIncrement());
     }
 }

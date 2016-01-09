@@ -10,7 +10,7 @@ import db.postgresql.async.TaskIterator;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.Response;
-import db.postgresql.async.pginfo.PgSessionCache;
+import db.postgresql.async.pginfo.StatementCache;
 import db.postgresql.async.MultiStageException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ public class MultiStageTask<T> implements CompletableTask<T> {
     private Task<?> current;
     private TaskState nextState;
     private Map<BackEnd,Consumer<Response>> oobHandlers;
-    private PgSessionCache cache;
+    private StatementCache cache;
     private List<Task<?>> completed = new ArrayList<>();
         
     public MultiStageTask(final TaskIterator<T> iter) {
@@ -139,7 +139,7 @@ public class MultiStageTask<T> implements CompletableTask<T> {
         current.setOobHandlers(oobHandlers);
     }
 
-    public void setStatementCache(final PgSessionCache cache) {
+    public void setStatementCache(final StatementCache cache) {
         this.cache = cache;
         current.setStatementCache(cache);
     }

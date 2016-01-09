@@ -1,21 +1,18 @@
 package db.postgresql.async.tasks;
 
 import db.postgresql.async.CommandStatus;
-import db.postgresql.async.CompletableTask;
 import db.postgresql.async.PostgresqlException;
 import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;
 import db.postgresql.async.TransactionStatus;
 import db.postgresql.async.messages.*;
-import db.postgresql.async.pginfo.PgSessionCache;
+import db.postgresql.async.pginfo.StatementCache;
 import java.nio.ByteBuffer;
 import java.util.EnumMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 public abstract class BaseTask<T> implements Task<T> {
     
@@ -122,7 +119,7 @@ public abstract class BaseTask<T> implements Task<T> {
         this.oobHandlers.putAll(oobHandlers);
     }
 
-    public void setStatementCache(final PgSessionCache cache) {
+    public void setStatementCache(final StatementCache cache) {
         //not needed
     }
 

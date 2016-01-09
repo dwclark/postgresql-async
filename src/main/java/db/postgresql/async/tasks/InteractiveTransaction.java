@@ -90,7 +90,7 @@ public class InteractiveTransaction implements Transaction {
     }
     
     public int simple(final String sql) {
-        return guard(Task.simple(sql)).getResult();
+        return guard(Task.Simple.execute(sql)).getResult();
     }
 
     public <T> List<T> simple(final String sql, final Function<Row,T> processor) {
@@ -101,30 +101,30 @@ public class InteractiveTransaction implements Transaction {
     }
 
     public <T> T simple(final String sql, final T accumulator, final BiFunction<T,Row,T> processor) {
-        return guard(Task.simple(sql, accumulator, processor)).getResult();
+        return guard(Task.Simple.query(sql, accumulator, processor)).getResult();
     }
 
     public List<Object> simple(final List<QueryPart<?>> parts) {
-        return guard(Task.simple(parts)).getResult();
+        return guard(Task.Simple.bulkExecute(parts)).getResult();
     }
 
     public void noOutput(final String sql) {
-        guard(Task.noOutput(sql));
+        guard(Task.Simple.noOutput(sql));
     }
 
     public int prepared(final String sql, final List<Object> args) {
-        return guard(Task.prepared(sql, args)).getResult();
+        return guard(Task.Prepared.execute(sql, args)).getResult();
     }
 
     public List<Integer> bulkPrepared(final String sql, final List<List<Object>> args) {
-        return guard(Task.bulkPrepared(sql, args)).getResult();
+        return guard(Task.Prepared.bulkExecute(sql, args)).getResult();
     }
 
     public <T> List<T> prepared(final String sql, final List<Object> args, final Function<Row,T> processor) {
-        return guard(Task.prepared(sql, args, processor)).getResult();
+        return guard(Task.Prepared.query(sql, args, processor)).getResult();
     }
 
     public <T> T prepared(String sql, List<Object> args, T accumulator, final BiFunction<T,Row,T> processor) {
-        return guard(Task.prepared(sql, args, accumulator, processor)).getResult();
+        return guard(Task.Prepared.query(sql, args, accumulator, processor)).getResult();
     }
 }

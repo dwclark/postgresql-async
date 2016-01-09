@@ -20,7 +20,8 @@ public class TransactionTask<T> extends MultiStageTask<T> {
         public Builder<T> concurrency(final Concurrency val) { concurrency = val; return this; }
 
         private List<Function<T,Task<?>>> stages;
-        private Builder<T> stage(final Function<T,Task<?>> f) { stages.add(f); return this; }
+        public Builder<T> then(final Function<T,Task<?>> f) { stages.add(f); return this; }
+        public Builder<T> leftShift(final Function<T,Task<?>> f) { return then(f); }
         
         public Builder() {
             this.stages = new ArrayList<>();

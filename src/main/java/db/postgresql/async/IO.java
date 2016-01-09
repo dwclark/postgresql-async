@@ -1,14 +1,12 @@
 package db.postgresql.async;
 
 import db.postgresql.async.messages.BackEnd;
-import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.KeyData;
 import db.postgresql.async.messages.Notice;
-import db.postgresql.async.messages.Notification;
 import db.postgresql.async.messages.ParameterStatus;
 import db.postgresql.async.messages.Response;
-import db.postgresql.async.pginfo.PgSessionCache;
+import db.postgresql.async.pginfo.StatementCache;
 import db.postgresql.async.serializers.SerializationContext;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -19,7 +17,6 @@ import java.nio.channels.InterruptedByTimeoutException;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public class IO {
@@ -50,7 +47,7 @@ public class IO {
     private final SessionInfo sessionInfo;
     private final FrontEndMessage feMessage;
     private final AsynchronousSocketChannel channel;
-    private final PgSessionCache pgSessionCache = new PgSessionCache();
+    private final StatementCache statementCache = new StatementCache();
     private final Reader reader = new Reader();
     private final Writer writer = new Writer();
     private final ByteBuffer writeBuffer = ByteBuffer.allocate(32 * 1024);
@@ -213,7 +210,7 @@ public class IO {
         readBuffer.clear();
         writeBuffer.clear();
         task.setOobHandlers(oobHandlers);
-        task.setStatementCache(pgSessionCache);
+        task.setStatementCache(statementCache);
         prepareThread();
         task.onStart(feMessage, readBuffer);
         decide(task);

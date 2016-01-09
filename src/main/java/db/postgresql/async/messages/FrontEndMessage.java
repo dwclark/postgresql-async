@@ -3,6 +3,7 @@ package db.postgresql.async.messages;
 import db.postgresql.async.pginfo.PgType;
 import db.postgresql.async.pginfo.Registry;
 import db.postgresql.async.pginfo.Statement;
+import db.postgresql.async.pginfo.Portal;
 import db.postgresql.async.serializers.SerializationContext;
 import java.io.IOException;
 import java.nio.BufferOverflowException;
@@ -83,7 +84,8 @@ public class FrontEndMessage {
 
     public boolean bindExecuteSync(final Statement statement, final List<Object> args, final Format outputFormat) {
         final int startAt = buffer.position();
-        final boolean success = bind(statement, args, outputFormat) && execute(statement) && sync();
+        final Portal portal = statement.nextPortal();
+        final boolean success = bind(portal, args, outputFormat) && execute(portal) && sync();
         if(!success) {
             buffer.position(startAt);
         }
@@ -91,10 +93,10 @@ public class FrontEndMessage {
         return success;
     }
     
-    public boolean bind(final Statement statement, final List<Object> args, final Format outputFormat) {
+    public boolean bind(final Portal portal, final List<Object> args, final Format outputFormat) {
         return guard(FrontEnd.Bind, () -> {
-                putNullString(statement.getPortalValue());
-                putNullString(statement.getValue());
+                putNullString(portal.getId());
+                putNullString(portal.getStatement().getId());
                 buffer.putShort((short) args.size());
 
                 for(int i = 0; i < args.size(); ++i) {
@@ -108,22 +110,17 @@ public class FrontEndMessage {
 
                 buffer.putShort((short) 1);
                 buffer.putShort(outputFormat.getCode());
-                /*final RowDescription rd = statement.getRowDescription();
-                buffer.putShort((short) rd.length());
-                for(int i = 0; i < rd.length(); ++i) {
-                    buffer.putShort(rd.field(i).getFormat().getCode());
-                    }*/
 
                 return true; });
     }
     
-    public boolean execute(final Statement statement) {
-        return execute(statement, 0);
+    public boolean execute(final Portal portal) {
+        return execute(portal, 0);
     }
     
-    public boolean execute(final Statement statement, final int maxRows) {
+    public boolean execute(final Portal portal, final int maxRows) {
         return guard(FrontEnd.Execute, () -> {
-                putNullString(statement.getPortalValue());
+                putNullString(portal.getId());
                 buffer.putInt(maxRows);
                 return true; });
     }

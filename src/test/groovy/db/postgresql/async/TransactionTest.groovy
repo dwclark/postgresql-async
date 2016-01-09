@@ -8,10 +8,11 @@ import db.postgresql.async.*;
 import db.postgresql.async.enums.*;
 import java.time.*;
 import static db.postgresql.async.Task.*;
+import static db.postgresql.async.Task.Prepared.*;
 
 class TransactionTest extends Specification {
 
-    @Shared Session session;
+    private static Session session;
     
     def setupSpec() {
         session = Helper.noAuthLoadTypes();
@@ -22,16 +23,74 @@ class TransactionTest extends Specification {
     }
 
     def "Minimal Transaction"() {
-        setup:
-        def accum = [];
-        CompletableTask t = transaction().accumulator(accum).stage { a ->
-            return prepared('select * from all_types;', [], accum) { list, row ->
-                list << row.toList(); }; }.build();
-        session.execute(t).get();
-        
-        expect:
-        accum.size() == 1;
-        println(accum[0]);
+        when:
+        def result = session(transaction([])
+                             << { a ->
+                                 query('select * from all_types;', NO_ARGS, a) { l, r ->
+                                     l << r.toList();
+                                 }
+                             }).get();
+        then:
+        result.size() == 1;
+        println(result[0]);
+
+        when:
+        def result2 = session(transaction([])
+                              << { a ->
+                                  query('select * from all_types;', NO_ARGS, a) { l, r ->
+                                      l << r.toList();
+                                  }
+                              }).get();
+        then:
+        result2.size() == 1;
     }
 
+    def "Same Query In Transaction Twice"() {
+        when:
+        def result = session(transaction([])
+                             << { a ->
+                                 query('select * from all_types;', NO_ARGS, a) { l, r ->
+                                     l << r.toList();
+                                 }
+                             }
+                             << { a ->
+                                 query('select * from all_types;', NO_ARGS, a) { l, r ->
+                                     l << r.toList();
+                                 }
+                             }).get();
+        then:
+        result.size() == 2;
+        result[0] == result[1];
+    }
+
+    def "Test Transactional CRUD"() {
+        setup:
+        def r = session(transaction([])
+                        << { accum ->
+                            accum[0] = 0;
+                            query('select * from numerals;', NO_ARGS, accum) { list, row ->
+                                list[0]++;
+                                return list;
+                            }
+                        }
+                        << { accum ->
+                            execute('insert into numerals (arabic, roman) values ($1,$2);', [ 21, 'xx1' ]) {
+                                count -> accum[1] = count;
+                            }
+                        }
+                        << { accum ->
+                            accum[2] = 0;
+                            query('select * from numerals;', NO_ARGS, accum) { list, row ->
+                                list[2]++;
+                                return accum;
+                            }
+                        }
+                        << { accum ->
+                            execute('delete from numerals where id > $1;', [ 20 ]);
+                        }).get();
+        expect:
+        r[0] == 20;
+        r[1] == 1;
+        r[2] == 21;
+    }
 }

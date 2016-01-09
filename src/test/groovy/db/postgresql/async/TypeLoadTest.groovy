@@ -7,6 +7,7 @@ import db.postgresql.async.types.*;
 import db.postgresql.async.*;
 import db.postgresql.async.enums.*;
 import java.time.*;
+import static db.postgresql.async.Task.*;
 
 class TypeLoadTest extends Specification {
 

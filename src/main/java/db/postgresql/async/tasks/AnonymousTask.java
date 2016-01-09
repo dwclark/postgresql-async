@@ -13,6 +13,7 @@ import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.Response;
 import db.postgresql.async.messages.ReadyForQuery;
 import db.postgresql.async.messages.RowDescription;
+import db.postgresql.async.pginfo.Portal;
 import db.postgresql.async.pginfo.Statement;
 import db.postgresql.async.serializers.SerializationContext;
 import java.nio.ByteBuffer;
@@ -51,10 +52,11 @@ public abstract class AnonymousTask<T> extends SimpleTask<T> {
 
     @Override
     public void onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        final Portal portal = Statement.ANONYMOUS.nextPortal();
         fe.parse("", getSql(), FrontEndMessage.EMPTY_OIDS);
-        fe.bind(Statement.ANONYMOUS, args, Format.BINARY);
+        fe.bind(portal, args, Format.BINARY);
         fe.describeStatement("");
-        fe.execute(Statement.ANONYMOUS);
+        fe.execute(portal);
         fe.sync();
         nextState = TaskState.write();
     }
