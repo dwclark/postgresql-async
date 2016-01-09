@@ -1,6 +1,7 @@
 package db.postgresql.async;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class PostgresqlException extends RuntimeException {
 
@@ -16,12 +17,9 @@ public class PostgresqlException extends RuntimeException {
 
     @Override
     public String getMessage() {
-        final StringBuilder sb = new StringBuilder(error.size() * 96);
-        for(Map.Entry<NoticeType,String> entry : error.entrySet()) {
-            sb.append(entry.getKey()).append(" ").append(entry.getValue()).append("\n");
-        }
-
-        return sb.substring(0, sb.length() - 1);
+        return error.entrySet().stream()
+            .map((e) -> e.getKey() + " " + e.getValue())
+            .collect(Collectors.joining("\n"));
     }
 
     @Override

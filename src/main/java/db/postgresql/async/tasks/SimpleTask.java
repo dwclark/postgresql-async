@@ -1,5 +1,6 @@
 package db.postgresql.async.tasks;
 
+import db.postgresql.async.Concurrency;
 import db.postgresql.async.QueryPart;
 import db.postgresql.async.NullOutput;
 import db.postgresql.async.Isolation;
@@ -89,8 +90,17 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
     }
 
     public static class NoOutput extends SimpleTask<NullOutput> {
-        public NoOutput(final String sql) {
+
+        private final boolean terminal;
+        
+        public NoOutput(final String sql, final boolean terminal) {
             super(sql, null);
+            this.terminal = terminal;
+        }
+
+        @Override
+        public boolean isTerminal() {
+            return terminal;
         }
 
         public NullOutput getResult() {
@@ -236,7 +246,11 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
     }
 
     public static SimpleTask<NullOutput> noOutput(final String sql) {
-        return new NoOutput(sql);
+        return new NoOutput(sql, false);
+    }
+
+    public static SimpleTask<NullOutput> begin(final Concurrency concurrency) {
+        return begin(concurrency.getIsolation(), concurrency.getMode(), concurrency.getDeferrable());
     }
 
     public static SimpleTask<NullOutput> begin(final Isolation isolation, final RwMode mode, final boolean deferrable) {
@@ -246,10 +260,10 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
     }
 
     public static SimpleTask<NullOutput> commit() {
-        return noOutput("commit;");
+        return new NoOutput("commit;", true);
     }
 
     public static SimpleTask<NullOutput> rollback() {
-        return noOutput("rollback;");
+        return new NoOutput("rollback;", true);
     }
 }

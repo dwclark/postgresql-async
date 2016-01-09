@@ -5,8 +5,13 @@ import db.postgresql.async.tasks.AnonymousTask;
 public class Concurrency {
     
     private final Isolation isolation;
+    public Isolation getIsolation() { return isolation; }
+    
     private final RwMode mode;
+    public RwMode getMode() { return mode; }
+    
     private final boolean deferrable;
+    public boolean getDeferrable() { return deferrable; }
 
     public Concurrency() {
         this(Isolation.READ_COMMITTED);

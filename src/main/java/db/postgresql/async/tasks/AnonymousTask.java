@@ -60,8 +60,17 @@ public abstract class AnonymousTask<T> extends SimpleTask<T> {
     }
 
     public static class NoOutput extends AnonymousTask<NullOutput> {
-        public NoOutput(final String sql, final List<Object> args) {
+
+        private final boolean terminal;
+        
+        public NoOutput(final String sql, final List<Object> args, final boolean terminal) {
             super(sql, null, args);
+            this.terminal = terminal;
+        }
+
+        @Override
+        public boolean isTerminal() {
+            return terminal;
         }
 
         public NullOutput getResult() {
@@ -124,7 +133,7 @@ public abstract class AnonymousTask<T> extends SimpleTask<T> {
     }
 
     public static AnonymousTask<NullOutput> noOutput(final String sql, final List<Object> args) {
-        return new NoOutput(sql, args);
+        return new NoOutput(sql, args, false);
     }
 
     public static AnonymousTask<NullOutput> begin(final Isolation isolation, final RwMode mode, final boolean deferrable) {
@@ -134,10 +143,10 @@ public abstract class AnonymousTask<T> extends SimpleTask<T> {
     }
 
     public static AnonymousTask<NullOutput> commit() {
-        return noOutput("commit;", Collections.emptyList());
+        return new NoOutput("commit;", Collections.emptyList(), true);
     }
 
     public static AnonymousTask<NullOutput> rollback() {
-        return noOutput("rollback;", Collections.emptyList());
+        return new NoOutput("rollback;", Collections.emptyList(), true);
     }
 }

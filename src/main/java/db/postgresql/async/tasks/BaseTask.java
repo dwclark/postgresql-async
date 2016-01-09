@@ -24,7 +24,7 @@ public abstract class BaseTask<T> implements Task<T> {
     private final TimeUnit units;
 
     private PostgresqlException error;
-    protected TaskState nextState;
+    protected TaskState nextState = TaskState.start();
     protected CommandComplete commandComplete;
     protected ReadyForQuery readyForQuery;
 
@@ -102,9 +102,8 @@ public abstract class BaseTask<T> implements Task<T> {
 
     public void onError(final Notice val) {
         PostgresqlException e = val.toException();
-        e.fillInStackTrace();
         setError(e);
-        nextState = TaskState.read();
+        nextState = TaskState.finished();
     }
 
     public void onOob(final Response r) {

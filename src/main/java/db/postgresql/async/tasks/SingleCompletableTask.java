@@ -78,6 +78,7 @@ public class SingleCompletableTask<T> implements CompletableTask<T> {
     }
     
     public void onFail(final Throwable t) {
+        task.onFail(t);
         future.completeExceptionally(t);
     }
     

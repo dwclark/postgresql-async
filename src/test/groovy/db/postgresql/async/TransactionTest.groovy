@@ -1,16 +1,17 @@
-package db.postgresql.async
+package db.postgresql.async;
 
-import db.postgresql.async.tasks.TransactionTask;
-import spock.lang.*
+import spock.lang.*;
+import db.postgresql.async.serializers.*;
+import db.postgresql.async.tasks.*;
+import db.postgresql.async.types.*;
+import db.postgresql.async.*;
+import db.postgresql.async.enums.*;
+import java.time.*;
+import static db.postgresql.async.Task.*;
 
-import static db.postgresql.async.tasks.SimpleTask.*;
-import static db.postgresql.async.tasks.TransactionTask.*;
-
-@Ignore
 class TransactionTest extends Specification {
 
     @Shared Session session;
-    Concurrency concurrency = new Concurrency();
     
     def setupSpec() {
         session = Helper.noAuthLoadTypes();
@@ -20,25 +21,17 @@ class TransactionTest extends Specification {
         session.shutdown();
     }
 
-    @Ignore
-    def "Define Simple Transactions"() {
+    def "Minimal Transaction"() {
         setup:
-        TransactionTask one = single(concurrency,
-                                 execute("insert into items (id, description) values (44, 'forty-four');"));
+        def accum = [];
+        CompletableTask t = transaction().accumulator(accum).stage { a ->
+            return prepared('select * from all_types;', [], accum) { list, row ->
+                list << row.toList(); }; }.build();
+        session.execute(t).get();
         
-        TransactionTask multi = multiple(concurrency,
-                                     execute("insert into items (id, description) values (44, 'fourty-four');"),
-                                     execute("update items set description = 'forty-four' where id 44;"));
-    }
-
-    @Ignore
-    def "Run Simple Transaction"() {
-        setup:
-        def list = session.execute(single(concurrency,
-                                          query("select * from all_types;",
-                                                { Row r -> r.toMap(); }))).get();
         expect:
-        list.size() == 1;
+        accum.size() == 1;
+        println(accum[0]);
     }
 
 }

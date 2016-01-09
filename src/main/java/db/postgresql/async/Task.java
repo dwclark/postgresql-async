@@ -1,6 +1,7 @@
 package db.postgresql.async;
 
 import db.postgresql.async.pginfo.PgSessionCache;
+import db.postgresql.async.Concurrency;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.Notice;
@@ -32,6 +33,10 @@ public interface Task<T> {
     TimeUnit getUnits();
     void setOobHandlers(final Map<BackEnd,Consumer<Response>> oobHandlers);
     void setStatementCache(PgSessionCache cache);
+ 
+    default boolean isTerminal() {
+        return false;
+    }
     
     default CompletableTask<T> toCompletable() {
         if(this instanceof CompletableTask) {
@@ -62,7 +67,7 @@ public interface Task<T> {
     }
 
     static Task<NullOutput> noOutput(final String sql) {
-        return new SimpleTask.NoOutput(sql);
+        return SimpleTask.noOutput(sql);
     }
 
     static Task<Integer> prepared(final String sql, final List<Object> args) {
@@ -80,5 +85,9 @@ public interface Task<T> {
 
     static <T> Task<T> prepared(final String sql, List<Object> args, T accumulator, final BiFunction<T,Row,T> processor) {
         return new ExecuteTask<>(sql, Collections.singletonList(args), accumulator, processor);
+    }
+
+    static <T> TransactionTask.Builder<T> transaction() {
+        return new TransactionTask.Builder<>();
     }
 }
