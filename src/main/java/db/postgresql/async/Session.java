@@ -248,15 +248,19 @@ public class Session {
         return task.getFuture();
     }
 
+    public <T> CompletableFuture<T> execute(final Task<T> task) {
+        return execute(task.toCompletable());
+    }
+
+    public <T> CompletableFuture<T> call(final Task<T> task) {
+        return execute(task.toCompletable());
+    }
+    
     public <T> CompletableFuture<T> call(final CompletableTask<T> task) {
         return execute(task);
     }
 
     public <T> CompletableFuture<T> call(final TransactionTask.Builder<T> builder) {
-        return execute(builder.build());
-    }
-
-    public <T> CompletableFuture<T> leftShif(final TransactionTask.Builder<T> builder) {
         return execute(builder.build());
     }
 

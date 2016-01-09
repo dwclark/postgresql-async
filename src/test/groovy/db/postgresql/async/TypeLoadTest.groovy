@@ -8,10 +8,11 @@ import db.postgresql.async.*;
 import db.postgresql.async.enums.*;
 import java.time.*;
 import static db.postgresql.async.Task.*;
+import static db.postgresql.async.Task.Prepared.*;
 
 class TypeLoadTest extends Specification {
 
-    @Shared Session session;
+    private static Session session;
     
     def setupSpec() {
         session = Helper.noAuthLoadTypes();
@@ -29,8 +30,9 @@ class TypeLoadTest extends Specification {
 
     def "Fixed Numbers"() {
         setup:
-        def list = session.withTransaction { t ->
-            return t.prepared('select * from fixed_numbers order by id asc;', [], { it.toList(); }); };
+        def list = session(query('select * from fixed_numbers order by id asc;',
+                                 NO_ARGS,
+                                 { r -> r.toList(); })).get()
 
         expect:
         list[0] == [1, true, 42, 420, 4200, 3.14f, 3.14159265d, new Money(100_00)];
@@ -40,17 +42,16 @@ class TypeLoadTest extends Specification {
     def "Fixed Numbers Write"() {
         when:
         List toInsert = [ true, (short) 20, 200, 2_000_000_000_000L, Float.MAX_VALUE, Double.MAX_VALUE, new Money(123456789) ];
-        int inserted = session.withTransaction { t ->
-            return t.prepared('insert into fixed_numbers ' +
-                              '(my_boolean, my_smallint, my_int, my_long, my_real, my_double, my_money) ' +
-                              'values ($1, $2, $3, $4, $5, $6, $7);', toInsert); };
+        int inserted = session(execute('insert into fixed_numbers ' +
+                                       '(my_boolean, my_smallint, my_int, my_long, my_real, my_double, my_money) ' +
+                                       'values ($1, $2, $3, $4, $5, $6, $7);', toInsert)).get()
         then:
         inserted == 1;
 
         when:
-        List list = session.withTransaction { t ->
-            t.prepared('select * from fixed_numbers where id = (select max(id) from fixed_numbers);',
-                       [], { it.toList(); }); }[0];
+        List list = session(query('select * from fixed_numbers where id = (select max(id) from fixed_numbers);',
+                                  NO_ARGS,
+                                  { r -> r.toList(); })).get()[0];
         
         then:
         list[0] > 2;
@@ -58,8 +59,7 @@ class TypeLoadTest extends Specification {
         toInsert == list[1..<list.size()];
 
         when:
-        int deleted = session.withTransaction { t ->
-            t.prepared('delete from fixed_numbers where id = $1;', [ list[0] ]); };
+        int deleted = session(execute('delete from fixed_numbers where id = $1;', [ list[0] ])).get();
 
         then:
         deleted == 1;

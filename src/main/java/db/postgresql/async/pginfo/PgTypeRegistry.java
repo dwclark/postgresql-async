@@ -17,7 +17,7 @@ import db.postgresql.async.Row;
 import db.postgresql.async.Transaction;
 import db.postgresql.async.types.Record;
 import db.postgresql.async.CompletableTask;
-import db.postgresql.async.Task;
+import static db.postgresql.async.Task.*;
 import static db.postgresql.async.Task.Prepared.*;
 
 public class PgTypeRegistry implements Registry {
@@ -93,7 +93,7 @@ public class PgTypeRegistry implements Registry {
         }
     }
     
-    private Void extractAttribute(final Map<Integer,SortedSet<PgAttribute>> map, final Row row) {
+    private Map<Integer,SortedSet<PgAttribute>> extractAttribute(final Map<Integer,SortedSet<PgAttribute>> map, final Row row) {
         row.with(() -> {
                 Row.Iterator iter = row.iterator();
                 final PgAttribute attr = new PgAttribute(iter.nextInt(), iter.nextString(),
@@ -103,11 +103,11 @@ public class PgTypeRegistry implements Registry {
                 }
 
                 map.get(attr.getRelId()).add(attr); });
-        return null;
+        return map;
     }
 
-    private Void extractPgType(final Map<Integer,SortedSet<PgAttribute>> attributes,
-                               final Row row, final List<Mapping> mappings) {
+    private Map<Integer,SortedSet<PgAttribute>> extractPgType(final Map<Integer,SortedSet<PgAttribute>> attributes,
+                                                              final Row row, final List<Mapping> mappings) {
         row.with(() -> {
                 Row.Iterator iter = row.iterator();
                 final int oid = iter.nextInt();
@@ -134,7 +134,7 @@ public class PgTypeRegistry implements Registry {
                         .attributes(myAttributes).build());
                 } });
         
-        return null;
+        return attributes;
     }
     
     public void loadTypes(final Session session) {
@@ -145,16 +145,15 @@ public class PgTypeRegistry implements Registry {
         final String sqlTypes = "select typ.oid, ns.nspname, typ.typname, typ.typarray, typ.typrelid " +
             "from pg_type typ " +
             "join pg_namespace ns on typ.typnamespace = ns.oid";
-
+        
         final List<Mapping> mappings = session.getSessionInfo().getMappings();
         final Map<Integer,SortedSet<PgAttribute>> attributes = new HashMap<>();
-        final CompletableTask<Void> task = Task.<Void>transaction(null)
-            .then((none) -> query(sqlAttributes, NO_ARGS, null, (n,row) -> extractAttribute(attributes, row)))
-            .then((none) -> query(sqlTypes, NO_ARGS, null, (n,row) -> extractPgType(attributes, row, mappings)))
-            .build();
 
         try {
-            session.execute(task).get();
+            session.execute(transaction(attributes)
+                            .then((attr) -> query(sqlAttributes, NO_ARGS, attr, this::extractAttribute))
+                            .then((attr) -> query(sqlTypes, NO_ARGS, attr, (a,row) -> extractPgType(a, row, mappings)))
+                            .build()).get();
         }
         catch(ExecutionException | InterruptedException e) {
             throw new RuntimeException(e);
