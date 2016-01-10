@@ -26,6 +26,14 @@ public class SingleCompletableTask<T> implements CompletableTask<T> {
         this.future = new CompletableFuture<>();
     }
 
+    public void executed() {
+        task.executed();
+    }
+
+    public boolean isExecuted() {
+        return task.isExecuted();
+    }
+    
     public CompletableFuture<T> getFuture() {
         return future;
     }

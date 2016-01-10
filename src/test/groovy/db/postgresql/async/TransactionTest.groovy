@@ -74,7 +74,7 @@ class TransactionTest extends Specification {
                             }
                         }
                         << { accum ->
-                            execute('insert into numerals (arabic, roman) values ($1,$2);', [ 21, 'xx1' ]) {
+                            execute('insert into numerals (arabic, roman) values ($1,$2);', [ 21, 'xxi' ]) {
                                 count -> accum[1] = count;
                             }
                         }
@@ -92,5 +92,22 @@ class TransactionTest extends Specification {
         r[0] == 20;
         r[1] == 1;
         r[2] == 21;
+    }
+
+    def "Test Rollback"() {
+        setup:
+        def findSize = query('select count(*) from numerals', NO_ARGS, { r -> r.single(); });
+        def size = session(findSize).get();
+
+        when:
+        session(transaction(null)
+                << { execute('insert into numerals (arabic, roman) values ($1,$2);', [ 21, 'xxi' ]) }
+                << { execute('insert into numerals (arabic, roman) values ($1,$2);', [ 22, 'xxii' ]) }
+                << { execute('insert into numerals (arabic, roman) values ($1,$2);', [ 22, 'xxiii' ]) }
+                << { rollback() }).get();
+        def newSize = session(query('select count(*) from numerals', NO_ARGS, { r -> r.single(); })).get();
+
+        then:
+        newSize == size;
     }
 }

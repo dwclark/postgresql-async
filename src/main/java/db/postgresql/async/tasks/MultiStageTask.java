@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 
 public class MultiStageTask<T> implements CompletableTask<T> {
 
+    private boolean executed;
     private final TaskIterator<T> iter;
     private final CompletableFuture<T> future;
     private Task<?> current;
@@ -38,6 +39,14 @@ public class MultiStageTask<T> implements CompletableTask<T> {
             this.current = iter.next();
             this.nextState = current.getNextState();
         }
+    }
+
+    public void executed() {
+        executed = true;
+    }
+
+    public boolean isExecuted() {
+        return executed;
     }
 
     public CompletableFuture<T> getFuture() {

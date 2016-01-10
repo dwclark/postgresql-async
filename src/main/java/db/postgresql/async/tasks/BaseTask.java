@@ -15,16 +15,25 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public abstract class BaseTask<T> implements Task<T> {
-    
+
     private final Map<BackEnd,Consumer<Response>> oobHandlers = new EnumMap<>(BackEnd.class);
     private final long timeout;
     private final TimeUnit units;
 
+    private boolean executed;
     private PostgresqlException error;
     protected TaskState nextState = TaskState.start();
     protected CommandComplete commandComplete;
     protected ReadyForQuery readyForQuery;
 
+    public void executed() {
+        executed = true;
+    }
+
+    public boolean isExecuted() {
+        return executed;
+    }
+    
     public CommandStatus getCommandStatus() {
         return commandComplete;
     }

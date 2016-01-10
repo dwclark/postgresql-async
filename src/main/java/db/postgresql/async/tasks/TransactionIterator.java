@@ -37,6 +37,11 @@ public class TransactionIterator<T> implements TaskIterator<T> {
     }
 
     public Task<?> next() {
-        return decisions.get(index++).apply(accumulator);
+        Task<?> task = decisions.get(index++).apply(accumulator);
+        if(task.isTerminal()) {
+            index = decisions.size();
+        }
+
+        return task;
     }
 }

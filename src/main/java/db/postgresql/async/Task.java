@@ -31,7 +31,9 @@ public interface Task<T> {
     TimeUnit getUnits();
     void setOobHandlers(final Map<BackEnd,Consumer<Response>> oobHandlers);
     void setStatementCache(StatementCache cache);
- 
+    void executed();
+    boolean isExecuted();
+    
     default boolean isTerminal() {
         return false;
     }
@@ -96,6 +98,10 @@ public interface Task<T> {
         
         static <T> Task<T> query(final String sql, List<Object> args, T accumulator, final BiFunction<T,Row,T> processor) {
             return new ExecuteTask<>(sql, Collections.singletonList(args), accumulator, processor);
+        }
+
+        static Task<NullOutput> rollback() {
+            return AnonymousTask.rollback();
         }
     }
 

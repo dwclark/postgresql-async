@@ -236,6 +236,11 @@ public class Session {
     }
 
     public <T> CompletableFuture<T> execute(final CompletableTask<T> task) {
+        if(task.isExecuted()) {
+            throw new IllegalStateException("Task has already been executed");
+        }
+
+        task.executed();
         final IO io = ioPool.fast();
         if(io != null) {
             io.onCompleteToPool(ioPool);
