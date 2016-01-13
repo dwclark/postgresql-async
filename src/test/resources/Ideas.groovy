@@ -63,4 +63,7 @@ class Ideas {
         then: deleteFromNumerals(idToDelete);
         then: selectAllFromNumerals();
     }
+    
+    //call like:
+    session.execute(simpleTransaction(100, 'c'));
 }
