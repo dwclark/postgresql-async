@@ -65,5 +65,5 @@ class Ideas {
     }
     
     //call like:
-    session.execute(simpleTransaction(100, 'c'));
+    session.execute(insertIntoNumerals(100, 'c'));
 }
