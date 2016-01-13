@@ -40,7 +40,7 @@ class Ideas {
         }
 
         then:
-        update('insert into numerals (arabic, roman) values ($1,$2);', [ 21. 'xxi' ]) {
+        update('insert into numerals (arabic, roman) values ($1,$2);', [ 21, 'xxi' ]) {
             i -> e.count = i;
         }
 
