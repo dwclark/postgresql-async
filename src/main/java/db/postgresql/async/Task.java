@@ -79,24 +79,37 @@ public interface Task<T> {
 
         public static final List<Object> NO_ARGS = Collections.emptyList();
         
-        static Task<Integer> execute(final String sql, final List<Object> args) {
+        static Task<Integer> count(final String sql, final List<Object> args) {
             return new ExecuteTask.Execute(sql, args);
         }
         
-        static Task<Integer> execute(final String sql, final List<Object> args, final Consumer<Integer> consumer) {
+        static Task<Integer> acceptCount(final String sql, final List<Object> args, final Consumer<Integer> consumer) {
             return new ExecuteTask.Execute(sql, args, consumer);
         }
 
-        static Task<List<Integer>> bulkExecute(final String sql, final List<List<Object>> args) {
+        static Task<List<Integer>> bulkCount(final String sql, final List<List<Object>> args) {
             return new ExecuteTask.BulkExecute(sql, args);
         }
 
-        static <T> Task<List<T>> query(final String sql, List<Object> args, final Function<Row,T> processor) {
-            final BiFunction<List<T>,Row,List<T>> biFunc = (list,row) -> { list.add(processor.apply(row)); return list; };
-            return query(sql, args, new ArrayList<>(), biFunc);
+        static Task<NullOutput> accept(final String sql, final Consumer<Row> processor) {
+            return accept(sql, NO_ARGS, processor);
         }
         
-        static <T> Task<T> query(final String sql, List<Object> args, T accumulator, final BiFunction<T,Row,T> processor) {
+        static Task<NullOutput> accept(final String sql, List<Object> args, final Consumer<Row> processor) {
+            final BiFunction<NullOutput,Row,NullOutput> biFunc = (no,row) -> { processor.accept(row); return NullOutput.instance; };
+            return apply(sql, args, NullOutput.instance, biFunc);
+        }
+
+        static <T> Task<List<T>> apply(final String sql, final Function<Row,T> processor) {
+            return apply(sql, NO_ARGS, processor);
+        }
+        
+        static <T> Task<List<T>> apply(final String sql, List<Object> args, final Function<Row,T> processor) {
+            final BiFunction<List<T>,Row,List<T>> biFunc = (list,row) -> { list.add(processor.apply(row)); return list; };
+            return apply(sql, args, new ArrayList<>(), biFunc);
+        }
+        
+        static <T> Task<T> apply(final String sql, List<Object> args, T accumulator, final BiFunction<T,Row,T> processor) {
             return new ExecuteTask<>(sql, Collections.singletonList(args), accumulator, processor);
         }
 

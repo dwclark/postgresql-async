@@ -113,18 +113,18 @@ public class InteractiveTransaction implements Transaction {
     }
 
     public int prepared(final String sql, final List<Object> args) {
-        return guard(Task.Prepared.execute(sql, args)).getResult();
+        return guard(Task.Prepared.count(sql, args)).getResult();
     }
 
     public List<Integer> bulkPrepared(final String sql, final List<List<Object>> args) {
-        return guard(Task.Prepared.bulkExecute(sql, args)).getResult();
+        return guard(Task.Prepared.bulkCount(sql, args)).getResult();
     }
 
     public <T> List<T> prepared(final String sql, final List<Object> args, final Function<Row,T> processor) {
-        return guard(Task.Prepared.query(sql, args, processor)).getResult();
+        return guard(Task.Prepared.apply(sql, args, processor)).getResult();
     }
 
     public <T> T prepared(String sql, List<Object> args, T accumulator, final BiFunction<T,Row,T> processor) {
-        return guard(Task.Prepared.query(sql, args, accumulator, processor)).getResult();
+        return guard(Task.Prepared.apply(sql, args, accumulator, processor)).getResult();
     }
 }

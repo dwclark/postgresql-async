@@ -151,8 +151,8 @@ public class PgTypeRegistry implements Registry {
 
         try {
             session.execute(transaction(attributes)
-                            .then((attr) -> query(sqlAttributes, NO_ARGS, attr, this::extractAttribute))
-                            .then((attr) -> query(sqlTypes, NO_ARGS, attr, (a,row) -> extractPgType(a, row, mappings)))
+                            .then((attr) -> apply(sqlAttributes, NO_ARGS, attr, this::extractAttribute))
+                            .then((attr) -> apply(sqlTypes, NO_ARGS, attr, (a,row) -> extractPgType(a, row, mappings)))
                             .build()).get();
         }
         catch(ExecutionException | InterruptedException e) {
