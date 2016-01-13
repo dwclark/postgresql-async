@@ -1,11 +1,11 @@
 class Ideas {
     
-    @DefineMutation
+    @DefineUpdate
     def insertIntoNumerals(Integer arabic, String roman) {
         "insert into numerals (arabic, roman) values (${arabic}, ${roman})";
     }
 
-    @DefineMutation
+    @DefineUpdate
     def deleteFromNumerals(Integer id) {
         "delete from numerals where id = ${id}"
     }
@@ -35,23 +35,23 @@ class Ideas {
         e.first = 0;
         
         then:
-        rows('select * from numerals;') { r ->
+        query('select * from numerals;') { r ->
             e.first++;
         }
 
         then:
-        mutate('insert into numerals (arabic, roman) values ($1,$2);', [ 21. 'xxi' ]) {
+        update('insert into numerals (arabic, roman) values ($1,$2);', [ 21. 'xxi' ]) {
             i -> e.count = i;
         }
 
         then:
         e.second = 0;
-        rows('select * from numerals;') { r ->
+        query('select * from numerals;') { r ->
             e.second++;
         }
 
         then:
-        mutate('delete from numerals where id > $1;', [ 20 ]);
+        update('delete from numerals where id > $1;', [ 20 ]);
     }
 
     @DefineTransaction //use defaults everywhere
