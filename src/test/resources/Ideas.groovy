@@ -7,7 +7,7 @@ class Ideas {
 
     @DefineUpdate
     def deleteFromNumerals(Integer id) {
-        "delete from numerals where id = ${id}"
+        "delete from numerals where id = ${id}";
     }
 
     @DefineQuery
@@ -21,12 +21,12 @@ class Ideas {
 
     @DefineQuery(accumulate=LIST, rowsAs=MAP)
     def queryNumeralsById(final Integer id) {
-        "select * from numerals where id = ${id}"
+        "select * from numerals where id = ${id}";
     }
 
     @DefineQuery(accumulate=LIST, rowsAs=MAP)
     def selectAllNumerals() {
-        "select * from numerals"
+        "select * from numerals";
     }
 
     @DefineTransaction(isolation=Isolation.SERIALIZABLE, mode=RwMode.READ_WRITE, deferrable=false)
