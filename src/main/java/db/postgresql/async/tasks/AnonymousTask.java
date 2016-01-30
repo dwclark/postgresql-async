@@ -1,7 +1,6 @@
 package db.postgresql.async.tasks;
 
 import db.postgresql.async.QueryPart;
-import db.postgresql.async.NullOutput;
 import db.postgresql.async.Isolation;
 import db.postgresql.async.RwMode;
 import db.postgresql.async.Row;
@@ -61,7 +60,7 @@ public abstract class AnonymousTask<T> extends SimpleTask<T> {
         nextState = TaskState.write();
     }
 
-    public static class NoOutput extends AnonymousTask<NullOutput> {
+    public static class NoOutput extends AnonymousTask<Void> {
 
         private final boolean terminal;
         
@@ -75,8 +74,8 @@ public abstract class AnonymousTask<T> extends SimpleTask<T> {
             return terminal;
         }
 
-        public NullOutput getResult() {
-            return NullOutput.instance;
+        public Void getResult() {
+            return null;
         }
 
         public void onDataRow(final DataRow dataRow) {
@@ -134,21 +133,21 @@ public abstract class AnonymousTask<T> extends SimpleTask<T> {
         return new Execute(sql, args);
     }
 
-    public static AnonymousTask<NullOutput> noOutput(final String sql, final List<Object> args) {
+    public static AnonymousTask<Void> noOutput(final String sql, final List<Object> args) {
         return new NoOutput(sql, args, false);
     }
 
-    public static AnonymousTask<NullOutput> begin(final Isolation isolation, final RwMode mode, final boolean deferrable) {
+    public static AnonymousTask<Void> begin(final Isolation isolation, final RwMode mode, final boolean deferrable) {
         final String sql = String.format("BEGIN ISOLATION LEVEL %s %s %s;", isolation, mode,
                                          deferrable ? "DEFERRABLE" : "NOT DEFERRABLE");
         return noOutput(sql, Collections.emptyList());
     }
 
-    public static AnonymousTask<NullOutput> commit() {
+    public static AnonymousTask<Void> commit() {
         return new NoOutput("commit;", Collections.emptyList(), true);
     }
 
-    public static AnonymousTask<NullOutput> rollback() {
+    public static AnonymousTask<Void> rollback() {
         return new NoOutput("rollback;", Collections.emptyList(), true);
     }
 }

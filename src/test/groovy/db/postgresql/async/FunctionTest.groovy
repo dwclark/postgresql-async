@@ -7,11 +7,12 @@ import java.util.function.Function;
 import spock.lang.*
 import static db.postgresql.async.Direction.*;
 import static db.postgresql.async.Task.*
+import static db.postgresql.async.Task.Prepared.*;
 import static db.postgresql.async.Transaction.*;
 
 class FunctionTest extends Specification {
 
-    @Shared Session session;
+    private static Session session;
     Concurrency concurrency = new Concurrency();
     
     def setupSpec() {
@@ -26,42 +27,46 @@ class FunctionTest extends Specification {
     final static extractList = { it.toList(); };
     final static extractMap = { it.toMap(); };
 
-    @Ignore
-    def "Simple Function With Cursor"() {
+    def "Simple Function Return Arrays"() {
         setup:
-        def contents = session.withTransaction(concurrency) { t ->
-            def results = t.prepared('select * from select_numerals();', []) { r -> r.toList(); }[0]; };
+        def task = applyRows('select * from select_numerals();', NO_ARGS, { r -> r.toList(); });
+        def contents = session(task).get().head();
         def kvList = contents[1].collect { it.keysValues(); };
         
         expect:
         contents;
         contents.size() == 2;
         kvList.each { println(it); }
-        
-        /*def contents = session.withTransaction(concurrency) { t ->
-            def intermediate = t.prepared('select select_numerals();', []) { r -> r.toList() };
-            println(intermediate[0]);
-            return intermediate[1].standard { r -> r.toList(); }; };
-        
-        expect:
-        contents;
-        contents.size() == 20;*/
     }
 
-    //@Ignore
     def "Simple Function With Multiple Cursors"() {
         setup:
-        def (numerals, items, allTypes) = session.withTransaction(concurrency) {
-            Transaction t ->
-                t.prepared('select multiple_cursors();', [], extractCursor).collect {
-                    Cursor cursor -> cursor.standard { r -> r.toList(); }; }; };
-        
+        def e =
+            session(transaction(new Expando())
+                    << { e ->
+                        e.cursors = [];
+                        println("Before returning acceptRows");
+                        acceptRows('select multiple_cursors();', NO_ARGS) { row ->
+                            println("Inside acceptRows");
+                            e.cursors << row.single();
+                        }
+                    }
+                    << { e ->
+                        e.numerals = [];
+                        e.cursors[0].acceptRows { row -> e.numerals << row.toMap(); };
+                    }
+                    << { e ->
+                        e.items = [];
+                        e.cursors[1].acceptRows { row -> e.items << row.toMap(); };
+                    }
+                    << { e ->
+                        e.allTypes = [];
+                        e.cursors[2].acceptRows { row -> e.allTypes << row.toMap(); };
+                    }).get();
         expect:
-        println(numerals);
-        numerals.size() == 20;
-        println(items);
-        items.size() == 2;
-        println(allTypes);
-        allTypes.size() == 1;
+        e.cursors.size() == 3;
+        e.numerals.size() == 20;
+        e.items.size() == 2;
+        e.allTypes.size() == 1;
     }
 }

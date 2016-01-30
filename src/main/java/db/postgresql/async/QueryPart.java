@@ -28,15 +28,15 @@ public class QueryPart<A> {
         dataRow.with(() -> accumulator = func.apply(accumulator, dataRow));
     }
 
-    public static QueryPart<Integer> forExecute(final String sql) {
+    public static QueryPart<Integer> partCount(final String sql) {
         return new QueryPart<>(sql, Integer.valueOf(0), Row::nullExecute);
     }
 
-    public static QueryPart<List> forList(final String sql, final BiFunction<List,Row,List> func) {
+    public static QueryPart<List> partList(final String sql, final BiFunction<List,Row,List> func) {
         return new QueryPart<>(sql, new ArrayList<>(), func);
     }
 
-    public static QueryPart<Map> forMap(final String sql, final BiFunction<Map,Row,Map> func) {
+    public static QueryPart<Map> partMap(final String sql, final BiFunction<Map,Row,Map> func) {
         return new QueryPart<>(sql, new LinkedHashMap<>(), func);
     }
 }

@@ -95,7 +95,8 @@ public class ExecuteTask<T> extends BaseTask<T> {
                     return false;
                 }
             default:
-                throw new UnsupportedOperationException(resp.getBackEnd() + " is not a valid response");
+                setError(new UnsupportedOperationException(resp.getBackEnd() + " is not a valid response"));
+                return false;
             }
         }
 
@@ -139,7 +140,8 @@ public class ExecuteTask<T> extends BaseTask<T> {
                 readyForQuery = (ReadyForQuery) resp;
                 return false;
             default:
-                throw new UnsupportedOperationException(resp.getBackEnd() + " is not a valid response");
+                setError(new UnsupportedOperationException(resp.getBackEnd() + " is not a valid response"));
+                return false;
             }
         }
 
@@ -197,7 +199,12 @@ public class ExecuteTask<T> extends BaseTask<T> {
     }
 
     protected void onDataRow(final DataRow dataRow) {
-        dataRow.with(() -> accumulator = func.apply(accumulator, dataRow));
+        try {
+            dataRow.with(() -> accumulator = func.apply(accumulator, dataRow));
+        }
+        catch(Throwable t) {
+            setError(t);
+        }
     }
 
     protected void onCommandComplete(final CommandComplete val) {
@@ -205,18 +212,22 @@ public class ExecuteTask<T> extends BaseTask<T> {
         --executionCount;
     }
 
+    @Override
     public T getResult() {
         return accumulator;
     }
 
+    @Override
     public void onRead(final FrontEndMessage feMessage, final ByteBuffer readBuffer) {
         phase.onRead(feMessage, readBuffer);
     }
-    
+
+    @Override
     public void onWrite(final FrontEndMessage feMessage, final ByteBuffer readBuffer) {
         phase.onWrite(feMessage, readBuffer);
     }
-    
+
+    @Override
     public void onStart(final FrontEndMessage feMessage, final ByteBuffer readBuffer) {
         phase.onStart(feMessage, readBuffer);
     }
@@ -239,7 +250,7 @@ public class ExecuteTask<T> extends BaseTask<T> {
         private final Consumer<Integer> consumer;
         
         public Execute(final String sql, final List<Object> args) {
-            this(sql, args, null);
+            this(sql, args, (i) -> {});
         }
 
         public Execute(final String sql, final List<Object> args, final Consumer<Integer> consumer) {
@@ -251,9 +262,28 @@ public class ExecuteTask<T> extends BaseTask<T> {
         public void onCommandComplete(final CommandComplete val) {
             super.onCommandComplete(val);
             accumulator = val.getRows();
-            if(consumer != null) {
-                consumer.accept(val.getRows());
-            }
+            consumer.accept(val.getRows());
+        }
+
+        @Override
+        protected void onDataRow(final DataRow dataRow) {
+            setError(new UnsupportedOperationException());
+        }
+    }
+
+    public static class NoOutput extends ExecuteTask<Void> {
+
+        public NoOutput(final String sql) {
+            this(sql, Collections.emptyList());
+        }
+
+        public NoOutput(final String sql, final List<Object> args) {
+            super(sql, Collections.singletonList(args), null, null);
+        }
+
+        @Override
+        protected void onDataRow(final DataRow dataRow) {
+            setError(new UnsupportedOperationException());
         }
     }
 }

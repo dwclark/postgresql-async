@@ -5,8 +5,8 @@ import db.postgresql.async.serializers.*;
 import db.postgresql.async.tasks.*;
 import db.postgresql.async.*;
 import db.postgresql.async.pginfo.*;
+import static db.postgresql.async.Task.Prepared.*;
 
-@Ignore
 class ExecuteTaskTest extends Specification {
 
     @Shared Session session;
@@ -19,22 +19,20 @@ class ExecuteTaskTest extends Specification {
         session.shutdown();
     }
 
-    @Ignore
     def "Test Query Simple"() {
         setup:
         String sql = "select * from all_types;";
-        CompletableTask ct = Task.prepared(sql, [], { Row r -> r.toMap(); }).toCompletable();
+        CompletableTask ct = applyRows(sql, NO_ARGS, { Row r -> r.toMap(); }).toCompletable();
         List<Map> output = session.execute(ct).get();
 
-        ct = Task.prepared(sql, [], { Row r -> r.toMap(); }).toCompletable();
+        ct = applyRows(sql, [], { Row r -> r.toMap(); }).toCompletable();
         List<Map> output2 = session.execute(ct).get();
     }
 
-    @Ignore
     def "Test Query With Args"() {
         setup:
         String sql = 'select * from items where id = $1;';
-        CompletableTask ct = Task.prepared(sql, [2], { Row r -> r.toMap(); }).toCompletable();
+        CompletableTask ct = applyRows(sql, [2], { Row r -> r.toMap(); }).toCompletable();
         List<Map> output = session.execute(ct).get();
 
         expect:
@@ -42,14 +40,13 @@ class ExecuteTaskTest extends Specification {
         output[0].id == 2;
         output[0].description == 'two';
     }
-
-    @Ignore
+    
     def "Test Multiple Executions"() {
         setup:
         (0..10).each { num ->
-            [ Task.prepared("select * from all_types;", [], { Row r -> r.toMap(); }).toCompletable(),
-              Task.prepared('select * from items where id = $1;', [2], { Row r -> r.toMap(); }).toCompletable() ].each { ct ->
-                  println("Execution ${num}");
+            [ applyRows("select * from all_types;", NO_ARGS, { Row r -> r.toMap(); }).toCompletable(),
+              applyRows('select * from items where id = $1;', [2], { Row r -> r.toMap(); }).toCompletable() ].each { ct ->
+                  //println("Execution ${num}");
                   assert(session.execute(ct).get()); }; };
     }
 }

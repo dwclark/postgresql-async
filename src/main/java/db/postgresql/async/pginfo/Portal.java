@@ -21,6 +21,11 @@ public class Portal {
 
     public Portal(final Statement statement) {
         this.statement = statement;
-        this.id = String.format("%s_portal_%d", statement.getId(), counter.getAndIncrement());
+        if(statement.getId().equals("")) {
+            this.id = "";
+        }
+        else {
+            this.id = String.format("%s_portal_%d", statement.getId(), counter.getAndIncrement());
+        }
     }
 }

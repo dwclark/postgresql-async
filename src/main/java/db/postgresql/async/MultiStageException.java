@@ -14,8 +14,8 @@ public class MultiStageException extends RuntimeException {
         return failedTasks;
     }
 
-    public List<Map<NoticeType,String>> getErrors() {
-        return failedTasks.stream().map((t) -> t.getError().getError()).collect(Collectors.toList());
+    public List<Throwable> getErrors() {
+        return failedTasks.stream().map((t) -> t.getError()).collect(Collectors.toList());
     }
     
     public MultiStageException(final List<Task<?>> failedTasks) {

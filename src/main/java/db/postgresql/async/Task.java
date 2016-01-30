@@ -20,7 +20,8 @@ public interface Task<T> {
     T getResult();
     TransactionStatus getTransactionStatus();
     CommandStatus getCommandStatus();
-    PostgresqlException getError();
+    Throwable getError();
+    void setError(Throwable t);
     void onStart(FrontEndMessage fe, ByteBuffer readBuffer);
     void onRead(FrontEndMessage fe, ByteBuffer readBuffer);
     void onWrite(FrontEndMessage fe, ByteBuffer readBuffer);
@@ -50,28 +51,39 @@ public interface Task<T> {
     public interface Simple {
 
         public static final List<Object> NO_ARGS = Collections.emptyList();
-        
-        static Task<Integer> execute(final String sql) {
+
+        static Task<Integer> count(final String sql) {
             return new SimpleTask.Execute(sql);
         }
-
-        static <T> Task<List<T>> query(final String sql, final Function<Row,T> processor) {
-            return query(sql, new ArrayList<>(), (list, row) -> {
-                    list.add(processor.apply(row));
-                    return list;
-                });
+        
+        static Task<Integer> count(final String sql, final Consumer<Integer> consumer) {
+            return new SimpleTask.Execute(sql, consumer);
         }
 
-        static <T> Task<T> query(final String sql, final T accumulator, final BiFunction<T,Row,T> processor) {
+        static Task<Void> acceptRows(final String sql, final Consumer<Row> processor) {
+            final BiFunction<Void,Row,Void> func = (accum,row) -> { processor.accept(row); return null; };
+            return applyRows(sql, null, func);
+        }
+        
+        static <T> Task<List<T>> applyRows(final String sql, final Function<Row,T> processor) {
+            final BiFunction<List<T>,Row,List<T>> func = (accum,row) -> { accum.add(processor.apply(row)); return accum; };
+            return applyRows(sql, new ArrayList<>(), func);
+        }
+        
+        static <T> Task<T> applyRows(final String sql, T accumulator, final BiFunction<T,Row,T> processor) {
             return new SimpleTask.Query<>(sql, accumulator, processor);
+        }
+
+        static Task<Void> rollback() {
+            return SimpleTask.rollback();
+        }
+
+        static Task<Void> noOutput(final String sql) {
+            return SimpleTask.noOutput(sql);
         }
 
         static Task<List<Object>> bulkExecute(final List<QueryPart<?>> parts) {
             return new SimpleTask.Multi(parts);
-        }
-
-        static Task<NullOutput> noOutput(final String sql) {
-            return SimpleTask.noOutput(sql);
         }
     }
 
@@ -83,7 +95,7 @@ public interface Task<T> {
             return new ExecuteTask.Execute(sql, args);
         }
         
-        static Task<Integer> acceptCount(final String sql, final List<Object> args, final Consumer<Integer> consumer) {
+        static Task<Integer> count(final String sql, final List<Object> args, final Consumer<Integer> consumer) {
             return new ExecuteTask.Execute(sql, args, consumer);
         }
 
@@ -91,30 +103,38 @@ public interface Task<T> {
             return new ExecuteTask.BulkExecute(sql, args);
         }
 
-        static Task<NullOutput> accept(final String sql, final Consumer<Row> processor) {
-            return accept(sql, NO_ARGS, processor);
+        static Task<Void> acceptRows(final String sql, final Consumer<Row> processor) {
+            return acceptRows(sql, NO_ARGS, processor);
         }
         
-        static Task<NullOutput> accept(final String sql, List<Object> args, final Consumer<Row> processor) {
-            final BiFunction<NullOutput,Row,NullOutput> biFunc = (no,row) -> { processor.accept(row); return NullOutput.instance; };
-            return apply(sql, args, NullOutput.instance, biFunc);
+        static Task<Void> acceptRows(final String sql, List<Object> args, final Consumer<Row> processor) {
+            final BiFunction<Void,Row,Void> biFunc = (no,row) -> { processor.accept(row); return null; };
+            return applyRows(sql, args, null, biFunc);
         }
 
-        static <T> Task<List<T>> apply(final String sql, final Function<Row,T> processor) {
-            return apply(sql, NO_ARGS, processor);
+        static <T> Task<List<T>> applyRows(final String sql, final Function<Row,T> processor) {
+            return applyRows(sql, NO_ARGS, processor);
         }
         
-        static <T> Task<List<T>> apply(final String sql, List<Object> args, final Function<Row,T> processor) {
+        static <T> Task<List<T>> applyRows(final String sql, List<Object> args, final Function<Row,T> processor) {
             final BiFunction<List<T>,Row,List<T>> biFunc = (list,row) -> { list.add(processor.apply(row)); return list; };
-            return apply(sql, args, new ArrayList<>(), biFunc);
+            return applyRows(sql, args, new ArrayList<>(), biFunc);
         }
         
-        static <T> Task<T> apply(final String sql, List<Object> args, T accumulator, final BiFunction<T,Row,T> processor) {
+        static <T> Task<T> applyRows(final String sql, List<Object> args, T accumulator, final BiFunction<T,Row,T> processor) {
             return new ExecuteTask<>(sql, Collections.singletonList(args), accumulator, processor);
         }
 
-        static Task<NullOutput> rollback() {
+        static Task<Void> rollback() {
             return AnonymousTask.rollback();
+        }
+
+        static Task<Void> noOutput(final String sql, List<Object> args) {
+            return new ExecuteTask.NoOutput(sql, args);
+        }
+
+        static Task<Void> noOutput(final String sql) {
+            return new ExecuteTask.NoOutput(sql);
         }
     }
 
