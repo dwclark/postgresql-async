@@ -50,63 +50,82 @@ public class SingleCompletableTask<T> implements CompletableTask<T> {
         }
     }
 
+    @Override
     public T getResult() {
         return task.getResult();
     }
-    
-    public PostgresqlException getError() {
+
+    @Override
+    public Throwable getError() {
         return task.getError();
     }
 
+    @Override
+    public void setError(final Throwable t) {
+        task.setError(t);
+    }
+
+    @Override
     public CommandStatus getCommandStatus() {
         return task.getCommandStatus();
     }
 
+    @Override
     public TransactionStatus getTransactionStatus() {
         return task.getTransactionStatus();
     }
 
+    @Override
     public TaskState getNextState() {
         return task.getNextState();
     }
-    
+
+    @Override
     public void onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         task.onStart(fe, readBuffer);
         process();
     }
-    
+
+    @Override
     public void onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         task.onRead(fe, readBuffer);
         process();
     }
-    
+
+    @Override
     public void onWrite(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         task.onWrite(fe, readBuffer);
         process();
     }
-    
+
+    @Override
     public void onFail(final Throwable t) {
         task.onFail(t);
         future.completeExceptionally(t);
     }
-    
+
+    @Override
     public void onTimeout(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         task.onTimeout(fe, readBuffer);
         process();
     }
 
+    @Override
     public long getTimeout() {
         return task.getTimeout();
     }
-    
+
+    @Override
     public TimeUnit getUnits() {
         return task.getUnits();
     }
-    
+
+    @Override
     public void setOobHandlers(final Map<BackEnd,Consumer<Response>> oobHandlers) {
         task.setOobHandlers(oobHandlers);
     }
 
+    @Override
     public void setStatementCache(final StatementCache cache) {
         task.setStatementCache(cache);
     }

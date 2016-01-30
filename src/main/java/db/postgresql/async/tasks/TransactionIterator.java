@@ -13,6 +13,8 @@ public class TransactionIterator<T> implements TaskIterator<T> {
         decisions.addAll(tasks);
         decisions.add((accum) -> SimpleTask.commit());
     }
+
+    private boolean issuedRollback = false;
     
     private final List<Function<T, Task<?>>> decisions = new ArrayList<>();
     private int index = 0;
@@ -24,24 +26,33 @@ public class TransactionIterator<T> implements TaskIterator<T> {
         if(task == null) {
             return true;
         }
-        
-        if(task.getError() == null) {
-            return index < decisions.size();
-        }
-        else {
+
+        if(task.getError() != null && !issuedRollback) {
             decisions.clear();
             decisions.add((a) -> SimpleTask.rollback());
             index = 0;
+            issuedRollback = true;
             return true;
         }
+
+        return index < decisions.size();
     }
 
     public Task<?> next() {
-        Task<?> task = decisions.get(index++).apply(accumulator);
-        if(task.isTerminal()) {
-            index = decisions.size();
+        try {
+            final Task<?> task = decisions.get(index++).apply(accumulator);
+            if(task.isTerminal()) {
+                index = decisions.size();
+            }
+            
+            return task;
         }
-
-        return task;
+        catch(Throwable t) {
+            decisions.clear();
+            final Task<?> task = SimpleTask.rollback();
+            task.setError(t);
+            issuedRollback = true;
+            return task;
+        }
     }
 }

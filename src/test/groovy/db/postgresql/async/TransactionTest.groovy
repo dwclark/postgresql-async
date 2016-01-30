@@ -28,9 +28,9 @@ class TransactionTest extends Specification {
         def e = session(transaction(new Expando())
                         << { e ->
                             e.original = [];
-                            accept('select * from all_types;',
-                                   NO_ARGS,
-                                   { r -> e.original << r.toList(); });
+                            acceptRows('select * from all_types;') { row ->
+                                e.original << row.toList();
+                            }
                         }).get();
         then:
         e.original.size() == 1;
@@ -41,14 +41,14 @@ class TransactionTest extends Specification {
         when:
         def e = session(transaction(new Expando())
                         << { e ->
-                            accept('select * from all_types;',
-                                   NO_ARGS,
-                                   { r -> e.first = r.toList() });
+                            acceptRows('select * from all_types;') { row ->
+                                e.first = row.toList();
+                            }
                         }
                         << { e ->
-                            accept('select * from all_types;',
-                                   NO_ARGS,
-                                   { r -> e.second = r.toList(); });
+                            acceptRows('select * from all_types;') { row ->
+                                e.second = row.toList();
+                            }
                         }).get();
         then:
         e.first == e.second;
@@ -59,20 +59,20 @@ class TransactionTest extends Specification {
         def e = session(transaction(new Expando())
                         << { e ->
                             e.first = 0;
-                            accept('select * from numerals;',
-                                   NO_ARGS,
-                                   { r -> e.first++; });
+                            acceptRows('select * from numerals;') { row ->
+                                e.first++;
+                            }
                         }
                         << { e ->
-                            acceptCount('insert into numerals (arabic, roman) values ($1,$2);',
-                                        [ 21, 'xxi' ],
-                                        { i -> e.count = i; });
+                            count('insert into numerals (arabic, roman) values ($1,$2);', [ 21, 'xxi' ]) { num ->
+                                e.count = num;
+                            }
                         }
                         << { e ->
                             e.second = 0;
-                            accept('select * from numerals;',
-                                   NO_ARGS,
-                                   { r -> e.second++; });
+                            acceptRows('select * from numerals;') { row ->
+                                e.second++;
+                            }
                         }
                         << { e ->
                             count('delete from numerals where id > $1;', [ 20 ]);
@@ -85,9 +85,7 @@ class TransactionTest extends Specification {
 
     def "Test Rollback"() {
         setup:
-        def size = session(accept('select count(*) from numerals;',
-                                  NO_ARGS,
-                                  { r -> r.single(); })).get();
+        def size = session(acceptRows('select count(*) from numerals;') { row -> row.single(); }).get();
         
         when:
         session(transaction(null)
@@ -96,9 +94,7 @@ class TransactionTest extends Specification {
                 << { count('insert into numerals (arabic, roman) values ($1,$2);', [ 22, 'xxiii' ]) }
                 << { rollback(); }).get();
         
-        def newSize = session(accept('select count(*) from numerals;',
-                                     NO_ARGS,
-                                     { r -> r.single(); })).get();
+        def newSize = session(acceptRows('select count(*) from numerals;') { row -> row.single(); }).get();
         
         then:
         newSize == size;

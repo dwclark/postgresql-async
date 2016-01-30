@@ -30,7 +30,4 @@ public class Concurrency {
         this.mode = mode;
         this.deferrable = deferrable;
     }
-    public AnonymousTask<NullOutput> begin() {
-        return AnonymousTask.begin(isolation, mode, deferrable);
-    }
 }

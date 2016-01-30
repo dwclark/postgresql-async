@@ -3,8 +3,8 @@ package db.postgresql.async;
 import spock.lang.*;
 import db.postgresql.async.QueryPart;
 import db.postgresql.async.tasks.*
+import static db.postgresql.async.Task.Simple.*;
 
-@Ignore
 class SimpleTaskTest extends Specification {
 
     @Shared Session session;

@@ -2,7 +2,6 @@ package db.postgresql.async.tasks;
 
 import db.postgresql.async.Concurrency;
 import db.postgresql.async.QueryPart;
-import db.postgresql.async.NullOutput;
 import db.postgresql.async.Isolation;
 import db.postgresql.async.RwMode;
 import db.postgresql.async.Row;
@@ -15,6 +14,7 @@ import db.postgresql.async.messages.ReadyForQuery;
 import db.postgresql.async.messages.RowDescription;
 import db.postgresql.async.serializers.SerializationContext;
 import java.nio.ByteBuffer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.BiFunction;
 import java.util.ArrayList;
@@ -53,7 +53,8 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
             SerializationContext.description(RowDescription.EMPTY);
             return true;
         default:
-            throw new UnsupportedOperationException(resp.getBackEnd() + " is not supported by simple task");
+            setError(new UnsupportedOperationException(resp.getBackEnd() + " is not supported by simple task"));
+            return false;
         }
     }
 
@@ -89,7 +90,7 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         nextState = TaskState.write();
     }
 
-    public static class NoOutput extends SimpleTask<NullOutput> {
+    public static class NoOutput extends SimpleTask<Void> {
 
         private final boolean terminal;
         
@@ -103,26 +104,40 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
             return terminal;
         }
 
-        public NullOutput getResult() {
-            return NullOutput.instance;
+        public Void getResult() {
+            return null;
         }
 
         public void onDataRow(final DataRow dataRow) {
-            throw new UnsupportedOperationException();
+            setError(new UnsupportedOperationException());
         }
     }
 
     public static class Execute extends SimpleTask<Integer> {
+        private final Consumer<Integer> consumer;
+        
         public Execute(final String sql) {
+            this(sql, (i) -> {});
+        }
+
+        public Execute(final String sql, final Consumer<Integer> consumer) {
             super(sql, null);
+            this.consumer = consumer;
         }
 
         public Integer getResult() {
             return commandComplete.getRows();
         }
 
+        @Override
+        public void onCommandComplete(final CommandComplete val) {
+            super.onCommandComplete(val);
+            accumulator = val.getRows();
+            consumer.accept(val.getRows());
+        }
+
         public void onDataRow(final DataRow dataRow) {
-            throw new UnsupportedOperationException();
+            setError(new UnsupportedOperationException());
         }
     }
 
@@ -136,7 +151,12 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         }
 
         public void onDataRow(final DataRow dataRow) {
-            dataRow.with(() -> this.accumulator = func.apply(accumulator, dataRow));
+            try {
+                dataRow.with(() -> this.accumulator = func.apply(accumulator, dataRow));
+            }
+            catch(Throwable t) {
+                setError(t);
+            }
         }
 
         public T getResult() {
@@ -156,6 +176,7 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
 
         @Override
         public void onDataRow(final DataRow dataRow) {
+            //don't bother catching, sub tasks should property catch and set errors.
             current.onDataRow(dataRow);
         }
 
@@ -245,25 +266,25 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         return new Multi(parts);
     }
 
-    public static SimpleTask<NullOutput> noOutput(final String sql) {
+    public static SimpleTask<Void> noOutput(final String sql) {
         return new NoOutput(sql, false);
     }
 
-    public static SimpleTask<NullOutput> begin(final Concurrency concurrency) {
+    public static SimpleTask<Void> begin(final Concurrency concurrency) {
         return begin(concurrency.getIsolation(), concurrency.getMode(), concurrency.getDeferrable());
     }
 
-    public static SimpleTask<NullOutput> begin(final Isolation isolation, final RwMode mode, final boolean deferrable) {
+    public static SimpleTask<Void> begin(final Isolation isolation, final RwMode mode, final boolean deferrable) {
         final String sql = String.format("BEGIN ISOLATION LEVEL %s %s %s;", isolation, mode,
                                          deferrable ? "DEFERRABLE" : "NOT DEFERRABLE");
         return noOutput(sql);
     }
 
-    public static SimpleTask<NullOutput> commit() {
+    public static SimpleTask<Void> commit() {
         return new NoOutput("commit;", true);
     }
 
-    public static SimpleTask<NullOutput> rollback() {
+    public static SimpleTask<Void> rollback() {
         return new NoOutput("rollback;", true);
     }
 }

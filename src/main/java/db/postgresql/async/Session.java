@@ -4,7 +4,6 @@ import db.postgresql.async.messages.KeyData;
 import db.postgresql.async.pginfo.PgAttribute;
 import db.postgresql.async.pginfo.PgType;
 import db.postgresql.async.pginfo.PgTypeRegistry;
-import db.postgresql.async.tasks.InteractiveTransaction;
 import db.postgresql.async.tasks.TransactionTask;
 import db.postgresql.async.tasks.NotificationTask;
 import db.postgresql.async.tasks.SimpleTask;
@@ -267,34 +266,5 @@ public class Session {
 
     public <T> CompletableFuture<T> call(final TransactionTask.Builder<T> builder) {
         return execute(builder.build());
-    }
-
-    public <T> T withTransaction(final Concurrency concurrency, final Function<Transaction,T> func) {
-        final IO io = ioPool.guaranteed();
-        io.onCompleteDoNothing();
-        final InteractiveTransaction it = new InteractiveTransaction(io, concurrency);
-        T ret = null;
-        try {
-            ret = func.apply(it);
-            it.commit();
-        }
-        catch(Throwable t) {
-            it.rollback();
-            throw t;
-        }
-        finally {
-            if(io.isOpen()) {
-                ioPool.good(io);
-            }
-            else {
-                ioPool.bad(io);
-            }
-        }
-
-        return ret;
-    }
-
-    public <T> T withTransaction(final Function<Transaction,T> func) {
-        return withTransaction(new Concurrency(), func);
     }
 }

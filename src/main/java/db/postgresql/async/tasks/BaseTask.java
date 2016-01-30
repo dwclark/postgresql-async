@@ -21,7 +21,7 @@ public abstract class BaseTask<T> implements Task<T> {
     private final TimeUnit units;
 
     private boolean executed;
-    private PostgresqlException error;
+    private Throwable error;
     protected TaskState nextState = TaskState.start();
     protected CommandComplete commandComplete;
     protected ReadyForQuery readyForQuery;
@@ -60,11 +60,11 @@ public abstract class BaseTask<T> implements Task<T> {
         this.units = units;
     }
 
-    public PostgresqlException getError() {
+    public Throwable getError() {
         return error;
     }
 
-    public void setError(final PostgresqlException val) {
+    public void setError(final Throwable val) {
         error = val;
     }
 

@@ -31,7 +31,7 @@ public class MultiStageTask<T> implements CompletableTask<T> {
     private Map<BackEnd,Consumer<Response>> oobHandlers;
     private StatementCache cache;
     private List<Task<?>> completed = new ArrayList<>();
-        
+
     public MultiStageTask(final TaskIterator<T> iter) {
         this.iter = iter;
         this.future = new CompletableFuture<>();
@@ -90,64 +90,83 @@ public class MultiStageTask<T> implements CompletableTask<T> {
         }
     }
 
+    @Override
     public T getResult() {
         return iter.getAccumulator();
     }
-    
-    public PostgresqlException getError() {
+
+    @Override
+    public Throwable getError() {
         return current.getError();
     }
 
+    @Override
+    public void setError(final Throwable t) {
+        current.setError(t);
+    }
+
+    @Override
     public CommandStatus getCommandStatus() {
         return current.getCommandStatus();
     }
 
+    @Override
     public TransactionStatus getTransactionStatus() {
         return current.getTransactionStatus();
     }
 
+    @Override
     public TaskState getNextState() {
         return nextState;
     }
-    
+
+    @Override
     public void onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         current.onStart(fe, readBuffer);
         process();
     }
-    
+
+    @Override
     public void onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         current.onRead(fe, readBuffer);
         process();
     }
-    
+
+    @Override
     public void onWrite(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         current.onWrite(fe, readBuffer);
         process();
     }
-    
+
+    @Override
     public void onFail(final Throwable t) {
         current.onFail(t);
         future.completeExceptionally(t);
     }
-    
+
+    @Override
     public void onTimeout(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         current.onTimeout(fe, readBuffer);
         process();
     }
 
+    @Override
     public long getTimeout() {
         return current.getTimeout();
     }
-    
+
+    @Override
     public TimeUnit getUnits() {
         return current.getUnits();
     }
-    
+
+    @Override
     public void setOobHandlers(final Map<BackEnd,Consumer<Response>> oobHandlers) {
         this.oobHandlers = oobHandlers;
         current.setOobHandlers(oobHandlers);
     }
 
+    @Override
     public void setStatementCache(final StatementCache cache) {
         this.cache = cache;
         current.setStatementCache(cache);
