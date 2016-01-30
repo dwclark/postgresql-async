@@ -13,7 +13,7 @@ import db.postgresql.async.serializers.SerializationContext;
 import java.util.function.Function;
 import java.util.function.BiFunction;
 
-public class CursorTask<T> extends SimpleTask<T> {
+public class CursorTask<T> extends AnonymousTask<T> {
 
     @Override
     public void onDataRow(final DataRow dataRow) {
@@ -75,7 +75,7 @@ public class CursorTask<T> extends SimpleTask<T> {
     public CursorTask(final Cursor cursor, final T accumlator,
                       final Function<Cursor,CursorOp> findNextOp,
                       final BiFunction<T,Row,T> processOp) {
-        super(null, accumlator);
+        super(null, accumlator, null);
         this.cursor = cursor;
         this.findNextOp = findNextOp;
         this.processOp = processOp;
