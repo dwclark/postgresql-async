@@ -27,7 +27,7 @@ class FunctionTest extends Specification {
     final static extractList = { it.toList(); };
     final static extractMap = { it.toMap(); };
 
-    @Ignore def "Simple Function Return Arrays"() {
+    def "Simple Function Return Arrays"() {
         setup:
         def task = applyRows('select * from select_numerals();', NO_ARGS, { r -> r.toList(); });
         def contents = session(task).get().head();

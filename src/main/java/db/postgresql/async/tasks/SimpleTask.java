@@ -176,8 +176,12 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
 
         @Override
         public void onDataRow(final DataRow dataRow) {
-            //don't bother catching, sub tasks should property catch and set errors.
-            current.onDataRow(dataRow);
+            try {
+                current.onDataRow(dataRow);
+            }
+            catch(Throwable t) {
+                setError(t);
+            }
         }
 
         @Override
