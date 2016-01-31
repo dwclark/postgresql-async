@@ -1,0 +1,2 @@
+1) Notifcations - Testing and fix implementation
+2) SSL - Bring SSL implementation into postgresql-async
