@@ -4,6 +4,8 @@ import db.postgresql.async.pginfo.StatementCache;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.Response;
+import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,6 +16,9 @@ import java.util.function.Consumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import db.postgresql.async.tasks.*;
+import java.nio.channels.WritableByteChannel;
+import java.nio.channels.FileChannel;
+import java.nio.file.StandardOpenOption;
 
 public interface Task<T> {
 
@@ -135,6 +140,24 @@ public interface Task<T> {
 
         static Task<Void> noOutput(final String sql) {
             return new ExecuteTask.NoOutput(sql);
+        }
+    }
+
+    public interface Copy {
+
+        static Task<Long> fromServer(final String sql, final WritableByteChannel channel) {
+            return new CopyFromServerTask(sql, channel);
+        }
+
+        static Task<Long> fromServer(final String sql, final File file) {
+            try {
+                final FileChannel channel = FileChannel.open(file.toPath(), StandardOpenOption.CREATE,
+                                                             StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+                return fromServer(sql, channel);
+            }
+            catch(IOException ioe) {
+                throw new RuntimeException(ioe);
+            }
         }
     }
 

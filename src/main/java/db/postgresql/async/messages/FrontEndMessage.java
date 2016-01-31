@@ -1,5 +1,6 @@
 package db.postgresql.async.messages;
 
+import db.postgresql.async.buffers.BufferOps;
 import db.postgresql.async.pginfo.PgType;
 import db.postgresql.async.pginfo.Registry;
 import db.postgresql.async.pginfo.Statement;
@@ -8,7 +9,7 @@ import db.postgresql.async.serializers.SerializationContext;
 import java.io.IOException;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
-import java.nio.channels.WritableByteChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -150,14 +151,19 @@ public class FrontEndMessage {
         return close('P', name);
     }
 
-    public boolean copyData(final WritableByteChannel channel, final boolean includeHeader) {
-        return guard(includeHeader ? FrontEnd.CopyData : FrontEnd.None, () -> {
-                try {
-                    return (channel.write(buffer) > 0);
-                }
-                catch(IOException ex) {
-                    return false;
-                } });
+    public int copyData(final ReadableByteChannel channel) {
+        try {
+            BufferOps.ensure(buffer, 6);
+            final int sizePos = buffer.position() + 1;
+            FrontEnd.CopyData.header.write(buffer, 0);
+            final int written = channel.read(buffer);
+            final int size = buffer.position() - sizePos;
+            buffer.putInt(sizePos, size);
+            return written;
+        }
+        catch(IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
     }
 
     public boolean copyDone() {

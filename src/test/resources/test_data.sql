@@ -12,7 +12,7 @@ drop table if exists extended_types;
 drop table if exists geometry_types;
 drop table if exists persons;
 drop table if exists my_arrays;
-drop function select_numerals();
+drop function if exists select_numerals();
 drop table if exists numerals;
 drop table if exists network_types;
 drop table if exists json_and_xml;
