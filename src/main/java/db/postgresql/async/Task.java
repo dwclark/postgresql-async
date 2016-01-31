@@ -17,6 +17,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import db.postgresql.async.tasks.*;
 import java.nio.channels.WritableByteChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.FileChannel;
 import java.nio.file.StandardOpenOption;
 
@@ -154,6 +155,20 @@ public interface Task<T> {
                 final FileChannel channel = FileChannel.open(file.toPath(), StandardOpenOption.CREATE,
                                                              StandardOpenOption.WRITE, StandardOpenOption.APPEND);
                 return fromServer(sql, channel);
+            }
+            catch(IOException ioe) {
+                throw new RuntimeException(ioe);
+            }
+        }
+
+        static Task<Long> toServer(final String sql, final ReadableByteChannel channel) {
+            return new CopyToServerTask(sql, channel);
+        }
+
+        static Task<Long> toServer(final String sql, final File file) {
+            try {
+                final FileChannel channel = FileChannel.open(file.toPath(), StandardOpenOption.READ);
+                return toServer(sql, channel);
             }
             catch(IOException ioe) {
                 throw new RuntimeException(ioe);

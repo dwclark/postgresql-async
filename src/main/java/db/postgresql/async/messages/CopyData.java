@@ -18,13 +18,18 @@ public class CopyData extends Response {
     }
 
     public void toChannel(final WritableByteChannel channel) {
+        final int currentLimit = buffer.limit();
         try {
+            buffer.limit(buffer.position() + getSize());
             while(getRemaining() > 0) {
                 copied += channel.write(buffer);
             }
         }
         catch(IOException ex) {
             throw new RuntimeException(ex);
+        }
+        finally {
+            buffer.limit(currentLimit);
         }
     }
 }

@@ -46,6 +46,8 @@ public class CopyFromServerTask extends BaseTask<Long> {
         case CopyData:
             CopyData cd = (CopyData) r;
             cd.toChannel(channel);
+            total += cd.getCopied();
+            return true;
         case CopyDone:
             try {
                 channel.close();
@@ -69,6 +71,10 @@ public class CopyFromServerTask extends BaseTask<Long> {
 
     public void onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         int needs = pump(readBuffer, this::readProcessor);
+        if(getHasErrorResponse()) {
+            return;
+        }
+        
         if(needs > 0) {
             nextState = TaskState.needs(needs);
         }
@@ -76,11 +82,15 @@ public class CopyFromServerTask extends BaseTask<Long> {
             nextState = TaskState.read();
         }
         else {
-            setError(new IllegalStateException());
+            nextState = TaskState.finished();
         }
     }
 
     public void onWrite(final FrontEndMessage fe, final ByteBuffer readBuffer) {
+        if(getHasErrorResponse()) {
+            return;
+        }
+        
         if(copyOutResponse == null) {
             nextState = TaskState.read();
         }
