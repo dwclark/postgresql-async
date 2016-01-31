@@ -9,17 +9,27 @@ public class CopyData extends Response {
     private int copied = 0;
     public int getCopied() { return copied; }
     public int getRemaining() { return getSize() - copied; }
+
+    private final ByteBuffer buffer;
     
     public CopyData(final ByteBuffer buffer) {
         super(buffer);
+        this.buffer = buffer;
     }
 
-    public void toChannel(final ByteBuffer buffer, final WritableByteChannel channel) {
+    public void toChannel(final WritableByteChannel channel) {
+        final int currentLimit = buffer.limit();
         try {
-            copied += channel.write(buffer);
+            buffer.limit(buffer.position() + getSize());
+            while(getRemaining() > 0) {
+                copied += channel.write(buffer);
+            }
         }
         catch(IOException ex) {
             throw new RuntimeException(ex);
+        }
+        finally {
+            buffer.limit(currentLimit);
         }
     }
 }

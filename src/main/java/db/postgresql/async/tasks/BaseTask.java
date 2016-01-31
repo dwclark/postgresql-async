@@ -33,6 +33,10 @@ public abstract class BaseTask<T> implements Task<T> {
     public boolean isExecuted() {
         return executed;
     }
+
+    public boolean getHasErrorResponse() {
+        return ((error != null) && (error instanceof PostgresqlException));
+    }
     
     public CommandStatus getCommandStatus() {
         return commandComplete;
@@ -89,6 +93,7 @@ public abstract class BaseTask<T> implements Task<T> {
             }
             else if(resp.getBackEnd() == BackEnd.ErrorResponse) {
                 onError((Notice) resp);
+                keepGoing = false;
             }
             else {
                 keepGoing = processor.test(resp);
