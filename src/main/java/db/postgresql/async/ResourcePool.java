@@ -5,4 +5,5 @@ public interface ResourcePool<T> {
     T guaranteed();
     void good(T o);
     void bad(T o);
+    void shutdown();
 }

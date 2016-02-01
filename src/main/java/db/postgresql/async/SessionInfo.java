@@ -1,8 +1,10 @@
 package db.postgresql.async;
 
+import db.postgresql.async.messages.Notification;
 import db.postgresql.async.pginfo.PgTypeRegistry;
 import db.postgresql.async.pginfo.Registry;
 import db.postgresql.async.serializers.*;
+import db.postgresql.async.serializers.PostgresNumeric;
 import db.postgresql.async.types.*;
 import java.math.BigDecimal;
 import java.net.InetSocketAddress;
@@ -24,7 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import db.postgresql.async.serializers.PostgresNumeric;
+import java.util.function.Consumer;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
 public class SessionInfo {
@@ -80,8 +82,32 @@ public class SessionInfo {
 
     private final List<Mapping> mappings;
     
-    public final List<Mapping> getMappings() {
+    public List<Mapping> getMappings() {
         return mappings;
+    }
+
+    private final boolean supportListening;
+
+    public boolean getSupportListening() {
+        return supportListening;
+    }
+
+    private final long listeningTimeout;
+
+    public long getListeningTimeout() {
+        return listeningTimeout;
+    }
+
+    private final TimeUnit listeningUnits;
+
+    public TimeUnit getListeningUnits() {
+        return listeningUnits;
+    }
+
+    private final Map<String,Consumer<Notification>> listeners;
+
+    public Map<String,Consumer<Notification>> getListeners() {
+        return listeners;
     }
 
     public Map<String,String> getInitKeysValues() {
@@ -114,6 +140,10 @@ public class SessionInfo {
         this.backOffUnits = builder.backOffUnits;
         this.registry = builder.registry;
         this.mappings = Collections.unmodifiableList(builder.mappings);
+        this.supportListening = builder.supportListening;
+        this.listeningTimeout = builder.listeningTimeout;
+        this.listeningUnits = builder.listeningUnits;
+        this.listeners = Collections.unmodifiableMap(builder.listeners);
     }
 
     public static class Builder {
@@ -133,6 +163,10 @@ public class SessionInfo {
         private long backOff = 60L;
         private TimeUnit backOffUnits = TimeUnit.SECONDS;
         private PgTypeRegistry registry = new PgTypeRegistry();
+        private boolean supportListening = false;
+        private long listeningTimeout = 1L;
+        private TimeUnit listeningUnits = TimeUnit.SECONDS;
+        private Map<String,Consumer<Notification>> listeners = new LinkedHashMap<>();
 
         public void addDefaultMappings() {
             mapping(BigDecimal.class, "pg_catalog.numeric",
@@ -319,6 +353,30 @@ public class SessionInfo {
             mapping(enumType, pgName, writer, reader);
         }
 
+        public Builder supportListening(final boolean val) {
+            this.supportListening = val;
+            return this;
+        }
+
+        public Builder listeningTimeout(final long val) {
+            this.listeningTimeout = val;
+            return this;
+        }
+
+        public Builder listeningUnits(final TimeUnit val) {
+            this.listeningUnits = val;
+            return this;
+        }
+
+        public Builder listener(final String key, final Consumer<Notification> value) {
+            if(key == null || key.equals("")) {
+                throw new IllegalArgumentException("Notification cannot be null or blank");
+            }
+            
+            listeners.put(key, value);
+            return supportListening(true);
+        }
+
         public SessionInfo build() {
             if(user == null) {
                 throw new IllegalStateException("You must specify a user");
@@ -333,6 +391,10 @@ public class SessionInfo {
             }
 
             return new SessionInfo(this);
+        }
+
+        public Session toSession() {
+            return new Session(build());
         }
     }
 }

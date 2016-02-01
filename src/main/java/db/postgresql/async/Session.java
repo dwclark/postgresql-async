@@ -9,6 +9,7 @@ import db.postgresql.async.tasks.NotificationTask;
 import db.postgresql.async.tasks.SimpleTask;
 import db.postgresql.async.tasks.StartupTask;
 import db.postgresql.async.tasks.TerminateTask;
+import db.postgresql.async.messages.Notification;
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -90,7 +92,7 @@ public class Session {
             }
         }
 
-        private void shutdown() {
+        public void shutdown() {
             shuttingDown = true;
             lock.lock();
             IntStream
@@ -158,6 +160,16 @@ public class Session {
     }
 
     private class Dedicated implements ResourcePool<IO> {
+
+        public final NotificationTask task;
+        public volatile IO io;
+        private volatile CountDownLatch latch;
+        
+        public Dedicated(final NotificationTask task) {
+            this.task = task;
+            recover();
+        }
+        
         public IO fast() {
             throw new UnsupportedOperationException("You can't acquire IO channels from the dedicated pool");
         }
@@ -172,9 +184,8 @@ public class Session {
 
         private void recover() {
             try {
-                final IO io = startupIO();
-                final NotificationTask notificationTask = notificationSupplier.get();
-                io.execute(notificationTask);
+                io = startupIO();
+                io.setPool(this).execute(task);
             }
             catch(IOException | InterruptedException | ExecutionException ex) {
                 recoveryService.schedule(() -> recover(), sessionInfo.getBackOff(), sessionInfo.getBackOffUnits());
@@ -182,7 +193,21 @@ public class Session {
         }
 
         public void bad(final IO io) {
-            recover();
+            if(latch != null) {
+                recover();
+            }
+            else {
+                latch.countDown();
+            }
+        }
+
+        public void shutdown() {
+            try {
+                latch = new CountDownLatch(1);
+                task.shutdown();
+                latch.await();
+            }
+            catch(InterruptedException e) {}
         }
     }
 
@@ -192,12 +217,11 @@ public class Session {
     private final ExecutorService busyService;
     private final AsynchronousChannelGroup channelGroup;
     private final IOPool ioPool;
-    private final Supplier<NotificationTask> notificationSupplier;
+    private final Dedicated dedicatedPool;
     
-    public Session(final SessionInfo sessionInfo, final Supplier<NotificationTask> notificationSupplier) {
+    public Session(final SessionInfo sessionInfo) {
         try {
             this.sessionInfo = sessionInfo;
-            this.notificationSupplier = notificationSupplier;
             this.recoveryService = Executors.newSingleThreadScheduledExecutor();
             this.ioService = new ThreadPoolExecutor(sessionInfo.getMinChannels(), sessionInfo.getMaxChannels(),
                                                     60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
@@ -205,9 +229,19 @@ public class Session {
             this.busyService = Executors.newSingleThreadExecutor(new PrefixFactory("Session-Busy-Pool"));
             this.channelGroup = AsynchronousChannelGroup.withThreadPool(ioService);
             this.ioPool = new IOPool();
+            this.dedicatedPool = dedicatedPool();
         }
         catch(IOException ex) {
             throw new RuntimeException(ex);
+        }
+    }
+
+    private Dedicated dedicatedPool() {
+        if(sessionInfo.getSupportListening()) {
+            return new Dedicated(new NotificationTask(sessionInfo));
+        }
+        else {
+            return null;
         }
     }
 
@@ -228,6 +262,9 @@ public class Session {
 
     public void shutdown() {
         ioPool.shutdown();
+        if(dedicatedPool != null) {
+            dedicatedPool.shutdown();
+        }
     }
 
     public int getIoCount() {
@@ -242,11 +279,10 @@ public class Session {
         task.executed();
         final IO io = ioPool.fast();
         if(io != null) {
-            io.onCompleteToPool(ioPool);
-            io.execute(task);
+            io.setPool(ioPool).execute(task);
         }
         else {
-            busyService.execute(() -> ioPool.guaranteed().onCompleteToPool(ioPool).execute(task));
+            busyService.execute(() -> ioPool.guaranteed().setPool(ioPool).execute(task));
         }
         
         return task.getFuture();
@@ -266,5 +302,17 @@ public class Session {
 
     public <T> CompletableFuture<T> call(final TransactionTask.Builder<T> builder) {
         return execute(builder.build());
+    }
+
+    public void listen(final String channel, final Consumer<Notification> consumer) {
+        if(dedicatedPool != null) {
+            dedicatedPool.task.add(channel, consumer);
+        }
+    }
+
+    public void unlisten(final String channel) {
+        if(dedicatedPool != null) {
+            dedicatedPool.task.remove(channel);
+        }
     }
 }

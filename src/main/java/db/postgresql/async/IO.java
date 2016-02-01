@@ -21,29 +21,6 @@ import java.util.function.Consumer;
 
 public class IO {
 
-    public static interface IOCompletion {
-        void success();
-        void failure();
-    }
-
-    public IO onCompleteToPool(final ResourcePool<IO> pool) {
-        ioCompletionHandler = new IOCompletion() {
-                public void success() { pool.good(IO.this); }
-                public void failure() { pool.bad(IO.this); }
-            };
-        return this;
-    }
-
-    private static final IOCompletion DO_NOTHING = new IOCompletion() {
-            public void success() { }
-            public void failure() { }
-        };
-    
-    public IO onCompleteDoNothing() {
-        ioCompletionHandler = DO_NOTHING;
-        return this;
-    }
-    
     private final SessionInfo sessionInfo;
     private final FrontEndMessage feMessage;
     private final AsynchronousSocketChannel channel;
@@ -56,8 +33,17 @@ public class IO {
     private Notice lastNotice;
     private final Map<BackEnd,Consumer<Response>> oobHandlers = new EnumMap<>(BackEnd.class);
     private KeyData keyData;
-    private IOCompletion ioCompletionHandler = DO_NOTHING;
+    private ResourcePool<IO> pool;
 
+    public IO setPool(final ResourcePool<IO> pool) {
+        this.pool = pool;
+        return this;
+    }
+
+    public ResourcePool<IO> getPool() {
+        return pool;
+    }
+    
     public void setKeyData(final KeyData val) {
         this.keyData = val;
     }
@@ -120,7 +106,7 @@ public class IO {
             else {
                 task.onFail(ex);
                 close();
-                ioCompletionHandler.failure();
+                pool.bad(IO.this);
             }
         }
     }
@@ -191,7 +177,7 @@ public class IO {
             channel.write(writeBuffer, task.getTimeout(), task.getUnits(), task, writer);
         }
         else if(state.next == TaskState.Next.FINISHED) {
-            ioCompletionHandler.success();
+            pool.good(this);
         }
         else if(state.next == TaskState.Next.TERMINATE) {
             close();
@@ -204,7 +190,7 @@ public class IO {
     public <T> void execute(final CompletableTask<T> task) {
         if(!channel.isOpen()) {
             task.getFuture().completeExceptionally(new ClosedChannelException());
-            ioCompletionHandler.failure();
+            pool.bad(this);
         }
 
         readBuffer.clear();

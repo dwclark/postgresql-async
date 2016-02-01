@@ -1,5 +1,6 @@
 package db.postgresql.async.tasks;
 
+import db.postgresql.async.SessionInfo;
 import db.postgresql.async.CompletableTask;
 import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;
@@ -9,11 +10,11 @@ import db.postgresql.async.messages.Notification;
 import db.postgresql.async.messages.Response;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
-import java.util.Queue;
 import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import static java.util.stream.Collectors.joining;
@@ -21,26 +22,18 @@ import static java.util.stream.Collectors.joining;
 //TODO: enforce write checks in front end message
 public class NotificationTask extends BaseTask<Void> implements CompletableTask<Void> {
 
-    protected final Set<String> subscribed = new CopyOnWriteArraySet<>();
-    protected final Set<String> unsubscribe = new CopyOnWriteArraySet<>();
-    protected final Set<String> subscribe = new CopyOnWriteArraySet<>();
-    private final Consumer<Notification> onNotification;
+    private final Consumer<Notification> DELETE = (n) -> {};
+    private final ConcurrentMap<String,Consumer<Notification>> subscribed = new ConcurrentHashMap<>(50, 0.75f, 1);
+    private final ConcurrentMap<String,Consumer<Notification>> waiting = new ConcurrentHashMap<>(5, 0.9f, 1);
+    private volatile boolean shuttingDown = false;
 
-    public NotificationTask(final Consumer<Notification> onNotification) {
-        this(onNotification, 5L, TimeUnit.SECONDS);
-    }
-    
-    public NotificationTask(final Consumer<Notification> onNotification, 
-                            final long timeout, final TimeUnit units) {
-        super(timeout, units);
-        this.onNotification = onNotification;
+    public NotificationTask(final SessionInfo sessionInfo) {
+        super(sessionInfo.getListeningTimeout(), sessionInfo.getListeningUnits());
+        waiting.putAll(sessionInfo.getListeners());
     }
 
-    public NotificationTask(final Consumer<Notification> onNotification, Set<String> subscribe,
-                            final long timeout, final TimeUnit units) {
-        super(timeout, units);
-        this.subscribe.addAll(subscribe);
-        this.onNotification = onNotification;
+    public void shutdown() {
+        shuttingDown = true;
     }
     
     public void onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
@@ -52,7 +45,12 @@ public class NotificationTask extends BaseTask<Void> implements CompletableTask<
         case CommandComplete:
             return true;
         case NotificationResponse:
-            onNotification.accept((Notification) resp);
+            final Notification n = (Notification) resp;
+            final Consumer<Notification> consumer = subscribed.get(n.getChannel());
+            if(consumer != null) {
+                consumer.accept(n);
+            }
+
             return true;
         case ReadyForQuery:
             return false;
@@ -62,9 +60,14 @@ public class NotificationTask extends BaseTask<Void> implements CompletableTask<
     }
 
     private void maintenance(final FrontEndMessage fe) {
-        final String toDo = getMaintenancePayload();
-        if(toDo.length() > 0) {
-            fe.query(toDo);
+        if(shuttingDown) {
+            nextState = TaskState.terminate();
+            return;
+        }
+        
+        if(waiting.size() > 0) {
+            fe.query(getMaintenancePayload());
+            alterListeners();
             nextState = TaskState.write();
         }
         else {
@@ -81,6 +84,7 @@ public class NotificationTask extends BaseTask<Void> implements CompletableTask<
         }
     }
 
+    @Override
     public void onRead(final FrontEndMessage fe, final ByteBuffer readBuffer) {
         computeNextState(pump(readBuffer, this::readProcessor), fe);
     }
@@ -90,27 +94,39 @@ public class NotificationTask extends BaseTask<Void> implements CompletableTask<
         maintenance(fe);
     }
 
-    public void addSubscriptions(final Set<String> channels) {
-        subscribe.addAll(channels);
+    public void add(final String key, final Consumer<Notification> consumer) {
+        waiting.put(key, consumer);
     }
 
-    public void removeSubscriptions(final Set<String> channels) {
-        unsubscribe.addAll(channels);
+    public void remove(final String key) {
+        waiting.put(key, DELETE);
     }
 
-    public final String getMaintenancePayload() {
-        String toDo = "";
-        if(subscribe.size() > 0) {
-            toDo += subscribe.stream().collect(joining(";", "listen ", ""));
-            subscribed.addAll(subscribe);
+    private String getMaintenancePayload() {
+        final StringBuilder builder = new StringBuilder();
+        for(Map.Entry<String,Consumer<Notification>> entry : waiting.entrySet()) {
+            if(entry.getValue() == DELETE) {
+                builder.append("listen ").append(entry.getKey()).append(";");
+            }
+            else {
+                builder.append("unlisten ").append(entry.getKey()).append(";");
+            }
         }
 
-        if(unsubscribe.size() > 0) {
-            toDo += unsubscribe.stream().collect(joining(";", "unlisten ", ""));
-            subscribed.removeAll(unsubscribe);
+        return builder.toString();
+    }
+
+    private void alterListeners() {
+        for(Map.Entry<String,Consumer<Notification>> entry : waiting.entrySet()) {
+            if(entry.getValue() == DELETE) {
+                subscribed.remove(entry.getKey());
+            }
+            else {
+                subscribed.put(entry.getKey(), entry.getValue());
+            }
         }
 
-        return toDo;
+        waiting.clear();
     }
 
     public Void getResult() {

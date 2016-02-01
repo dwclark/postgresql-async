@@ -9,28 +9,40 @@ class Helper {
     static final int port = 5432;
     static final String database = 'testdb';
     static final enumMap = [ (DaysOfWeek): 'public.days_of_week', (Moods): 'public.moods' ];
-    
-    static addEnums(builder) {
-        builder.enumMapping(DaysOfWeek, 'public.days_of_week');
-        builder.enumMapping(Moods, 'public.moods');
+
+    static basic() {
+        new SessionInfo.Builder().with {
+            host '127.0.0.1'
+            port 5432
+            database 'testdb'
+            channels 1, 5
+            enumMapping DaysOfWeek, 'public.days_of_week'
+            enumMapping Moods, 'public.moods'
+            return it
+        }
     }
 
     public static Session noAuth() {
-        SessionInfo.Builder builder = new SessionInfo.Builder().host(host).port(port).database(database).channels(1, 5);
-        addEnums(builder);
-        return new Session(builder.user('noauth').build(), null);
+         basic().with {
+            user 'noauth'
+            toSession()
+        }
     }
 
     public static Session clearAuth() {
-        SessionInfo.Builder builder = new SessionInfo.Builder().host(host).port(port).database(database);
-        addEnums(builder);
-        return new Session(builder.user('clearauth').password('clearauth').build(), null);
+        basic().with {
+            user 'clearauth'
+            password 'clearauth'
+            toSession()
+        }
     }
 
     public static Session md5Auth() {
-        SessionInfo.Builder builder = new SessionInfo.Builder().host(host).port(port).database(database);
-        addEnums(builder);
-        return new Session(builder.user('md5auth').password('md5auth').build(), null);
+        basic().with {
+            user 'md5auth'
+            password 'md5auth'
+            toSession()
+        }
     }
 
     public static Session noAuthLoadTypes() {
