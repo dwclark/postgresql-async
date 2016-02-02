@@ -237,7 +237,7 @@ public class Session {
     }
 
     private Dedicated dedicatedPool() {
-        if(sessionInfo.getSupportListening()) {
+        if(sessionInfo.getNotifications()) {
             return new Dedicated(new NotificationTask(sessionInfo));
         }
         else {
@@ -304,15 +304,21 @@ public class Session {
         return execute(builder.build());
     }
 
-    public void listen(final String channel, final Consumer<Notification> consumer) {
-        if(dedicatedPool != null) {
-            dedicatedPool.task.add(channel, consumer);
+    public CompletableFuture<Void> listen(final String channel, final Consumer<Notification> consumer) {
+        if(dedicatedPool == null) {
+            throw new UnsupportedOperationException("Notifications are not configured for this session");
+        }
+        else {
+            return dedicatedPool.task.add(channel, consumer);
         }
     }
 
-    public void unlisten(final String channel) {
-        if(dedicatedPool != null) {
-            dedicatedPool.task.remove(channel);
+    public CompletableFuture<Void> unlisten(final String channel) {
+        if(dedicatedPool == null) {
+            throw new UnsupportedOperationException("Notifications are not configured for this session");
+        }
+        else {
+            return dedicatedPool.task.remove(channel);
         }
     }
 }
