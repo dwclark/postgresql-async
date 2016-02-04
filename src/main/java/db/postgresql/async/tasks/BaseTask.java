@@ -93,7 +93,7 @@ public abstract class BaseTask<T> implements Task<T> {
             }
             else if(resp.getBackEnd() == BackEnd.ErrorResponse) {
                 onError((Notice) resp);
-                keepGoing = false;
+                keepGoing = true;
             }
             else {
                 keepGoing = processor.test(resp);

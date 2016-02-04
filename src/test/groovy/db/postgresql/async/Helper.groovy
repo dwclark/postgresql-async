@@ -50,7 +50,7 @@ class Helper {
         basic().with {
             user 'noauth'
             notifications true
-            notificationsTimeout 200L, TimeUnit.MILLISECONDS
+            notificationsTimeout 100L, TimeUnit.MILLISECONDS
             toSession()
         }
     }

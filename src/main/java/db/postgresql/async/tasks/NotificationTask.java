@@ -27,6 +27,7 @@ public class NotificationTask extends BaseTask<Void> implements CompletableTask<
         final Consumer<Notification> consumer;
         final String channel;
         final CompletableFuture<Void> future;
+        boolean submitted = false;
 
         public Action(final String channel, final Consumer<Notification> consumer) {
             this.channel = channel;
@@ -40,9 +41,7 @@ public class NotificationTask extends BaseTask<Void> implements CompletableTask<
     private final List<Action> actions = new CopyOnWriteArrayList<>();
     private volatile boolean shuttingDown = false;
 
-    public NotificationTask(final SessionInfo sessionInfo) {
-        super(sessionInfo.getNotificationsTimeout(), sessionInfo.getNotificationsUnits());
-    }
+    public NotificationTask() { }
 
     public void shutdown() {
         shuttingDown = true;
@@ -52,34 +51,40 @@ public class NotificationTask extends BaseTask<Void> implements CompletableTask<
         switch(resp.getBackEnd()) {
         case CommandComplete:
             return true;
-        case ReadyForQuery:
-            return complete((ReadyForQuery) resp);
         case NotificationResponse:
-            return complete((Notification) resp);
+            complete((Notification) resp);
+            return true;
+        case ReadyForQuery:
+            complete((ReadyForQuery) resp);
+            return false;
         default:
             throw new UnsupportedOperationException("Can't handle back end of type " + resp.getBackEnd());
         }
     }
 
-    private boolean complete(final ReadyForQuery rfq) {
+    private void complete(final ReadyForQuery rfq) {
         if(actions.size() == 0) {
-            return true;
+            return;
         }
 
-        final Action action = actions.remove(0);
-        subscribed.remove(action.channel);
-        action.future.complete(null);
+        final Action action = actions.get(0);
+        if(!action.submitted) {
+            return;
+        }
 
-        return actions.size() == 0;
+        if(action.consumer == DELETE) {
+            subscribed.remove(action.channel);
+        }
+
+        actions.remove(0);
+        action.future.complete(null);
     }
 
-    private boolean complete(final Notification n) {
+    private void complete(final Notification n) {
         final Consumer<Notification> consumer = subscribed.get(n.getChannel());
         if(consumer != null) {
             consumer.accept(n);
         }
-
-        return actions.size() == 0;
     }
 
     private void maintenance(final FrontEndMessage fe) {
@@ -97,26 +102,34 @@ public class NotificationTask extends BaseTask<Void> implements CompletableTask<
                 fe.query(String.format("listen %s", current.channel));
                 subscribed.put(current.channel, current.consumer);
             }
-                
+
+            actions.get(0).submitted = true;
             nextState = TaskState.write();
         }
-        else {
-            nextState = TaskState.read();
-        } 
     }
 
     private void computeNextState(final int needs, final FrontEndMessage fe) {
         if(needs > 0) {
             nextState = TaskState.needs(needs);
         }
-        else {
+        else if(actions.size() > 0) {
             maintenance(fe);
+        }
+        else {
+            nextState = TaskState.finished();
         }
     }
 
     @Override
     public void onStart(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        maintenance(fe);
+        if(actions.size() > 0) {
+            maintenance(fe);
+        }
+        else {
+            //force at least one trip to server and back
+            fe.sync();
+            nextState = TaskState.write();
+        }
     }
 
     @Override
@@ -124,11 +137,6 @@ public class NotificationTask extends BaseTask<Void> implements CompletableTask<
         computeNextState(pump(readBuffer, this::readProcessor), fe);
     }
     
-    @Override
-    public void onTimeout(final FrontEndMessage fe, final ByteBuffer readBuffer) {
-        maintenance(fe);
-    }
-
     public CompletableFuture<Void> add(final String channel, final Consumer<Notification> consumer) {
         final Action action = new Action(channel, consumer);
         actions.add(action);

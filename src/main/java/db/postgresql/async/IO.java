@@ -68,17 +68,11 @@ public class IO {
     };
 
     public IO(final SessionInfo sessionInfo, final AsynchronousSocketChannel channel) {
-        this(sessionInfo, channel, failNotification);
-    }
-    
-    public IO(final SessionInfo sessionInfo, final AsynchronousSocketChannel channel,
-              final Consumer<Response> handleNotifications) {
         this.sessionInfo = sessionInfo;
         this.feMessage = new FrontEndMessage(sessionInfo.getEncoding());
         feMessage.buffer = writeBuffer;
         this.channel = channel;
         oobHandlers.put(BackEnd.NoticeResponse, this::handleNotice);
-        oobHandlers.put(BackEnd.NotificationResponse, handleNotifications);
         oobHandlers.put(BackEnd.ParameterStatus, this::handleParameterStatus);
     }
 
@@ -188,6 +182,10 @@ public class IO {
     }
     
     public <T> void execute(final CompletableTask<T> task) {
+        if(pool == null) {
+            task.getFuture().completeExceptionally(new IllegalStateException());
+        }
+        
         if(!channel.isOpen()) {
             task.getFuture().completeExceptionally(new ClosedChannelException());
             pool.bad(this);
