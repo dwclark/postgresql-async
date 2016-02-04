@@ -86,28 +86,22 @@ public class SessionInfo {
         return mappings;
     }
 
-    private final boolean supportListening;
+    private final boolean notifications;
 
-    public boolean getSupportListening() {
-        return supportListening;
+    public boolean getNotifications() {
+        return notifications;
     }
 
-    private final long listeningTimeout;
+    private final long notificationsTimeout;
 
-    public long getListeningTimeout() {
-        return listeningTimeout;
+    public long getNotificationsTimeout() {
+        return notificationsTimeout;
     }
 
-    private final TimeUnit listeningUnits;
+    private final TimeUnit notificationsUnits;
 
-    public TimeUnit getListeningUnits() {
-        return listeningUnits;
-    }
-
-    private final Map<String,Consumer<Notification>> listeners;
-
-    public Map<String,Consumer<Notification>> getListeners() {
-        return listeners;
+    public TimeUnit getNotificationsUnits() {
+        return notificationsUnits;
     }
 
     public Map<String,String> getInitKeysValues() {
@@ -140,10 +134,9 @@ public class SessionInfo {
         this.backOffUnits = builder.backOffUnits;
         this.registry = builder.registry;
         this.mappings = Collections.unmodifiableList(builder.mappings);
-        this.supportListening = builder.supportListening;
-        this.listeningTimeout = builder.listeningTimeout;
-        this.listeningUnits = builder.listeningUnits;
-        this.listeners = Collections.unmodifiableMap(builder.listeners);
+        this.notifications = builder.notifications;
+        this.notificationsTimeout = builder.notificationsTimeout;
+        this.notificationsUnits = builder.notificationsUnits;
     }
 
     public static class Builder {
@@ -163,10 +156,9 @@ public class SessionInfo {
         private long backOff = 60L;
         private TimeUnit backOffUnits = TimeUnit.SECONDS;
         private PgTypeRegistry registry = new PgTypeRegistry();
-        private boolean supportListening = false;
-        private long listeningTimeout = 1L;
-        private TimeUnit listeningUnits = TimeUnit.SECONDS;
-        private Map<String,Consumer<Notification>> listeners = new LinkedHashMap<>();
+        private boolean notifications = false;
+        private long notificationsTimeout = 1L;
+        private TimeUnit notificationsUnits = TimeUnit.SECONDS;
 
         public void addDefaultMappings() {
             mapping(BigDecimal.class, "pg_catalog.numeric",
@@ -353,28 +345,15 @@ public class SessionInfo {
             mapping(enumType, pgName, writer, reader);
         }
 
-        public Builder supportListening(final boolean val) {
-            this.supportListening = val;
+        public Builder notifications(final boolean val) {
+            this.notifications = val;
             return this;
         }
 
-        public Builder listeningTimeout(final long val) {
-            this.listeningTimeout = val;
+        public Builder notificationsTimeout(final long val, final TimeUnit units) {
+            this.notificationsTimeout = val;
+            this.notificationsUnits = units;
             return this;
-        }
-
-        public Builder listeningUnits(final TimeUnit val) {
-            this.listeningUnits = val;
-            return this;
-        }
-
-        public Builder listener(final String key, final Consumer<Notification> value) {
-            if(key == null || key.equals("")) {
-                throw new IllegalArgumentException("Notification cannot be null or blank");
-            }
-            
-            listeners.put(key, value);
-            return supportListening(true);
         }
 
         public SessionInfo build() {

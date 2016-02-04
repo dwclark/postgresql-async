@@ -2,6 +2,7 @@ package db.postgresql.async;
 
 import spock.lang.*;
 import db.postgresql.async.enums.*;
+import java.util.concurrent.TimeUnit;
 
 class Helper {
 
@@ -41,6 +42,15 @@ class Helper {
         basic().with {
             user 'md5auth'
             password 'md5auth'
+            toSession()
+        }
+    }
+
+    public static Session noAuthNotifications() {
+        basic().with {
+            user 'noauth'
+            notifications true
+            notificationsTimeout 100L, TimeUnit.MILLISECONDS
             toSession()
         }
     }

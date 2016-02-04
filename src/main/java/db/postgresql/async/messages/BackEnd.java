@@ -21,7 +21,7 @@ public enum BackEnd {
     FunctionCallResponse(FunctionCallResponse::new),
     NoData(Response::new),
     NoticeResponse(Notice::new, true),
-    NotificationResponse(Notification::new, true),
+    NotificationResponse(Notification::new),
     ParameterDescription(ParameterDescription::new),
     ParameterStatus(ParameterStatus::new, true),
     ParseComplete(Response::new),

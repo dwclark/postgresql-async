@@ -80,12 +80,11 @@ public class Session {
                 }
 
 
-                IO io = startupIO();
+                IO io = startupIO(this);
                 ++total;
-                good(io);
             }
             catch(IOException | InterruptedException | ExecutionException ex) {
-                recoveryService.schedule(() -> add(), sessionInfo.getBackOff(), sessionInfo.getBackOffUnits());
+                scheduler.schedule(() -> add(), sessionInfo.getBackOff(), sessionInfo.getBackOffUnits());
             }
             finally {
                 lock.unlock();
@@ -125,7 +124,7 @@ public class Session {
             }
 
             if(total < sessionInfo.getMaxChannels()) {
-                recoveryService.submit(() -> add());
+                scheduler.submit(() -> add());
             }
 
             return null;
@@ -150,7 +149,7 @@ public class Session {
                 
                 --total;
                 if(total < sessionInfo.getMinChannels()) {
-                    recoveryService.schedule(() -> add(), sessionInfo.getBackOff(), sessionInfo.getBackOffUnits());
+                    scheduler.schedule(() -> add(), sessionInfo.getBackOff(), sessionInfo.getBackOffUnits());
                 }
             }
             finally {
@@ -167,7 +166,6 @@ public class Session {
         
         public Dedicated(final NotificationTask task) {
             this.task = task;
-            recover();
         }
         
         public IO fast() {
@@ -179,21 +177,28 @@ public class Session {
         }
         
         public void good(final IO o) {
-            //NO-OP
+            if(latch == null) {
+                final Runnable r = () -> io.setPool(this).execute(task);
+                scheduler.schedule(r,
+                                   sessionInfo.getNotificationsTimeout(),
+                                   sessionInfo.getNotificationsUnits());
+            }
+            else {
+                latch.countDown();
+            }
         }
 
         private void recover() {
             try {
-                io = startupIO();
-                io.setPool(this).execute(task);
+                this.io = startupIO(this);
             }
             catch(IOException | InterruptedException | ExecutionException ex) {
-                recoveryService.schedule(() -> recover(), sessionInfo.getBackOff(), sessionInfo.getBackOffUnits());
+                scheduler.schedule(() -> recover(), sessionInfo.getBackOff(), sessionInfo.getBackOffUnits());
             }
         }
 
         public void bad(final IO io) {
-            if(latch != null) {
+            if(latch == null) {
                 recover();
             }
             else {
@@ -213,7 +218,7 @@ public class Session {
 
     private final SessionInfo sessionInfo;
     private final ExecutorService ioService;
-    private final ScheduledExecutorService recoveryService;
+    private final ScheduledExecutorService scheduler;
     private final ExecutorService busyService;
     private final AsynchronousChannelGroup channelGroup;
     private final IOPool ioPool;
@@ -222,7 +227,7 @@ public class Session {
     public Session(final SessionInfo sessionInfo) {
         try {
             this.sessionInfo = sessionInfo;
-            this.recoveryService = Executors.newSingleThreadScheduledExecutor();
+            this.scheduler = Executors.newScheduledThreadPool(scheduledThreadCount(sessionInfo));
             this.ioService = new ThreadPoolExecutor(sessionInfo.getMinChannels(), sessionInfo.getMaxChannels(),
                                                     60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
                                                     new PrefixFactory("Session-IO-Pool"));
@@ -236,21 +241,32 @@ public class Session {
         }
     }
 
+    private static int scheduledThreadCount(final SessionInfo sessionInfo) {
+        if(sessionInfo.getNotifications()) {
+            return 2;
+        }
+        else {
+            return 1;
+        }
+    }
+
     private Dedicated dedicatedPool() {
-        if(sessionInfo.getSupportListening()) {
-            return new Dedicated(new NotificationTask(sessionInfo));
+        if(sessionInfo.getNotifications()) {
+            Dedicated d =  new Dedicated(new NotificationTask());
+            d.recover();
+            return d;
         }
         else {
             return null;
         }
     }
 
-    private IO startupIO() throws IOException, InterruptedException, ExecutionException {
+    private IO startupIO(final ResourcePool<IO> pool) throws IOException, InterruptedException, ExecutionException {
         final AsynchronousSocketChannel channel = AsynchronousSocketChannel.open(channelGroup);
         channel.connect(sessionInfo.getSocketAddress()).get();
         final IO io = new IO(sessionInfo, channel);
         final CompletableTask<KeyData> startupTask = new StartupTask(sessionInfo);
-        io.execute(startupTask);
+        io.setPool(pool).execute(startupTask);
         KeyData keyData = startupTask.getFuture().get();
         io.setKeyData(keyData);
         return io;
@@ -265,6 +281,8 @@ public class Session {
         if(dedicatedPool != null) {
             dedicatedPool.shutdown();
         }
+
+        scheduler.shutdown();
     }
 
     public int getIoCount() {
@@ -304,15 +322,21 @@ public class Session {
         return execute(builder.build());
     }
 
-    public void listen(final String channel, final Consumer<Notification> consumer) {
-        if(dedicatedPool != null) {
-            dedicatedPool.task.add(channel, consumer);
+    public CompletableFuture<Void> listen(final String channel, final Consumer<Notification> consumer) {
+        if(dedicatedPool == null) {
+            throw new UnsupportedOperationException("Notifications are not configured for this session");
+        }
+        else {
+            return dedicatedPool.task.add(channel, consumer);
         }
     }
 
-    public void unlisten(final String channel) {
-        if(dedicatedPool != null) {
-            dedicatedPool.task.remove(channel);
+    public CompletableFuture<Void> unlisten(final String channel) {
+        if(dedicatedPool == null) {
+            throw new UnsupportedOperationException("Notifications are not configured for this session");
+        }
+        else {
+            return dedicatedPool.task.remove(channel);
         }
     }
 }
