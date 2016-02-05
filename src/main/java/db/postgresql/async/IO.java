@@ -1,5 +1,6 @@
 package db.postgresql.async;
 
+import db.postgresql.async.buffers.BufferOps;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
 import db.postgresql.async.messages.KeyData;
@@ -27,8 +28,8 @@ public class IO {
     private final StatementCache statementCache = new StatementCache();
     private final Reader reader = new Reader();
     private final Writer writer = new Writer();
-    private final ByteBuffer writeBuffer = ByteBuffer.allocate(32 * 1024);
-    private ByteBuffer readBuffer = ByteBuffer.allocate(32 * 1024);
+    private final ByteBuffer writeBuffer;
+    private ByteBuffer readBuffer;
     private final Map<String,String> parameterStatuses = new LinkedHashMap<>();
     private Notice lastNotice;
     private final Map<BackEnd,Consumer<Response>> oobHandlers = new EnumMap<>(BackEnd.class);
@@ -68,6 +69,8 @@ public class IO {
     };
 
     public IO(final SessionInfo sessionInfo, final AsynchronousSocketChannel channel) {
+        this.writeBuffer = BufferOps.allocate(sessionInfo.getBufferSize(), sessionInfo.getDirectBuffers());
+        this.readBuffer =  BufferOps.allocate(sessionInfo.getBufferSize(), sessionInfo.getDirectBuffers());
         this.sessionInfo = sessionInfo;
         this.feMessage = new FrontEndMessage(sessionInfo.getEncoding());
         feMessage.buffer = writeBuffer;
