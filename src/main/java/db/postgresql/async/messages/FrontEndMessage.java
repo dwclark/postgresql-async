@@ -247,6 +247,11 @@ public class FrontEndMessage {
         return guard(FrontEnd.Query, () -> { putNullString(str); return true; });
     }
 
+    public boolean ssl() {
+        buffer.putInt(8).putInt(80877103 & 0xFFFF_FFFF);
+        return true;
+    }
+    
     public boolean sync() {
         return guard(FrontEnd.Sync, TRUE);
     }

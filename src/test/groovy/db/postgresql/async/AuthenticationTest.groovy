@@ -45,6 +45,17 @@ class AuthenticationTest extends Specification {
         session.shutdown();
     }
 
+    def "SSL with MD5 Auth"() {
+        setup:
+        Session session = Helper.sslMd5Auth();
+
+        expect:
+        session.ioCount == 1;
+
+        cleanup:
+        session.shutdown();
+    }
+
     def "MD5 Payload"() {
         setup:
         String user = 'david';
