@@ -1,9 +1,5 @@
 package db.postgresql.async;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLException;
 import db.postgresql.async.buffers.BufferOps;
 import db.postgresql.async.messages.BackEnd;
 import db.postgresql.async.messages.FrontEndMessage;
@@ -14,22 +10,27 @@ import db.postgresql.async.messages.Response;
 import db.postgresql.async.pginfo.StatementCache;
 import db.postgresql.async.serializers.SerializationContext;
 import db.postgresql.async.tasks.SslTask;
+import java.io.EOFException;
 import java.io.IOException;
+import java.nio.BufferOverflowException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.CompletionHandler;
 import java.nio.channels.InterruptedByTimeoutException;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.nio.channels.ClosedChannelException;
-import java.nio.BufferOverflowException;
-import java.nio.BufferUnderflowException;
-import java.io.EOFException;
+import java.util.function.Consumer;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.SSLException;
+
 public class IO {
 
     private final SessionInfo sessionInfo;
@@ -431,6 +432,8 @@ public class IO {
             catch(SSLException e) {
                 failed(e, Mode.WRITE);
             }
+
+            //support session re-negotiation??
         }
 
         @Override
@@ -470,6 +473,7 @@ public class IO {
             }
 
             super.readComplete(bytes);
+            //support session re-negotiation??
         }
     }
     
