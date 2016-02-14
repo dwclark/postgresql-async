@@ -55,6 +55,12 @@ class Helper {
         }
     }
 
+    public static Session sslMd5AuthLoadTypes() {
+        Session session = sslMd5Auth();
+        session.sessionInfo.registry.loadTypes(session);
+        return session;
+    }
+
     public static Session noAuthNotifications() {
         basic().with {
             user 'noauth'

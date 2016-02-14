@@ -16,7 +16,7 @@ class TypeLoadTest extends Specification {
     private static Session session;
     
     def setupSpec() {
-        session = Helper.noAuthLoadTypes();
+        session = Helper.sslMd5AuthLoadTypes();  //.noAuthLoadTypes();
     }
 
     def cleanupSpec() {

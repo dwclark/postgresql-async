@@ -461,10 +461,6 @@ public class IO {
                     read();
                     return;
                 }
-                else if(isOverflow()) {
-                    failed(new BufferOverflowException(), Mode.READ);
-                    return;
-                }
                 else if(isClosed()) {
                     failed(new EOFException(), Mode.READ);
                 }
@@ -475,7 +471,6 @@ public class IO {
 
             super.readComplete(bytes);
         }
-
     }
     
     private void prepareThread() {
