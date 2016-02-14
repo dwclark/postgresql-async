@@ -3,6 +3,7 @@ package db.postgresql.async;
 import db.postgresql.async.messages.Notification;
 import db.postgresql.async.pginfo.PgTypeRegistry;
 import db.postgresql.async.pginfo.Registry;
+import db.postgresql.async.pginfo.SimpleSslContext;
 import db.postgresql.async.serializers.*;
 import db.postgresql.async.serializers.PostgresNumeric;
 import db.postgresql.async.types.*;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import javax.net.ssl.SSLContext;
 import static db.postgresql.async.serializers.SerializationContext.*;
 
 public class SessionInfo {
@@ -57,6 +59,9 @@ public class SessionInfo {
         
     private final boolean ssl;
     public boolean getSsl() { return ssl; }
+
+    private final SSLContext sslContext;
+    public SSLContext getSslContext() { return sslContext; }
     
     private final Locale numeric;
     public Locale getNumeric() { return numeric; }
@@ -138,6 +143,7 @@ public class SessionInfo {
         this.encoding = builder.encoding;
         this.postgresEncoding = builder.postgresEncoding;
         this.ssl = builder.ssl;
+        this.sslContext = builder.sslContext;
         this.numeric = builder.numeric;
         this.money = builder.money;
         this.minChannels = builder.minChannels;
@@ -175,6 +181,7 @@ public class SessionInfo {
         private TimeUnit notificationsUnits = TimeUnit.SECONDS;
         private int bufferSize = 32_768;
         private boolean directBuffers = true;
+        private SSLContext sslContext = null;
 
         public void addDefaultMappings() {
             mapping(BigDecimal.class, "pg_catalog.numeric",
@@ -314,7 +321,16 @@ public class SessionInfo {
             return this;
         }
 
-        public Builder ssl(final boolean val) { ssl = val; return this; }
+        public Builder ssl(final boolean val) {
+            ssl(val, SimpleSslContext.noCert());
+            return this;
+        }
+
+        public Builder ssl(final boolean val, final SSLContext ctx) {
+            ssl = val;
+            sslContext = ctx;
+            return this;
+        }
 
         public Builder numeric(final Locale val) { numeric = val; return this; }
 

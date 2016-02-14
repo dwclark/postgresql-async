@@ -22,5 +22,5 @@ compileJava {
 }
 
 test {
-    //systemProperty 'javax.net.debug', 'all'
+    systemProperty 'javax.net.debug', 'all'
 }

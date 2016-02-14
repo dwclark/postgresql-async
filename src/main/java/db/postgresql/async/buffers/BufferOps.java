@@ -21,11 +21,15 @@ public class BufferOps {
     }
 
     public static ByteBuffer allocate(final boolean direct) {
-            return allocate(DEFAULT_SIZE, direct);
+        return allocate(DEFAULT_SIZE, direct);
     }
 
     public static ByteBuffer sizeUp(final ByteBuffer src) {
-        final ByteBuffer ret = allocate(src.capacity() + 1, src.isDirect());
+        return sizeUp(src, 1);
+    }
+
+    public static ByteBuffer sizeUp(final ByteBuffer src, final int byAtLeast) {
+        final ByteBuffer ret = allocate(src.capacity() + byAtLeast, src.isDirect());
         final int position = src.position();
         src.flip();
         ret.put(src);
@@ -35,8 +39,9 @@ public class BufferOps {
     }
 
     public static ByteBuffer ensure(final ByteBuffer src, final int size) {
-        if(src.capacity() - src.position() < size) {
-            return sizeUp(src);
+        final int byAtLeast = size - (src.capacity() - src.position());
+        if(byAtLeast > 0) {
+            return sizeUp(src, byAtLeast);
         }
         else {
             return src;

@@ -46,6 +46,15 @@ class Helper {
         }
     }
 
+    public static Session sslMd5Auth() {
+        basic().with {
+            user 'md5auth'
+            password 'md5auth'
+            ssl true
+            toSession()
+        }
+    }
+
     public static Session noAuthNotifications() {
         basic().with {
             user 'noauth'
