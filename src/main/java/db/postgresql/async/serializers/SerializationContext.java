@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.nio.BufferOverflowException;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class SerializationContext {
 
@@ -17,7 +18,7 @@ public class SerializationContext {
         private static final int MIN = 1024;
         private static final int MAX = 1_073_741_824;
         private CharBuffer charBuffer = CharBuffer.allocate(MIN);
-        private Charset encoding = Charset.forName("UTF-8");
+        private Charset encoding = UTF_8;
         private CharsetEncoder encoder = null;
         private CharsetDecoder decoder = null;
 

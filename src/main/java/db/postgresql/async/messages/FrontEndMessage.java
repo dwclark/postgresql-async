@@ -16,6 +16,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Map;
 import static java.nio.ByteBuffer.wrap;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 //Not thread safe
 //Need to add buffer ops size up at that right places???
@@ -27,7 +28,7 @@ public class FrontEndMessage {
     public ByteBuffer buffer;
     
     public FrontEndMessage(final Charset encoding) {
-        this.encoding = (encoding == null) ? Charset.forName("UTF-8") : encoding;
+        this.encoding = (encoding == null) ? UTF_8 : encoding;
     }
     
     public int start(final FrontEnd fe) {

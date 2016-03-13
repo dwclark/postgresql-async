@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import javax.net.ssl.SSLContext;
 import static db.postgresql.async.serializers.SerializationContext.*;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class SessionInfo {
 
@@ -166,7 +167,7 @@ public class SessionInfo {
         private String host = "localhost";
         private int port = 5432;
         private String application = "db.postgresql.asyc";
-        private Charset encoding = Charset.forName("UTF-8");
+        private Charset encoding = UTF_8;
         private String postgresEncoding = "UTF8";
         private boolean ssl = false;
         private Locale numeric = Locale.getDefault();

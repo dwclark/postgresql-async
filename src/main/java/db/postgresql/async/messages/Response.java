@@ -2,6 +2,7 @@ package db.postgresql.async.messages;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class Response {
 
@@ -30,9 +31,8 @@ public class Response {
         final byte[] bytes = new byte[pos - start];
         buffer.get(bytes);
         buffer.get();
-        return new String(bytes, ASCII);
+        return new String(bytes, US_ASCII);
     }
 
     public static final byte NULL = (byte) 0;
-    public static final Charset ASCII = Charset.forName("US-ASCII");
 }
