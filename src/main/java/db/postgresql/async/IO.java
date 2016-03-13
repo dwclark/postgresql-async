@@ -31,8 +31,9 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 
-public class IO {
+public class IO implements Comparable<IO> {
 
+    private final long creationTime = System.currentTimeMillis();
     private final SessionInfo sessionInfo;
     private final FrontEndMessage feMessage;
     private final AsynchronousSocketChannel channel;
@@ -46,6 +47,18 @@ public class IO {
     private ResourcePool<IO> pool;
     private CompletableTask<?> currentTask;
     private Handler handler;
+
+    public int compareTo(final IO other) {
+        if(creationTime < other.creationTime) {
+            return -1;
+        }
+        else if(creationTime == other.creationTime) {
+            return 0;
+        }
+        else {
+            return 1;
+        }
+    }
 
     public IO setPool(final ResourcePool<IO> pool) {
         this.pool = pool;
