@@ -1,32 +1,32 @@
 class Ideas {
     
     @DefineUpdate
-    def insertIntoNumerals(Integer arabic, String roman) {
-        "insert into numerals (arabic, roman) values (${arabic}, ${roman})";
+    Integer insertIntoNumerals(Integer arabic, String roman) {
+        sql: "insert into numerals (arabic, roman) values (${arabic}, ${roman})";
     }
 
     @DefineUpdate
-    def deleteFromNumerals(Integer id) {
-        "delete from numerals where id = ${id}";
+    Integer deleteFromNumerals(Integer id) {
+        sql: "delete from numerals where id = ${id}";
     }
 
     @DefineQuery
-    def queryNumerals(final List accumulate, final Integer id) {
-        "select * from numerals where id > ${id}" { row ->
+    List queryNumerals(final List accumulate, final Integer id) {
+        sql: "select * from numerals where id > ${id}" { row ->
             accumulate << row.toMap();
         }
 
-        accumulate;
+        return accumulate;
     }
 
     @DefineQuery(accumulate=LIST, rowsAs=MAP)
-    def queryNumeralsById(final Integer id) {
-        "select * from numerals where id = ${id}";
+    List<Map> queryNumeralsById(final Integer id) {
+        sql: "select * from numerals where id = ${id}";
     }
 
     @DefineQuery(accumulate=LIST, rowsAs=MAP)
-    def selectAllNumerals() {
-        "select * from numerals";
+    List<Map> selectAllNumerals() {
+        sql: "select * from numerals";
     }
 
     @DefineTransaction(isolation=Isolation.SERIALIZABLE, mode=RwMode.READ_WRITE, deferrable=false)
@@ -56,10 +56,10 @@ class Ideas {
 
     @DefineTransaction //use defaults everywhere
     def simpleTransaction(final Integer arabic, final Integer idToDelete) {
-        context:
+        setup:
         String roman = romanFromArabic(arabic);
         
-        begin: insertIntoNumerals(arabic, roman);
+        then: insertIntoNumerals(arabic, roman);
         then: deleteFromNumerals(idToDelete);
         then: selectAllFromNumerals();
     }
