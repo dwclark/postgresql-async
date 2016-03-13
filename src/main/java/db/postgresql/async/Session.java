@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -27,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
@@ -66,50 +69,58 @@ public class Session {
     }
 
     private class IOPool implements ResourcePool<IO> {
-        private final Queue<IO> queue = new ConcurrentLinkedQueue<>();
-        private final Semaphore semaphore = new Semaphore(0);
-        private final Lock lock = new ReentrantLock();
-        private volatile int total = 0;
+        private final BlockingQueue<IO> queue = new PriorityBlockingQueue<>();
+        private final AtomicInteger total = new AtomicInteger();
         private volatile boolean shuttingDown = false;
         
         private void add() {
-            lock.lock();
+            if(shuttingDown) {
+                return;
+            }
+
+            int tmpTotal = total.get();
+            if(tmpTotal >= sessionInfo.getMaxChannels()) {
+                return;
+            }
+            
             try {
-                if(shuttingDown || total == sessionInfo.getMaxChannels()) {
-                    return;
+                if(total.compareAndSet(tmpTotal, tmpTotal + 1)) {
+                    IO io = startupIO(this);
                 }
-
-
-                IO io = startupIO(this);
-                ++total;
             }
             catch(IOException | InterruptedException | ExecutionException ex) {
+                total.decrementAndGet();
                 scheduler.schedule(() -> add(), sessionInfo.getBackOff(), sessionInfo.getBackOffUnits());
-            }
-            finally {
-                lock.unlock();
             }
         }
 
         public void shutdown() {
             shuttingDown = true;
-            lock.lock();
-            IntStream
-                .range(0, total).mapToObj( (i) -> {
-                        final IO io = guaranteed();
-                        final CompletableTask<Void> task = new TerminateTask().toCompletable();
-                        io.execute(task);
-                        return task.getFuture();
-                    })
-                .forEach((future) -> {
-                        try {
-                            future.get();
-                            --total;
-                        }
-                        catch(InterruptedException | ExecutionException e) {}
-                    });
-            
-            lock.unlock();
+            while(total.get() != 0) {
+                try {
+                    //Set timeout to not wait forever. It is possible that add() or
+                    //bad() operations were executed between shuttingDown was set to
+                    //false and we last got the total. This gives us a chance
+                    //to recount and decide if we need to continue.
+                    final IO io = queue.poll(100L, TimeUnit.MILLISECONDS);
+                    if(io == null) {
+                        continue;
+                    }
+
+                    if(!io.isOpen()) {
+                        //bad() returned after shutdown
+                        total.decrementAndGet();
+                        continue;
+                    }
+                    
+                    final CompletableTask<Void> task = new TerminateTask().toCompletable();
+                    io.execute(task);
+                    total.decrementAndGet();
+                }
+                catch(InterruptedException ie) {
+                    //swallow and try again
+                }
+            }
         }
         
         public IOPool() {
@@ -117,13 +128,22 @@ public class Session {
                 add();
             }
         }
+
+        private RuntimeException shutdownError() {
+            return new RuntimeException("Session is shutting down, only in flight transactions will complete");
+        }
         
         public IO fast() {
-            if(semaphore.tryAcquire()) {
-                return queue.poll();
+            if(shuttingDown) {
+                shutdownError();
             }
-
-            if(total < sessionInfo.getMaxChannels()) {
+            
+            final IO io = queue.poll();
+            if(io != null) {
+                return io;
+            }
+            
+            if(total.get() < sessionInfo.getMaxChannels()) {
                 scheduler.submit(() -> add());
             }
 
@@ -131,30 +151,44 @@ public class Session {
         }
 
         public IO guaranteed() {
-            semaphore.acquireUninterruptibly();
-            return queue.poll();
+            if(shuttingDown) {
+                throw shutdownError();
+            }
+            else {
+                try {
+                    return queue.take();
+                }
+                catch(InterruptedException ie) {
+                    throw new RuntimeException(ie);
+                }
+            }
         }
-
+        
         public void good(final IO io) {
-            queue.offer(io);
-            semaphore.release();
+            try {
+                queue.put(io);
+            }
+            catch(InterruptedException ie) {
+                throw new RuntimeException(ie);
+            }
         }
 
         public void bad(final IO io) {
-            lock.lock();
-            try {
-                if(shuttingDown) {
-                    return;
+            if(shuttingDown) {
+                //put it back in the pool, the cleanup operation won't re-close
+                //it but it needs to reclaim all outstanding io objects.
+                try {
+                    queue.put(io);
+                }
+                catch(InterruptedException ie) {
+                    throw new RuntimeException(ie);
                 }
                 
-                --total;
-                if(total < sessionInfo.getMinChannels()) {
-                    scheduler.schedule(() -> add(), sessionInfo.getBackOff(), sessionInfo.getBackOffUnits());
-                }
+                return;
             }
-            finally {
-                lock.unlock();
-            }
+
+            total.decrementAndGet();
+            scheduler.schedule(() -> add(), sessionInfo.getBackOff(), sessionInfo.getBackOffUnits());
         }
     }
 
@@ -277,16 +311,15 @@ public class Session {
     }
 
     public void shutdown() {
+        scheduler.shutdown();
         ioPool.shutdown();
         if(dedicatedPool != null) {
             dedicatedPool.shutdown();
         }
-
-        scheduler.shutdown();
     }
 
     public int getIoCount() {
-        return ioPool.total;
+        return ioPool.total.get();
     }
 
     public <T> CompletableFuture<T> execute(final CompletableTask<T> task) {
