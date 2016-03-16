@@ -1,18 +1,26 @@
 package db.postgresql.async;
 
-public class Field {
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import db.postgresql.async.messages.RowDescription;
+import db.postgresql.async.messages.FieldDescriptor;
 
-    private final int index;
-    private final String name;
-    private final Class type;
+public interface Field {
 
-    public int getIndex() { return index; }
-    public String getName() { return name; }
-    public Class getType() { return type; }
+    boolean isStreaming();
+    RowDescription getRowDescription();
+    FieldDescriptor getFieldDescriptor();
 
-    public Field(final int index, final String name, final Class type) {
-        this.index = index;
-        this.name = name;
-        this.type = type;
-    }
+    void stream(ByteBuffer buffer);
+    void stream(CharBuffer buffer);
+    
+    Object asObject();
+    String asString();
+    boolean asBoolean();
+    double asDouble();
+    float asFloat();
+    int asInt();
+    long asLong();
+    short asShort();
+    Object asArray(Class elementType);
 }

@@ -55,6 +55,35 @@ public class PgTypeRegistry implements Registry {
         return null;
     }
 
+    private static final String[] STREAMABLES = {
+        "pg_catalog.bytea",
+        "pg_catalog.text",
+        "pg_catalog.varchar",
+        "pg_catalog.char",
+        "pg_catalog.bpchar",
+        "pg_catalog.name"
+    };
+    
+    public boolean streamable(final Integer oid) {
+        final PgType pg = pgType(oid);
+        if(pg == null) {
+            return false;
+        }
+        else {
+            return streamable(pg.getName());
+        }
+    }
+
+    public boolean streamable(final String name) {
+        for(int i = 0; i < STREAMABLES.length; ++i) {
+            if(STREAMABLES[i].equals(name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private PgType populateArrayType(final Class type) {
         final Class elementType = ArrayInfo.elementType(type);
         if(elementType.isPrimitive()) {

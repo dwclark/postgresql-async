@@ -19,6 +19,7 @@ public abstract class BaseTask<T> implements Task<T> {
     private final Map<BackEnd,Consumer<Response>> oobHandlers = new EnumMap<>(BackEnd.class);
     private final long timeout;
     private final TimeUnit units;
+    private final RowMode rowMode;
 
     private boolean executed;
     private Throwable error;
@@ -60,8 +61,13 @@ public abstract class BaseTask<T> implements Task<T> {
     }
 
     public BaseTask(final long timeout, final TimeUnit units) {
+        this(timeout, units, RowMode.ROW);
+    }
+
+    public BaseTask(final long timeout, final TimeUnit units, final RowMode rowMode) {
         this.timeout = timeout;
         this.units = units;
+        this.rowMode = rowMode;
     }
 
     public Throwable getError() {

@@ -11,6 +11,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.nio.BufferOverflowException;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import db.postgresql.async.tasks.RowMode;
 
 public class SerializationContext {
 
@@ -76,6 +77,7 @@ public class SerializationContext {
 
     private static final ThreadLocal<Registry> registry = new ThreadLocal<Registry>();
 
+    //TODO: add context for row mode
     public static void description(final RowDescription val) {
         description.set(val);
     }
