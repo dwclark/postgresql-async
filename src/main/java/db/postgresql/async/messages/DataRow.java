@@ -89,16 +89,19 @@ public class DataRow extends Response implements Row {
         return description.getNames();
     }
 
-    private Object extractByPgType(final int index) {
-        final FieldDescriptor field = description.field(index);
+    static Object extractByPgType(final FieldDescriptor field, final ByteBuffer buffer) {
         final int oid = field.getTypeOid();
-        final PgType pgType = registry.pgType(oid);
+        final PgType pgType = SerializationContext.registry().pgType(oid);
         if(pgType != null) {
             return pgType.read(buffer, oid);
         }
         else {
             throw new UnsupportedOperationException("Can't deserialize type with oid " + oid);
         }
+    }
+
+    private Object extractByPgType(final int index) {
+        return extractByPgType(description.field(index), buffer);
     }
 
     private class CommonIterator {

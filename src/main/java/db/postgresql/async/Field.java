@@ -8,7 +8,6 @@ import db.postgresql.async.messages.FieldDescriptor;
 public interface Field {
 
     boolean isStreaming();
-    RowDescription getRowDescription();
     FieldDescriptor getFieldDescriptor();
 
     void stream(ByteBuffer buffer);

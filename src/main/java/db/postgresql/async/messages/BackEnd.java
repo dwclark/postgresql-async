@@ -69,17 +69,17 @@ public enum BackEnd {
 
     public final Function<ByteBuffer,? extends Response> builder;
     public final boolean outOfBand;
+    public static final int HEADER_SIZE = 5;
     
     public static int needs(final ByteBuffer buffer) {
-        if(buffer.remaining() < 5) {
-            return 5 - buffer.remaining();
+        if(buffer.remaining() < HEADER_SIZE) {
+            return HEADER_SIZE - buffer.remaining();
         }
         
-        buffer.mark();
         final char msgHeader = (char) buffer.get();
         final int messageSize = buffer.getInt() - 4;
         final int need = Math.max(messageSize - buffer.remaining(), 0);
-        buffer.reset();
+        buffer.position(buffer.position() - HEADER_SIZE);
         return need;
     }
 }

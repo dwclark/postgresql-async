@@ -7,10 +7,22 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 public class Response {
 
     private final BackEnd backEnd;
-    public BackEnd getBackEnd() { return backEnd; }
+    public final BackEnd getBackEnd() { return backEnd; }
     
     private final int size;
-    public int getSize() { return size; }
+    public final int getSize() { return size; }
+
+    public int getNeeds() {
+        return 0;
+    }
+
+    public boolean isFinished() {
+        return true;
+    }
+
+    public void networkComplete(final ByteBuffer buffer) {
+        //empty
+    }
 
     protected Response(final BackEnd backEnd, final int size) {
         this.backEnd = backEnd;
