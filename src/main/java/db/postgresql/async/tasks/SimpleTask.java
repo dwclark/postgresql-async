@@ -14,6 +14,7 @@ import db.postgresql.async.messages.ReadyForQuery;
 import db.postgresql.async.messages.RowDescription;
 import db.postgresql.async.serializers.SerializationContext;
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.BiFunction;
@@ -29,11 +30,9 @@ public abstract class SimpleTask<T> extends BaseTask<T> {
         return sql;
     }
     
-    protected T accumulator;
-    
     public SimpleTask(final String sql, final T accumulator) {
+        super(0L, TimeUnit.SECONDS, RowMode.ROW, accumulator, null);
         this.sql = sql;
-        this.accumulator = accumulator;
     }
     
     protected boolean readProcessor(final Response resp) {

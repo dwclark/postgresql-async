@@ -1,5 +1,6 @@
 package db.postgresql.async.tasks;
 
+import db.postgresql.async.Field;
 import db.postgresql.async.Row;
 import db.postgresql.async.TaskState;
 import db.postgresql.async.messages.CommandComplete;
@@ -14,6 +15,7 @@ import db.postgresql.async.pginfo.StatementCache;
 import db.postgresql.async.pginfo.Statement;
 import db.postgresql.async.serializers.SerializationContext;
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
@@ -25,7 +27,6 @@ public class ExecuteTask<T> extends BaseTask<T> {
     private final String sql;
     private final List<List<Object>> args;
     private final BiFunction<T,Row,T> func;
-    protected T accumulator;
 
     private StatementCache cache;
     private int executionCount = 0;
@@ -34,9 +35,17 @@ public class ExecuteTask<T> extends BaseTask<T> {
     public ExecuteTask(final String sql, final List<List<Object>> args,
                        final T accumulator,
                        final BiFunction<T,Row,T> func) {
+        this(sql, args, RowMode.ROW, accumulator, func, null);
+    }
+
+    public ExecuteTask(final String sql, final List<List<Object>> args,
+                       final RowMode rowMode,
+                       final T accumulator,
+                       final BiFunction<T,Row,T> func,
+                       final BiFunction<T,Field,T> fieldFunc) {
+        super(0L, TimeUnit.SECONDS, rowMode, accumulator, fieldFunc);
         this.sql = sql;
         this.args = args;
-        this.accumulator = accumulator;
         this.func = func;
         this.phase = new PreparePhase();
     }

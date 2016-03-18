@@ -122,13 +122,17 @@ public interface Task<T> {
             return applyRows(sql, NO_ARGS, processor);
         }
         
-        static <T> Task<List<T>> applyRows(final String sql, List<Object> args, final Function<Row,T> processor) {
+        static <T> Task<List<T>> applyRows(final String sql, final List<Object> args, final Function<Row,T> processor) {
             final BiFunction<List<T>,Row,List<T>> biFunc = (list,row) -> { list.add(processor.apply(row)); return list; };
             return applyRows(sql, args, new ArrayList<>(), biFunc);
         }
         
-        static <T> Task<T> applyRows(final String sql, List<Object> args, T accumulator, final BiFunction<T,Row,T> processor) {
+        static <T> Task<T> applyRows(final String sql, final List<Object> args, final T accumulator, final BiFunction<T,Row,T> processor) {
             return new ExecuteTask<>(sql, Collections.singletonList(args), accumulator, processor);
+        }
+
+        static <T> Task<T> applyFields(final String sql, List<Object> args, final T accumulator, final BiFunction<T,Field,T> processor) {
+            return new ExecuteTask<>(sql, Collections.singletonList(args), RowMode.FIELD, accumulator, null, processor);
         }
 
         static Task<Void> rollback() {

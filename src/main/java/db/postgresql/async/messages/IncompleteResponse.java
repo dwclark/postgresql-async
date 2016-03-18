@@ -9,17 +9,16 @@ public class IncompleteResponse extends Response {
     
     public IncompleteResponse(final ByteBuffer buffer) {
         super(buffer);
-        needs = buffer.remaining() - getSize();
+        needs = getSize() - buffer.remaining();
         buffer.position(buffer.position() - BackEnd.HEADER_SIZE);
+    }
+
+    public IncompleteResponse() {
+        needs = 1;
     }
 
     @Override
     public int getNeeds() {
         return needs;
-    }
-
-    @Override
-    public boolean isFinished() {
-        return false;
     }
 }

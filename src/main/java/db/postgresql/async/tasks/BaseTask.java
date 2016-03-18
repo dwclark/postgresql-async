@@ -1,6 +1,7 @@
 package db.postgresql.async.tasks;
 
 import db.postgresql.async.CommandStatus;
+import db.postgresql.async.Field;
 import db.postgresql.async.PostgresqlException;
 import db.postgresql.async.Task;
 import db.postgresql.async.TaskState;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.BiFunction;
 
 public abstract class BaseTask<T> implements Task<T> {
 
@@ -26,7 +28,10 @@ public abstract class BaseTask<T> implements Task<T> {
     protected TaskState nextState = TaskState.start();
     protected CommandComplete commandComplete;
     protected ReadyForQuery readyForQuery;
-
+    protected Response current;
+    protected T accumulator;
+    protected BiFunction<T,Field,T> fieldFunction;
+    
     public void executed() {
         executed = true;
     }
@@ -61,13 +66,16 @@ public abstract class BaseTask<T> implements Task<T> {
     }
 
     public BaseTask(final long timeout, final TimeUnit units) {
-        this(timeout, units, RowMode.ROW);
+        this(timeout, units, RowMode.ROW, null, null);
     }
 
-    public BaseTask(final long timeout, final TimeUnit units, final RowMode rowMode) {
+    public BaseTask(final long timeout, final TimeUnit units, final RowMode rowMode,
+                    final T accumulator, final BiFunction<T,Field,T> fieldFunction) {
         this.timeout = timeout;
         this.units = units;
         this.rowMode = rowMode;
+        this.accumulator = accumulator;
+        this.fieldFunction = fieldFunction;
     }
 
     public Throwable getError() {
@@ -90,19 +98,43 @@ public abstract class BaseTask<T> implements Task<T> {
         boolean keepGoing = true;
         while(keepGoing &&
               readBuffer.hasRemaining() &&
-              (needs = BackEnd.needs(readBuffer)) == 0) {
-            final int pos = readBuffer.position();
-            final Response resp = BackEnd.find(readBuffer.get(pos)).builder.apply(readBuffer);
-
-            if(resp.getBackEnd().outOfBand) {
-                onOob(resp);
+              needs == 0) {
+            if(rowMode == RowMode.ROW) {
+                current = Response.rowMode(readBuffer);
             }
-            else if(resp.getBackEnd() == BackEnd.ErrorResponse) {
-                onError((Notice) resp);
+            else if(current == null && rowMode == RowMode.FIELD) {
+                current = Response.fieldMode(readBuffer, accumulator, fieldFunction);
+            }
+
+            current.networkComplete(readBuffer);
+
+            if(current instanceof IncompleteResponse) {
+                System.out.println("Found incomplete response");
+            }
+
+            if(current.getNeeds() > 0) {
+                needs = current.getNeeds();
+                if(current.isFinished()) {
+                    current = null;
+                }
+                
+                continue;
+            }
+            
+            if(current.getBackEnd().outOfBand) {
+                onOob(current);
+                keepGoing = true;
+            }
+            else if(current.getBackEnd() == BackEnd.ErrorResponse) {
+                onError((Notice) current);
                 keepGoing = true;
             }
             else {
-                keepGoing = processor.test(resp);
+                keepGoing = processor.test(current);
+            }
+
+            if(current.isFinished()) {
+                current = null;
             }
         }
 

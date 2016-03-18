@@ -13,7 +13,7 @@ import java.nio.charset.CharsetDecoder;
 
 public class StreamingRow<T> extends Response implements Field {
 
-    private enum State { INCOMPLETE, COMPLETE, STREAMING };
+    private enum State { NOT_STARTED, INCOMPLETE, FIXED, STREAMING };
 
     private final RowDescription rowDescription;
     private final Registry registry;
@@ -25,7 +25,7 @@ public class StreamingRow<T> extends Response implements Field {
     private int callIndex = -1;
     private int soFar = 0;
 
-    private State state = State.INCOMPLETE;
+    private State state = State.NOT_STARTED;
     private int currentSize = 0;
     private int currentSoFar = 0;
     private Buffer fieldBuffer;
@@ -38,21 +38,21 @@ public class StreamingRow<T> extends Response implements Field {
         this.func = func;
         this.registry = SerializationContext.registry();
         this.rowDescription = SerializationContext.description();
-        networkComplete(buffer);
     }
 
     public int getCurrentLeft() {
         return currentSize - currentSoFar;
     }
 
+    public int getIndex() {
+        return index;
+    }
+
+    private int needs;
+    
     @Override
     public int getNeeds() {
-        if(getSize() == soFar) {
-            return 0;
-        }
-        else {
-            return 1;
-        }
+        return needs;
     }
 
     @Override
@@ -60,45 +60,61 @@ public class StreamingRow<T> extends Response implements Field {
         return getNeeds() == 0;
     }
 
-    public boolean getNeedsCall() {
-        return ((callIndex < index) &&
-                (state == State.COMPLETE || state == State.STREAMING));
-    }
-
     @Override
     public final void networkComplete(final ByteBuffer buffer) {
         this.buffer = buffer;
-        if(state == State.INCOMPLETE) {
-            if(buffer.remaining() < 4) {
-                return;
-            }
 
-            FieldDescriptor desc = rowDescription.field(index);
-            if(registry.streamable(desc.getTypeOid())) {
-                state = State.STREAMING;
-            }
-            else if(currentSize <= buffer.remaining()) {
-                state = State.COMPLETE;
-            }
-            else {
-                return;
-            }
-        }
-
-        if(state == State.COMPLETE) {
-            this.accumulator = func.apply(accumulator, this);
-            ++callIndex;
-            return;
-        }
-
-        if(state == State.STREAMING) {
-            if(callIndex < index) {
-                this.accumulator = func.apply(accumulator, this);
-                ++callIndex;
-                return;
+        while(index < rowDescription.length()) {
+            if(state == State.NOT_STARTED) {
+                if(buffer.remaining() < 2) {
+                    needs = 2 - buffer.remaining();
+                    return;
+                }
+                else {
+                    buffer.getShort(); //skip column count
+                    state = State.INCOMPLETE;
+                }
             }
             
-            stream();
+            //if the field size cannot be read, return, there is nothing left to do
+            if(state == State.INCOMPLETE) {
+                if(buffer.remaining() < 4) {
+                    needs = 4 - buffer.remaining();
+                    return;
+                }
+                else {
+                    currentSize = buffer.getInt();
+                    soFar += 4;
+                    
+                    FieldDescriptor desc = rowDescription.field(index);
+                    if(registry.streamable(desc.getTypeOid())) {
+                        state = State.STREAMING;
+                    }
+                    else {
+                        state = State.FIXED;
+                    }
+                }
+            }
+
+            if(state == State.FIXED) {
+                if(currentSize > buffer.remaining()) {
+                    needs = currentSize - buffer.remaining();
+                    return;
+                }
+                else {
+                    //reset back to size, field extractors will consume this
+                    buffer.position(buffer.position() - 4);
+                    this.accumulator = func.apply(accumulator, this);
+                    soFar += currentSize;
+                    ++callIndex;
+                    finishField();
+                }
+            }
+            else {
+                this.accumulator = func.apply(accumulator, this);
+                ++callIndex;
+                stream();
+            }
         }
     }
 
@@ -109,6 +125,7 @@ public class StreamingRow<T> extends Response implements Field {
         currentSoFar = 0;
         fieldBuffer = null;
         decoder = null;
+        networkComplete(buffer);
     }
 
     private void stream() {

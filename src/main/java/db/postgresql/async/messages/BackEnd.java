@@ -70,9 +70,13 @@ public enum BackEnd {
     public final Function<ByteBuffer,? extends Response> builder;
     public final boolean outOfBand;
     public static final int HEADER_SIZE = 5;
+
+    public static boolean hasHeader(final ByteBuffer buffer) {
+        return buffer.remaining() >= HEADER_SIZE;
+    }
     
     public static int needs(final ByteBuffer buffer) {
-        if(buffer.remaining() < HEADER_SIZE) {
+        if(!hasHeader(buffer)) {
             return HEADER_SIZE - buffer.remaining();
         }
         

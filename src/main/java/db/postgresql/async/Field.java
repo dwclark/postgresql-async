@@ -9,6 +9,7 @@ public interface Field {
 
     boolean isStreaming();
     FieldDescriptor getFieldDescriptor();
+    int getIndex();
 
     void stream(ByteBuffer buffer);
     void stream(CharBuffer buffer);
