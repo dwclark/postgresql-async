@@ -179,20 +179,13 @@ public class StreamingRow<T> extends Response implements Field {
         return rowDescription.field(index);
     }
 
-    private void assignTarget(final Buffer target) {
-        this.fieldBuffer = target;
-        this.currentSize = buffer.getInt();
-        soFar += 4;
-        stream();
-    }
-    
     public void stream(final ByteBuffer target) {
-        assignTarget(target);
+        this.fieldBuffer = target;
     }
 
     public void stream(final CharBuffer target) {
+        this.fieldBuffer = target;
         this.decoder = SerializationContext.stringOps().getEncoding().newDecoder();
-        assignTarget(target);
     }
     
     public Object asObject() {
