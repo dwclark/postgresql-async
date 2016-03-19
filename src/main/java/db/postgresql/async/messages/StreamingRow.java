@@ -60,59 +60,68 @@ public class StreamingRow<T> extends Response implements Field {
         return getNeeds() == 0;
     }
 
+    private void notStarted() {
+        if(buffer.remaining() < 2) {
+            needs = 2 - buffer.remaining();
+        }
+        else {
+            buffer.getShort(); //skip column count
+            state = State.INCOMPLETE;
+        }
+    }
+
+    private void incomplete() {
+        if(buffer.remaining() < 4) {
+            needs = 4 - buffer.remaining();
+        }
+        else {
+            currentSize = buffer.getInt();
+            soFar += 4;
+            
+            FieldDescriptor desc = rowDescription.field(index);
+            if(registry.streamable(desc.getTypeOid())) {
+                state = State.STREAMING;
+            }
+            else {
+                state = State.FIXED;
+            }
+        }
+    }
+
+    private void fixed() {
+        if(currentSize > buffer.remaining()) {
+            needs = currentSize - buffer.remaining();
+        }
+        else {
+            //reset back to size, field extractors will consume this
+            buffer.position(buffer.position() - 4);
+            this.accumulator = func.apply(accumulator, this);
+            soFar += currentSize;
+            ++callIndex;
+            finishField();
+        }
+    }
+
     @Override
     public final void networkComplete(final ByteBuffer buffer) {
         this.buffer = buffer;
-
-        while(index < rowDescription.length()) {
+        needs = 0;
+        
+        while(needs == 0 && index < rowDescription.length()) {
             if(state == State.NOT_STARTED) {
-                if(buffer.remaining() < 2) {
-                    needs = 2 - buffer.remaining();
-                    return;
-                }
-                else {
-                    buffer.getShort(); //skip column count
-                    state = State.INCOMPLETE;
-                }
+                notStarted();
             }
             
             //if the field size cannot be read, return, there is nothing left to do
             if(state == State.INCOMPLETE) {
-                if(buffer.remaining() < 4) {
-                    needs = 4 - buffer.remaining();
-                    return;
-                }
-                else {
-                    currentSize = buffer.getInt();
-                    soFar += 4;
-                    
-                    FieldDescriptor desc = rowDescription.field(index);
-                    if(registry.streamable(desc.getTypeOid())) {
-                        state = State.STREAMING;
-                    }
-                    else {
-                        state = State.FIXED;
-                    }
-                }
+                incomplete();
             }
 
             if(state == State.FIXED) {
-                if(currentSize > buffer.remaining()) {
-                    needs = currentSize - buffer.remaining();
-                    return;
-                }
-                else {
-                    //reset back to size, field extractors will consume this
-                    buffer.position(buffer.position() - 4);
-                    this.accumulator = func.apply(accumulator, this);
-                    soFar += currentSize;
-                    ++callIndex;
-                    finishField();
-                }
+                fixed();
             }
-            else {
-                this.accumulator = func.apply(accumulator, this);
-                ++callIndex;
+            
+            if(state == State.STREAMING) {
                 stream();
             }
         }
@@ -125,10 +134,14 @@ public class StreamingRow<T> extends Response implements Field {
         currentSoFar = 0;
         fieldBuffer = null;
         decoder = null;
-        networkComplete(buffer);
     }
 
     private void stream() {
+        if(callIndex < index) {
+            this.accumulator = func.apply(accumulator, this);
+            ++callIndex;
+        }
+        
         //lock in limits if necessary;
         final int currentLimit = buffer.limit();
         if(getCurrentLeft() < buffer.remaining()) {
@@ -154,6 +167,7 @@ public class StreamingRow<T> extends Response implements Field {
             }
         }
 
+        needs = getCurrentLeft();
         buffer.limit(currentLimit);
     }
 
@@ -185,7 +199,6 @@ public class StreamingRow<T> extends Response implements Field {
         final int beginAt = buffer.position();
         final Object ret = DataRow.extractByPgType(rowDescription.field(index), buffer);
         soFar += (buffer.position() - beginAt);
-        finishField();
         return ret;
     }
 
@@ -202,7 +215,6 @@ public class StreamingRow<T> extends Response implements Field {
         }
 
         soFar += (buffer.position() - beginAt);
-        finishField();
         return ret;
     }
     
@@ -211,7 +223,6 @@ public class StreamingRow<T> extends Response implements Field {
         buffer.getInt();
         final boolean ret = readBoolean(buffer);
         soFar += (buffer.position() - beginAt);
-        finishField();
         return ret;
     }
     
@@ -220,7 +231,6 @@ public class StreamingRow<T> extends Response implements Field {
         buffer.getInt();
         final double ret = readDouble(buffer);
         soFar += (buffer.position() - beginAt);
-        finishField();
         return ret;
     }
     
@@ -229,7 +239,6 @@ public class StreamingRow<T> extends Response implements Field {
         buffer.getInt();
         final float ret = readFloat(buffer);
         soFar += (buffer.position() - beginAt);
-        finishField();
         return ret;
     }
     
@@ -238,7 +247,6 @@ public class StreamingRow<T> extends Response implements Field {
         buffer.getInt();
         final int ret = readInt(buffer);
         soFar += (buffer.position() - beginAt);
-        finishField();
         return ret;
     }
     
@@ -247,7 +255,6 @@ public class StreamingRow<T> extends Response implements Field {
         buffer.getInt();
         final long ret = readLong(buffer);
         soFar += (buffer.position() - beginAt);
-        finishField();
         return ret;
     }
     
@@ -256,7 +263,6 @@ public class StreamingRow<T> extends Response implements Field {
         buffer.getInt();
         final short ret = readShort(buffer);
         soFar += (buffer.position() - beginAt);
-        finishField();
         return ret;
     }
     
@@ -266,7 +272,6 @@ public class StreamingRow<T> extends Response implements Field {
         final int beginAt = buffer.position();
         final Object ret = pgType.read(buffer, fd.getTypeOid(), elementType);
         soFar += (buffer.position() - beginAt);
-        finishField();
         return ret;
     }
 }

@@ -108,10 +108,6 @@ public abstract class BaseTask<T> implements Task<T> {
 
             current.networkComplete(readBuffer);
 
-            if(current instanceof IncompleteResponse) {
-                System.out.println("Found incomplete response");
-            }
-
             if(current.getNeeds() > 0) {
                 needs = current.getNeeds();
                 if(current.isFinished()) {
@@ -129,7 +125,7 @@ public abstract class BaseTask<T> implements Task<T> {
                 onError((Notice) current);
                 keepGoing = true;
             }
-            else {
+            else if(!(current instanceof StreamingRow)) {
                 keepGoing = processor.test(current);
             }
 

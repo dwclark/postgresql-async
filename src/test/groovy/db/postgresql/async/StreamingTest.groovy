@@ -30,11 +30,14 @@ class StreamingTest extends Specification {
                 list << [];
             }
 
-            List current = list[-1];
-            current << f.asObject(); }).get();
+            def o = f.asObject();
+            println(o);
+            list[-1].add(o);
+            return list; }).get();
 
         expect:
         all.size() == 2;
-        all[0].size() == 8;
+        all[0] == [1, true, 42, 420, 4200, 3.14f, 3.14159265d, new Money(100_00)];
+        all[1] == [2, false, 43, 430, 4300, 2.71f, 2.71828182d, new Money(37_500_00)];
     }
 }
