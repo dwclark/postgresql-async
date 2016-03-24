@@ -77,6 +77,14 @@ public class IO implements Comparable<IO> {
         return keyData;
     }
 
+    public int getReadCapacity() {
+        return readBuffer.capacity();
+    }
+
+    public int getWriteCapacity() {
+        return feMessage.buffer.capacity();
+    }
+
     //OOB handlers
     public void handleParameterStatus(final Response r) {
         final ParameterStatus pstatus = (ParameterStatus) r;
@@ -491,7 +499,7 @@ public class IO implements Comparable<IO> {
     }
     
     private void prepareThread() {
-        SerializationContext.io(this);
+        SerializationContext.setup(getSessionInfo());
     }
     
     private void decide() {

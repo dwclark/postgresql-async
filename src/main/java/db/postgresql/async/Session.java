@@ -1,5 +1,6 @@
 package db.postgresql.async;
 
+import db.postgresql.async.serializers.SerializationContext;
 import db.postgresql.async.messages.KeyData;
 import db.postgresql.async.pginfo.PgAttribute;
 import db.postgresql.async.pginfo.PgType;
@@ -250,6 +251,27 @@ public class Session {
         }
     }
 
+    private static class SessionExecutorService extends ThreadPoolExecutor {
+
+        public SessionExecutorService() {
+            super(sessionInfo.getMinChannels(), sessionInfo.getMaxChannels(),
+                  60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
+                  new PrefixFactory("Session-IO-Pool"));
+        }
+
+        @Override
+        protected void beforeExecute(final Thread t, final Runnable r) {
+            SerializationContext.setup(sessionInfo);
+            super.beforeExecute(t, r);
+        }
+
+        @Override
+        protected void afterExecute(final Thread t, final Runnable r) {
+            super.afterExecute(t, r);
+            SerializationContext.cleanup();
+        }
+    }
+
     private final SessionInfo sessionInfo;
     private final ExecutorService ioService;
     private final ScheduledExecutorService scheduler;
@@ -262,9 +284,7 @@ public class Session {
         try {
             this.sessionInfo = sessionInfo;
             this.scheduler = Executors.newScheduledThreadPool(scheduledThreadCount(sessionInfo));
-            this.ioService = new ThreadPoolExecutor(sessionInfo.getMinChannels(), sessionInfo.getMaxChannels(),
-                                                    60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
-                                                    new PrefixFactory("Session-IO-Pool"));
+            this.ioService = new SessionExecutorService();
             this.busyService = Executors.newSingleThreadExecutor(new PrefixFactory("Session-Busy-Pool"));
             this.channelGroup = AsynchronousChannelGroup.withThreadPool(ioService);
             this.ioPool = new IOPool();

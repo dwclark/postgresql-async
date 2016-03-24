@@ -1,6 +1,6 @@
 package db.postgresql.async.serializers;
 
-import db.postgresql.async.IO;
+import db.postgresql.async.SessionInfo;
 import db.postgresql.async.messages.RowDescription;
 import db.postgresql.async.pginfo.Registry;
 import java.nio.charset.Charset;
@@ -94,18 +94,16 @@ public class SerializationContext {
         registry.set(val);
     }
 
-    private static final ThreadLocal<IO> currentIO = new ThreadLocal<IO>();
-
-    public static void io(final IO io) {
-        currentIO.set(io);
-        registry.set(io.getSessionInfo().getRegistry());
-        stringOps().setEncoding(io.getSessionInfo().getEncoding());
+    public static void setup(final SessionInfo sessionInfo) {
+        registry.set(sessionInfo.getRegistry());
+        stringOps().setEncoding(sessionInfo.getEncoding());
     }
 
-    public static IO io() {
-        return currentIO.get();
+    public static void cleanup() {
+        registry.set(null);
+        stringOps().setEncoding(null);
     }
-    
+
     public static StringOps stringOps() { return stringOps.get(); }
 
     public static String bufferToString(final ByteBuffer buffer) {

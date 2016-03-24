@@ -66,4 +66,9 @@ class StreamingTest extends Specification {
         list[0][1] == 1;
         list[0][2].flip().toString()  == 'one';
     }
+
+    def "Test Longer Streams"() {
+        //setup:
+        //session
+    }
 }

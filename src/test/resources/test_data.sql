@@ -1,5 +1,6 @@
 begin transaction;
 
+drop table if exists books;
 drop table if exists fixed_numbers;
 drop table if exists all_dates;
 drop table if exists binary_fields;
@@ -22,6 +23,12 @@ drop type if exists address;
 drop table if exists my_moods;
 drop type if exists days_of_week;
 drop type if exists moods;
+
+create table books (
+       id serial,
+       contents text,
+       image bytea
+);
 
 create table fixed_numbers (
        id serial,
