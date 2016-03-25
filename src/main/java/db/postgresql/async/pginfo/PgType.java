@@ -1,13 +1,13 @@
 package db.postgresql.async.pginfo;
 
+import db.postgresql.async.Mapping;
 import java.lang.reflect.Array;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import static db.postgresql.async.buffers.BufferOps.*;
-import db.postgresql.async.Mapping;
-import java.nio.ByteBuffer;
 
 public class PgType {
     

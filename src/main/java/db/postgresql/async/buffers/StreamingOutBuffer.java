@@ -10,6 +10,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.Queue;
 import java.util.function.Predicate;
+import java.util.function.Consumer;
 
 public class StreamingOutBuffer implements OutBuffer {
 
@@ -146,36 +147,58 @@ public class StreamingOutBuffer implements OutBuffer {
     //private classes for state management
     private enum State { BUFFER, QUEUE };
     
-    private interface SizeHeader {
-        void increment(int amt);
-        int size();
+    private abstract class SizeHeader {
+        private SizeHeader auxiliary;
+
+        public void setAuxiliary(final SizeHeader val) {
+            this.auxiliary = val;
+        }
+
+        public void removeAuxiliary() {
+            auxiliary = null;
+        }
+
+        public void increment(int amt) {
+            if(auxiliary != null) {
+                auxiliary.increment(amt);
+            }
+        }
+        
+        abstract int size();
     }
     
-    private class SizeHeaderInBuffer implements SizeHeader {
-        final int position;
+    private class SizeHeaderInBuffer extends SizeHeader {
+        int position;
 
-        public SizeHeaderInBuffer() {
+        public SizeHeaderInBuffer(final int initial) {
             this.position = buffer.position();
-            buffer.putInt(4);
+            buffer.putInt(initial);
         }
 
         public void increment(final int amt) {
+            super.increment(amt);
             buffer.putInt(position, buffer.getInt(position) + amt);
         }
 
         public int size() {
             return buffer.getInt(position);
         }
+
+        public void move(final int position, final int initial) {
+            this.position = position;
+            buffer.putInt(initial);
+        }
     }
 
-    private class SizeHeaderInMemory implements SizeHeader, Predicate<ByteBuffer> {
+    private class SizeHeaderInMemory extends SizeHeader implements Predicate<ByteBuffer> {
         int size;
 
-        public SizeHeaderInMemory() {
-            this.size = 4;
+        public SizeHeaderInMemory(final int initial) {
+            this.size = initial;
         }
 
         public void increment(final int amt) {
+            super.increment(amt);
             size += amt;
         }
 
@@ -198,27 +221,67 @@ public class StreamingOutBuffer implements OutBuffer {
     private final Queue<Predicate<ByteBuffer>> queue = new ConcurrentLinkedQueue<>();
     private final CharsetEncoder encoder;
     private final CharsetEncoder asciiEncoder = US_ASCII.newEncoder();
-    
+
+    private SizeHeader fieldSizeHeader;
     private SizeHeader sizeHeader;
-    private State state;
+    private State state = State.BUFFER;
     
     public StreamingOutBuffer(final ByteBuffer buffer, final CharsetEncoder encoder) {
         this.buffer = buffer;
-        this.state = State.BUFFER;
-        this.sizeHeader = new SizeHeaderInBuffer();
         this.encoder = encoder;
     }
 
+    public ByteBuffer getBuffer() {
+        return buffer;
+    }
+
+    public Queue<Predicate<ByteBuffer>> getQueue() {
+        return queue;
+    }
+
+    public CharsetEncoder getEncoder() {
+        return encoder;
+    }
+
     public void beginMessage() {
+        final int initial = 4;
+        
         if(buffer.remaining() >= 4 && state == State.BUFFER) {
-            sizeHeader = new SizeHeaderInBuffer();
+            if(sizeHeader == null) {
+                sizeHeader = new SizeHeaderInBuffer(initial);
+            }
+            else {
+                ((SizeHeaderInBuffer) sizeHeader).move(buffer.position(), initial);
+            }
         }
         else {
             state = State.QUEUE;
-            SizeHeaderInMemory shim = new SizeHeaderInMemory();
+            SizeHeaderInMemory shim = new SizeHeaderInMemory(initial);
             queue.add(shim);
             sizeHeader = shim;
         }
+    }
+
+    private void beginField() {
+        final int initial = 0;
+        sizeHeader.increment(4);
+        
+        if(buffer.remaining() >= 4 && state == State.BUFFER) {
+            if(fieldSizeHeader == null) {
+                fieldSizeHeader = new SizeHeaderInBuffer(initial);
+            }
+            else {
+                ((SizeHeaderInBuffer) fieldSizeHeader).move(buffer.position(), initial);
+            }
+        }
+        else {
+            state = State.QUEUE;
+            SizeHeaderInMemory shim = new SizeHeaderInMemory(initial);
+            queue.add(shim);
+            fieldSizeHeader = shim;
+        }
+
+        sizeHeader.setAuxiliary(fieldSizeHeader);
     }
     
     public void clear() {
@@ -241,7 +304,7 @@ public class StreamingOutBuffer implements OutBuffer {
     public boolean finished() {
         buffer.clear();
         fill();
-        return (buffer.remaining() == 0) && (queue.peek() == null);
+        return queue.peek() == null;
     }
 
     public StreamingOutBuffer put(final byte val) {
@@ -384,6 +447,18 @@ public class StreamingOutBuffer implements OutBuffer {
         final CoderResult result = toMainBuffer(val, encoder);
         if(result == CoderResult.OVERFLOW) {
             queueCharBuffer(val, encoder);
+        }
+
+        return this;
+    }
+    
+    public StreamingOutBuffer withFieldSize(final Consumer<OutBuffer> consumer) {
+        try {
+            beginField();
+            consumer.accept(this);
+        }
+        finally {
+            sizeHeader.removeAuxiliary();
         }
 
         return this;
